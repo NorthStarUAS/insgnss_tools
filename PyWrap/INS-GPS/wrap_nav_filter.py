@@ -107,9 +107,6 @@ from scipy import io as sio
 from matplotlib import pyplot as plt
 r2d = np.rad2deg
 
-# Set Flag for whether or not to calibrate magnetometers
-CALIBRATE_MAGS = False
-
 # Directory to converted flight data that contains the flight_data and flight_info structures
 directory = 'flight_data'
 
