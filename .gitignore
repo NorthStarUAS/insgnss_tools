@@ -1,3 +1,4 @@
 PyWrap/INS-GPS/flight_data/*.mat
 *.o
 *.so
+*.zip
