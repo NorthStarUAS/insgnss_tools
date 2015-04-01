@@ -11,10 +11,49 @@ More details on compiling the C-Code to make the `.so` can be found in
 June 19, 2014      [Hamid M. ] initial version for experimental AHRS/air-speed dead-reckoning filter
 August 19, 2014    [Trevor L.] modified and extended to work with nominal INS/GPS
 September 25, 2014 [Hamid M. ] clean up comments and naming
+March 31, 2014     [Hamid M. ] add commands to build .so on run
 """
+# Build the 'Cbuild/EKF_15state_quat.so' object
+# Note: Rerunning this in interactive mode has unexpected results.  
+#       It doesn't seem to reload the latest `.so`
+import subprocess, os, sys
+
+if not os.path.isdir('Cbuild'):
+    os.mkdir('Cbuild')
+
+BUILD_FAILED_FLAG = 0
+join = os.path.join
+## Build `nav_functions.o`
+cmd = 'gcc -o '+ join('Cbuild', 'nav_functions.o') + ' -c ' + join('Csources', 'nav_functions.c') +' -fPIC'
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait() # p.wait() returns a '1' if process failed
+
+## Build `matrix.o`
+cmd = 'gcc -o ' + join('Cbuild', 'matrix.o') + ' -c ' + join('Csources', 'matrix.c') + ' -fPIC'
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait()
+
+## Build `EKF_15state_quat.o`
+cmd = 'gcc -o ' + join('Cbuild', 'EKF_15state_quat.o') + ' -c ' + join('Csources', 'EKF_15state_quat.c') + ' -fPIC'
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait()
+
+## Link into shared object
+cmd = 'gcc -lm -shared -Wl",-soname,EKF_15state_quat" -o ' + join('Cbuild', 'EKF_15state_quat.so') + ' ' \
+                                                           + join('Cbuild', 'EKF_15state_quat.o')  + ' ' \
+                                                           + join('Cbuild', 'matrix.o') + ' ' \
+                                                           + join('Cbuild', 'nav_functions.o')
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait()
+
+if BUILD_FAILED_FLAG:
+    sys.exit('Ending Program.  Failed to build C-code.')
+
+
+
 
 # Import these ctypes for proper declaration of globaldefs.py structures
-import ctypes, os
+import ctypes
 # Import the globaldefs.py file
 import globaldefs
 # Abbreviate these ctypes commands
