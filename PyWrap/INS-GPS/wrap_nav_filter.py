@@ -12,6 +12,7 @@ June 19, 2014      [Hamid M. ] initial version for experimental AHRS/air-speed d
 August 19, 2014    [Trevor L.] modified and extended to work with nominal INS/GPS
 September 25, 2014 [Hamid M. ] clean up comments and naming
 March 31, 2014     [Hamid M. ] add commands to build .so on run
+April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
 """
 # Build the 'Cbuild/EKF_15state_quat.so' object
 # Note: Rerunning this in interactive mode has unexpected results.  
@@ -283,7 +284,7 @@ ax3.grid()
 plt.figure()
 plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
 plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='onboard', c='k', lw=3, alpha=.5)
-plt.plot(t_store[kstart:len(t)], navalt_store[kstart:len(t)], label='PythonWrap',c='blue', lw=2)
+plt.plot(t_store, navalt_store, label='PythonWrap',c='blue', lw=2)
 plt.ylabel('ALTITUDE (METERS)', weight='bold')
 plt.legend(loc=0)
 plt.grid()
@@ -295,7 +296,7 @@ plt.ylabel('LATITUDE (DEGREES)', weight='bold')
 plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
 plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], label='GPS Sensor', c='green', lw=2, alpha=.5)
 plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='onboard', c='k', lw=3, alpha=.5)
-plt.plot(r2d(navlon_store[kstart:len(t)]), r2d(navlat_store[kstart:len(t)]), label='PythonWrap', c='blue', lw=2)
+plt.plot(r2d(navlon_store), r2d(navlat_store), label='PythonWrap', c='blue', lw=2)
 plt.grid()
 plt.legend(loc=0)
 plt.show()
