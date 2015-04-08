@@ -25,7 +25,7 @@
 /*     Include Pertinent Header Files */
 
 #include <math.h>
-#include "matrix.h"
+#include "../utils/matrix.h"
 #include "nav_functions.h"
 
 /*=================================================================*/
