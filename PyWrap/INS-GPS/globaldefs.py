@@ -124,7 +124,7 @@ class MISSION(Structure):
     _fields_ = [
     (       'mode', c_ushort), # mode variable; 0 = dump data, 1 = manual control, 2 = autopilot control
     (    'run_num', c_ushort), # counter for number of autopilot engagements
-    ('researchNav', c_double)  # mode variable; 0 = standard nav filter, 1 = research nav filter
+    ('researchNav', c_ushort)  # mode variable; 0 = standard nav filter, 1 = research nav filter
     ]
 
 # Control Data structure
@@ -176,7 +176,6 @@ class NAV(Structure):
     (  'quat', c_double*4), # Quaternions estimate
     (    'ab', c_double*3), # [m/sec^2], accelerometer bias estimate
     (    'gb', c_double*3), # [rad/sec], rate gyro bias estimate
-    (    'hb', c_double*3), #
     (   'asf', c_double*3), # [m/sec^2], accelerometer scale factor estimate
     (   'gsf', c_double*3), # [rad/sec], rate gyro scale factor estimate
     (    'Pp', c_double*3), # [rad], covariance estimate for position
@@ -218,7 +217,6 @@ class RESEARCHNAV(Structure):
     (  'quat', c_double*4), # Quaternions estimate
     (    'ab', c_double*3), # [m/sec^2], accelerometer bias estimate
     (    'gb', c_double*3), # [rad/sec], rate gyro bias estimate
-    (    'hb', c_double*3), #
     (   'asf', c_double*3), # [m/sec^2], accelerometer scale factor estimate
     (   'gsf', c_double*3), # [rad/sec], rate gyro scale factor estimate
     (    'Pp', c_double*3), # [rad], covariance estimate for position
