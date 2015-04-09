@@ -14,6 +14,7 @@ September 25, 2014 [Hamid M. ] clean up comments and naming
 March 31, 2014     [Hamid M. ] add commands to build .so on run
 April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
                    [Hamid M. ] Add input flags.  Extend to work with research.
+April 9, 2015      [Hamid M. ] Add way to affect mission->haveGPS
 """
 # Note: Rerunning this in interactive mode has unexpected results.  
 #       It doesn't seem to reload the latest `.so`
@@ -22,6 +23,7 @@ April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
 FLAG_UNBIASED_IMU = True           # Choose whether accel & gyro should be bias-free
 FLAG_FILTERTYPE = 'BASELINE'       # 'BASELINE' or 'RESEARCH'
 RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
+T_GPSOFF = 350           # Time, above which, mission->haveGPS set to 0.  
 FLAG_FORCE_INIT = True  # If True, will force the position and orientation estimates
                         # to initialize using the logged INS/GPS results from the `.mat`
                         # data file.
@@ -29,6 +31,7 @@ FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND     = True
+FLAG_PLOT_HAVEGPS  = True
 FLAG_PLOT_SIGNALS  = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 
@@ -244,6 +247,7 @@ navlat_store, navlon_store, navalt_store = [],[],[]
 wn_store, we_store, wd_store = [], [], []
 signal_store = []
 navStatus_store = []
+haveGPS_store = []
 t_store = []
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
@@ -283,6 +287,12 @@ while k < len(t):
     sensordata.gpsData_ptr.contents.lat = lat[k]
     sensordata.gpsData_ptr.contents.lon = lon[k]
     sensordata.gpsData_ptr.contents.alt = alt[k]
+
+    # Update Mission
+    mission.haveGPS = 1
+    if (t[k] != -1) and (t[k] >= T_GPSOFF):
+      mission.haveGPS = 0
+    
 
     # Set GPS newData flag
     if ((abs(flight_data.alt[k] - old_GPS_alt))>.0001):
@@ -327,6 +337,7 @@ while k < len(t):
     signal_store.append([nav_active.signal_0, nav_active.signal_1, nav_active.signal_2, nav_active.signal_3,
                          nav_active.signal_4, nav_active.signal_5, nav_active.signal_6, nav_active.signal_7,
                          nav_active.signal_8, nav_active.signal_9])
+    haveGPS_store.append(mission.haveGPS)
     t_store.append(t[k])
 
     # Increment time up one step for the next iteration of the while loop.    
@@ -402,6 +413,14 @@ if FLAG_PLOT_SIGNALS:
     plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
   plt.ylabel('SIGNAL UNITS', weight='bold')
   plt.legend(loc=0)
+  plt.grid()
+
+# haveGPS Plot
+if FLAG_PLOT_HAVEGPS:
+  plt.figure()
+  plt.title('MISSION HAVEGPS FLAG')
+  plt.plot(t_store, haveGPS_store, c='black', lw=2)
+  plt.ylim([-2,2])
   plt.grid()
 
 plt.show()
