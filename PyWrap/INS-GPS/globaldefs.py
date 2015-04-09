@@ -124,7 +124,9 @@ class MISSION(Structure):
     _fields_ = [
     (       'mode', c_ushort), # mode variable; 0 = dump data, 1 = manual control, 2 = autopilot control
     (    'run_num', c_ushort), # counter for number of autopilot engagements
-    ('researchNav', c_ushort)  # mode variable; 0 = standard nav filter, 1 = research nav filter
+    ('researchNav', c_ushort), # mode variable; 0 = standard nav filter, 1 = research nav filter
+    ('researchGuidance', c_ushort), # mode variable; 0 = standard guidance, 1 = research guidance
+    ('haveGPS', c_ushort)      # mode variable; 0 = no GPS, 1 = have GPS
     ]
 
 # Control Data structure
@@ -160,6 +162,41 @@ class CONTROL(Structure):
     (  'signal_8', c_double), # //< user defined dummy variable
     (  'signal_9', c_double)  # //< user defined dummy variable
     ]
+
+# Research Control Data structure
+class RESEARCHCONTROL(Structure):
+    _fields_ = [
+    (      'dthr', c_double), #   ///< [0-1], throttle command
+    (        'de', c_double), #     ///< [rad], elevator command, +TED
+    (        'dr', c_double), #     ///< [rad], rudder command, +TEL
+    (      'da_l', c_double), #   ///< [rad], left aileron command, +TED
+    (      'da_r', c_double), #   ///< [rad], right aileron command, +TED
+    (      'df_l', c_double), #   ///< [rad], left flap command, +TED
+    (      'df_r', c_double), #   ///< [rad], right flap command, +TED
+    (   'phi_cmd', c_double), # //< [rad], Euler roll angle command
+    ( 'theta_cmd', c_double), # < [rad], Euler pitch angle command
+    (   'psi_cmd', c_double), # //< [rad], Euler yaw angle command
+    (     'p_cmd', c_double), #  ///< [rad/sec], body axis roll rate command
+    (     'q_cmd', c_double), #  ///< [rad/sec], body axis pitch rate command
+    (     'r_cmd', c_double), #  ///< [rad/sec], body axis yaw rate command
+    (   'ias_cmd', c_double), # //< [m/sec], airspeed command
+    (     'h_cmd', c_double), #  ///< [m], altitude command
+    ('gndtrk_cmd', c_double), #  [rad], ground track angle command, relative to true north
+    (   'aoa_cmd', c_double), # //< [rad], angle of attack command
+    (   'aos_cmd', c_double), # //< [rad], angle of sideslip command
+    ( 'gamma_cmd', c_double), # < [rad], flight path angle command
+    (  'signal_0', c_double), # //< user defined dummy variable
+    (  'signal_1', c_double), # //< user defined dummy variable
+    (  'signal_2', c_double), # //< user defined dummy variable
+    (  'signal_3', c_double), # //< user defined dummy variable
+    (  'signal_4', c_double), # //< user defined dummy variable
+    (  'signal_5', c_double), # //< user defined dummy variable
+    (  'signal_6', c_double), # //< user defined dummy variable
+    (  'signal_7', c_double), # //< user defined dummy variable
+    (  'signal_8', c_double), # //< user defined dummy variable
+    (  'signal_9', c_double)  # //< user defined dummy variable
+    ]
+
 
 # Navigation Filter Data Structure
 class NAV(Structure):

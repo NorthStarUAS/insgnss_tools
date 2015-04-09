@@ -20,7 +20,7 @@ April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
 # # # # # START INPUTS # # # # #
 
 FLAG_UNBIASED_IMU = True           # Choose whether accel & gyro should be bias-free
-FLAG_FILTERTYPE = 'BASELINE'        # 'BASELINE' or 'RESEARCH'
+FLAG_FILTERTYPE = 'BASELINE'       # 'BASELINE' or 'RESEARCH'
 RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
 FLAG_FORCE_INIT = True  # If True, will force the position and orientation estimates
                         # to initialize using the logged INS/GPS results from the `.mat`
@@ -100,11 +100,15 @@ gpsData_r   = globaldefs.GPS()
 airData     = globaldefs.AIRDATA()
 surface     = globaldefs.SURFACE()
 inceptor    = globaldefs.INCEPTOR()
+mission     = globaldefs.MISSION()
+
+nav = globaldefs.NAV()
+researchNav = globaldefs.RESEARCHNAV()
 if FLAG_FILTERTYPE == 'BASELINE':
-  nav = globaldefs.NAV()
+  nav_active = nav
 else:
   # Research navigation filter
-  nav = globaldefs.RESEARCHNAV()
+  nav_active = researchNav 
 
 # Assign pointers that use the structures just declared
 sensordata.imuData_ptr = ctypes.pointer(imu)
@@ -138,12 +142,16 @@ if FLAG_FILTERTYPE == 'BASELINE':
 else:
   # Research navigation filter
   init_nav = compiled_test_nav_filter.init_researchNav
-  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA),
+                       POINTER(globaldefs.MISSION),
+                       POINTER(globaldefs.NAV), 
                        POINTER(globaldefs.RESEARCHNAV)]
 
   get_nav = compiled_test_nav_filter.get_researchNav
   # Declare inputs to the get_nav function
   get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                      POINTER(globaldefs.MISSION),
+                      POINTER(globaldefs.NAV),
                       POINTER(globaldefs.RESEARCHNAV)]
   close_nav = compiled_test_nav_filter.close_researchNav                 
 
@@ -288,37 +296,37 @@ while k < len(t):
         if FLAG_FILTERTYPE == 'BASELINE':
           init_nav(sensordata, nav, controlData)
         else:
-          init_nav(sensordata, nav)
+          init_nav(sensordata, mission, nav, researchNav)
 
         if FLAG_FORCE_INIT:
           # Force initial values to match logged INS/GPS result
-          nav.psi = flight_data.psi[k]
-          nav.the = flight_data.theta[k]
-          nav.phi = flight_data.phi[k]
+          nav_active.psi = flight_data.psi[k]
+          nav_active.the = flight_data.theta[k]
+          nav_active.phi = flight_data.phi[k]
 
-          nav.lat = flight_data.navlat[k] # Note: should be radians
-          nav.lon = flight_data.navlon[k] # Note: should be radians
-          nav.alt = flight_data.navalt[k]
+          nav_active.lat = flight_data.navlat[k] # Note: should be radians
+          nav_active.lon = flight_data.navlon[k] # Note: should be radians
+          nav_active.alt = flight_data.navalt[k]
     else:
       if FLAG_FILTERTYPE == 'BASELINE':
         get_nav(sensordata, nav, controlData)
       else:
-        get_nav(sensordata, nav)
+        get_nav(sensordata, mission, nav, researchNav)
 
     # Store the desired results obtained from the compiled test navigation filter
-    psi_store.append(nav.psi)
-    the_store.append(nav.the)
-    phi_store.append(nav.phi)
-    navlat_store.append(nav.lat)
-    navlon_store.append(nav.lon)
-    navalt_store.append(nav.alt)
-    navStatus_store.append(nav.err_type)
-    wn_store.append(nav.wn)
-    we_store.append(nav.we)
-    wd_store.append(nav.wd)
-    signal_store.append([nav.signal_0, nav.signal_1, nav.signal_2, nav.signal_3,
-                         nav.signal_4, nav.signal_5, nav.signal_6, nav.signal_7,
-                         nav.signal_8, nav.signal_9])
+    psi_store.append(nav_active.psi)
+    the_store.append(nav_active.the)
+    phi_store.append(nav_active.phi)
+    navlat_store.append(nav_active.lat)
+    navlon_store.append(nav_active.lon)
+    navalt_store.append(nav_active.alt)
+    navStatus_store.append(nav_active.err_type)
+    wn_store.append(nav_active.wn)
+    we_store.append(nav_active.we)
+    wd_store.append(nav_active.wd)
+    signal_store.append([nav_active.signal_0, nav_active.signal_1, nav_active.signal_2, nav_active.signal_3,
+                         nav_active.signal_4, nav_active.signal_5, nav_active.signal_6, nav_active.signal_7,
+                         nav_active.signal_8, nav_active.signal_9])
     t_store.append(t[k])
 
     # Increment time up one step for the next iteration of the while loop.    

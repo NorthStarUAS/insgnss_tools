@@ -15,7 +15,7 @@
 #include "../navigation/nav_functions.h"
 #include "researchnav_interface.h"
 
-void init_researchNav(struct sensordata *sensorData_ptr, struct researchNav *researchNavData_ptr){
+void init_researchNav(struct sensordata *sensorData_ptr, struct mission *missionData_ptr, struct nav *navData_ptr, struct researchNav *researchNavData_ptr){
 
 	researchNavData_ptr->lat = sensorData_ptr->gpsData_ptr->lat*D2R;
 	researchNavData_ptr->lon = sensorData_ptr->gpsData_ptr->lon*D2R;
@@ -42,7 +42,7 @@ void init_researchNav(struct sensordata *sensorData_ptr, struct researchNav *res
 }
 
 // Main get_nav filter function
-void get_researchNav(struct sensordata *sensorData_ptr, struct researchNav *researchNavData_ptr){
+void get_researchNav(struct sensordata *sensorData_ptr, struct mission *missionData_ptr, struct nav *navData_ptr, struct researchNav *researchNavData_ptr){
 	
 	researchNavData_ptr->lat = sensorData_ptr->gpsData_ptr->lat*D2R;
 	researchNavData_ptr->lon = sensorData_ptr->gpsData_ptr->lon*D2R;
