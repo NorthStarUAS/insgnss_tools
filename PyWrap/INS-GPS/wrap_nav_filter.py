@@ -13,18 +13,32 @@ August 19, 2014    [Trevor L.] modified and extended to work with nominal INS/GP
 September 25, 2014 [Hamid M. ] clean up comments and naming
 March 31, 2014     [Hamid M. ] add commands to build .so on run
 April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
+                   [Hamid M. ] Add input flags.  Extend to work with research.
 """
-# Build the 'Cbuild/EKF_15state_quat.so' object
 # Note: Rerunning this in interactive mode has unexpected results.  
 #       It doesn't seem to reload the latest `.so`
+# # # # # START INPUTS # # # # #
+
+FLAG_UNBIASED_IMU = True           # Choose whether accel & gyro should be bias-free
+FLAG_FILTERTYPE = 'BASELINE'        # 'BASELINE' or 'RESEARCH'
+RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
+FLAG_FORCE_INIT = True  # If True, will force the position and orientation estimates
+                        # to initialize using the logged INS/GPS results from the `.mat`
+                        # data file.
+FLAG_PLOT_ATTITUDE = True
+FLAG_PLOT_GROUNDTRACK = True
+FLAG_PLOT_ALTITUDE = True
+FLAG_PLOT_WIND     = True
+FLAG_PLOT_SIGNALS  = True
+SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
+
+# # # # # END INPUTS # # # # #
+
 import subprocess, os, sys
 join = os.path.join
 
 if not os.path.isdir('Cbuild'):
     os.mkdir('Cbuild')
-
-FLAG_FILTERTYPE = 'BASELINE'        # 'BASELINE' or 'RESEARCH'
-RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
 
 if FLAG_FILTERTYPE == 'BASELINE':
   path_nav_filter = join('Csources', 'navigation', 'EKF_15state_quat.c')
@@ -173,17 +187,18 @@ imu = np.vstack((t, flight_data.p, flight_data.q, flight_data.r,
 # http://trac.umnaem.webfactional.com/wiki/FlightReports/2011_11_17)
 # have the nav-estimated bias removed before datalogging. So to work with raw
 # imu-data, we add back the on-board estimated biases.
-try:
-   imu[:, 1:4] += np.vstack((flight_data.p_bias, 
-                           flight_data.q_bias, 
-                           flight_data.r_bias)).T
-                           
-   imu[:, 4:7] += np.vstack((flight_data.ax_bias,
-                           flight_data.ay_bias,
-                           flight_data.az_bias)).T
-except AttributeError:
-   print('Note: On board estimated bias not found.')
-   pass
+if not FLAG_UNBIASED_IMU:
+  try:
+     imu[:, 1:4] += np.vstack((flight_data.p_bias, 
+                             flight_data.q_bias, 
+                             flight_data.r_bias)).T
+                             
+     imu[:, 4:7] += np.vstack((flight_data.ax_bias,
+                             flight_data.ay_bias,
+                             flight_data.az_bias)).T
+  except AttributeError:
+     print('Note: On board estimated bias not found.')
+     pass
 
 # Air Data
 ias = flight_data.ias # indicated airspeed (m/s)
@@ -219,6 +234,7 @@ old_GPS_alt = 0.0
 psi_store, the_store, phi_store = [],[],[]
 navlat_store, navlon_store, navalt_store = [],[],[]
 wn_store, we_store, wd_store = [], [], []
+signal_store = []
 navStatus_store = []
 t_store = []
 
@@ -273,6 +289,16 @@ while k < len(t):
           init_nav(sensordata, nav, controlData)
         else:
           init_nav(sensordata, nav)
+
+        if FLAG_FORCE_INIT:
+          # Force initial values to match logged INS/GPS result
+          nav.psi = flight_data.psi[k]
+          nav.the = flight_data.theta[k]
+          nav.phi = flight_data.phi[k]
+
+          nav.lat = flight_data.navlat[k] # Note: should be radians
+          nav.lon = flight_data.navlon[k] # Note: should be radians
+          nav.alt = flight_data.navalt[k]
     else:
       if FLAG_FILTERTYPE == 'BASELINE':
         get_nav(sensordata, nav, controlData)
@@ -290,6 +316,9 @@ while k < len(t):
     wn_store.append(nav.wn)
     we_store.append(nav.we)
     wd_store.append(nav.wd)
+    signal_store.append([nav.signal_0, nav.signal_1, nav.signal_2, nav.signal_3,
+                         nav.signal_4, nav.signal_5, nav.signal_6, nav.signal_7,
+                         nav.signal_8, nav.signal_9])
     t_store.append(t[k])
 
     # Increment time up one step for the next iteration of the while loop.    
@@ -298,58 +327,73 @@ while k < len(t):
 # When k = len(t) execute the close_nav function freeing up memory from matrices.
 close_nav()
 
-
 # Plotting
-fig, [ax1, ax2, ax3] = plt.subplots(3,1)
+if FLAG_PLOT_ATTITUDE:
+  fig, [ax1, ax2, ax3] = plt.subplots(3,1)
 
-# Yaw Plot
-ax1.set_title(filename, fontsize=10)
-ax1.set_ylabel('YAW (DEGREES)', weight='bold')
-ax1.plot(t, r2d(flight_data.psi), label='onboard', c='k', lw=3, alpha=.5)
-ax1.plot(t_store, r2d(psi_store), label='PythonWrap',c='blue', lw=2)
-ax1.grid()
-ax1.legend(loc=0)
+  # Yaw Plot
+  ax1.set_title(filename, fontsize=10)
+  ax1.set_ylabel('YAW (DEGREES)', weight='bold')
+  ax1.plot(t, r2d(flight_data.psi), label='onboard', c='k', lw=3, alpha=.5)
+  ax1.plot(t_store, r2d(psi_store), label='PythonWrap',c='blue', lw=2)
+  ax1.grid()
+  ax1.legend(loc=0)
 
-# Pitch PLot
-ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
-ax2.plot(t, r2d(flight_data.theta), label='onboard', c='k', lw=3, alpha=.5)
-ax2.plot(t_store, r2d(the_store), label='PythonWrap',c='blue', lw=2)
-ax2.grid()
+  # Pitch PLot
+  ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
+  ax2.plot(t, r2d(flight_data.theta), label='onboard', c='k', lw=3, alpha=.5)
+  ax2.plot(t_store, r2d(the_store), label='PythonWrap',c='blue', lw=2)
+  ax2.grid()
 
-# Roll PLot
-ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
-ax3.plot(t, r2d(flight_data.phi), label='onboard', c='k', lw=3, alpha=.5)
-ax3.plot(t_store, r2d(phi_store), label='PythonWrap', c='blue',lw=2)
-ax3.set_xlabel('TIME (SECONDS)', weight='bold')
-ax3.grid()
+  # Roll PLot
+  ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
+  ax3.plot(t, r2d(flight_data.phi), label='onboard', c='k', lw=3, alpha=.5)
+  ax3.plot(t_store, r2d(phi_store), label='PythonWrap', c='blue',lw=2)
+  ax3.set_xlabel('TIME (SECONDS)', weight='bold')
+  ax3.grid()
 
 # Altitude Plot
-plt.figure()
-plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
-plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='onboard', c='k', lw=3, alpha=.5)
-plt.plot(t_store, navalt_store, label='PythonWrap',c='blue', lw=2)
-plt.ylabel('ALTITUDE (METERS)', weight='bold')
-plt.legend(loc=0)
-plt.grid()
+if FLAG_PLOT_ALTITUDE:
+  plt.figure()
+  plt.title('ALTITUDE')
+  plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
+  plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='onboard', c='k', lw=3, alpha=.5)
+  plt.plot(t_store, navalt_store, label='PythonWrap',c='blue', lw=2)
+  plt.ylabel('ALTITUDE (METERS)', weight='bold')
+  plt.legend(loc=0)
+  plt.grid()
 
 # Wind Plot
-plt.figure()
-plt.title('WIND ESTIMATES - Only from PythonWrap')
-plt.plot(t_store[kstart:len(t)], wn_store[kstart:len(t)], label='North',c='blue', lw=2)
-plt.plot(t_store[kstart:len(t)], we_store[kstart:len(t)], label='East',c='cyan', lw=2)
-plt.plot(t_store[kstart:len(t)], wd_store[kstart:len(t)], label='Down',c='yellow', lw=2)
-plt.ylabel('WIND (METERS/SECOND)', weight='bold')
-plt.legend(loc=0)
-plt.grid()
+if FLAG_PLOT_WIND:
+  plt.figure()
+  plt.title('WIND ESTIMATES - Only from PythonWrap')
+  plt.plot(t_store, wn_store, label='North',c='gray', lw=2)
+  plt.plot(t_store, we_store, label='East',c='black', lw=2)
+  plt.plot(t_store, wd_store, label='Down',c='blue', lw=2)
+  plt.ylabel('WIND (METERS/SECOND)', weight='bold')
+  plt.legend(loc=0)
+  plt.grid()
 
 # Top View (Longitude vs. Latitude) Plot
-plt.figure()
-plt.title(filename, fontsize=10)
-plt.ylabel('LATITUDE (DEGREES)', weight='bold')
-plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
-plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], label='GPS Sensor', c='green', lw=2, alpha=.5)
-plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='onboard', c='k', lw=3, alpha=.5)
-plt.plot(r2d(navlon_store), r2d(navlat_store), label='PythonWrap', c='blue', lw=2)
-plt.grid()
-plt.legend(loc=0)
+if FLAG_PLOT_GROUNDTRACK:
+  plt.figure()
+  plt.title(filename, fontsize=10)
+  plt.ylabel('LATITUDE (DEGREES)', weight='bold')
+  plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
+  plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], label='GPS Sensor', c='green', lw=2, alpha=.5)
+  plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='onboard', c='k', lw=3, alpha=.5)
+  plt.plot(r2d(navlon_store), r2d(navlat_store), label='PythonWrap', c='blue', lw=2)
+  plt.grid()
+  plt.legend(loc=0)
+
+if FLAG_PLOT_SIGNALS:
+  signal_store = np.array(signal_store)
+  plt.figure()
+  plt.title('SIGNAL PLOTS')
+  for sig in SIGNAL_LIST:
+    plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
+  plt.ylabel('SIGNAL UNITS', weight='bold')
+  plt.legend(loc=0)
+  plt.grid()
+
 plt.show()
