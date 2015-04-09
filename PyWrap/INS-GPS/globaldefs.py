@@ -110,17 +110,26 @@ class SURFACE(Structure):
     ('df_r_pos', c_double)  # [rad], measured right flap position, +TED
     ]
 
+# Pilot inceptor data structure
+class INCEPTOR(Structure):
+    _fields_ = [
+    ('throttle', c_double), # throttle stick command from the pilot, ND
+    (   'pitch', c_double), # pitch stick command from the pilot, ND
+    (     'yaw', c_double), # yaw stick command from the pilot, ND
+    (    'roll', c_double)  # roll stick command from the pilot, ND
+    ]
+
+# Mission manager data structure
+class MISSION(Structure):
+    _fields_ = [
+    (       'mode', c_ushort), # mode variable; 0 = dump data, 1 = manual control, 2 = autopilot control
+    (    'run_num', c_ushort), # counter for number of autopilot engagements
+    ('researchNav', c_ushort)  # mode variable; 0 = standard nav filter, 1 = research nav filter
+    ]
+
 # Control Data structure
 class CONTROL(Structure):
     _fields_ = [
-    (   'dthr_in', c_double), # ///< [0-1], throttle command from R/C
-    (     'de_in', c_double), #  ///< [rad], elevator command, +TED, from R/C
-    (     'dr_in', c_double), #  ///< [rad], rudder command, +TEL, from R/C
-    (   'da_l_in', c_double), # //< [rad], left aileron command, +TED, from R/C
-    (   'da_r_in', c_double), # //< [rad], right aileron command, +TED, from R/C
-    (   'df_l_in', c_double), # //< [rad], left flap command, +TED, from R/C
-    (   'df_r_in', c_double), # //< [rad], right flap command, +TED, from R/C
-    (     'dg_in', c_double), #  ///< [rad], gear command, from R/C, controls RxMux
     (      'dthr', c_double), #   ///< [0-1], throttle command
     (        'de', c_double), #     ///< [rad], elevator command, +TED
     (        'dr', c_double), #     ///< [rad], rudder command, +TEL
@@ -149,9 +158,7 @@ class CONTROL(Structure):
     (  'signal_6', c_double), # //< user defined dummy variable
     (  'signal_7', c_double), # //< user defined dummy variable
     (  'signal_8', c_double), # //< user defined dummy variable
-    (  'signal_9', c_double), # //< user defined dummy variable
-    ( 'mode', c_ushort),   # mode variable; 0 = dump data, 1 = manual control, 2 = autopilot control
-    ( 'run_num', c_ushort) # counter for number of autopilot engagements
+    (  'signal_9', c_double)  # //< user defined dummy variable
     ]
 
 # Navigation Filter Data Structure
@@ -169,7 +176,6 @@ class NAV(Structure):
     (  'quat', c_double*4), # Quaternions estimate
     (    'ab', c_double*3), # [m/sec^2], accelerometer bias estimate
     (    'gb', c_double*3), # [rad/sec], rate gyro bias estimate
-    (    'hb', c_double*3), #
     (   'asf', c_double*3), # [m/sec^2], accelerometer scale factor estimate
     (   'gsf', c_double*3), # [rad/sec], rate gyro scale factor estimate
     (    'Pp', c_double*3), # [rad], covariance estimate for position
@@ -181,8 +187,61 @@ class NAV(Structure):
     (  'Pgsf', c_double*3), # [rad], covariance estimate for rate gyro scale factor
     ('err_type', c_int),     # NAV filter status
     (      'time', c_double), # [sec], timestamp of NAV filter
+    (  'wn', c_double), # [m/s], estimated wind speed in the north direction
+    (  'we', c_double), # [m/s], estimated wind speed in the east direction
+    (  'wd', c_double), # [m/s], estimated wind speed in the down direction
+    (  'signal_0', c_double), # //< user defined dummy variable
+    (  'signal_1', c_double), # //< user defined dummy variable
+    (  'signal_2', c_double), # //< user defined dummy variable
+    (  'signal_3', c_double), # //< user defined dummy variable
+    (  'signal_4', c_double), # //< user defined dummy variable
+    (  'signal_5', c_double), # //< user defined dummy variable
+    (  'signal_6', c_double), # //< user defined dummy variable
+    (  'signal_7', c_double), # //< user defined dummy variable
+    (  'signal_8', c_double), # //< user defined dummy variable
+    (  'signal_9', c_double)  # //< user defined dummy variable    
     ]
 
+# Research Navigation Filter Data Structure
+class RESEARCHNAV(Structure):
+        _fields_ = [
+    (   'lat', c_double), # [rad], geodetic latitude estimate
+    (   'lon', c_double), # [rad], geodetic longitude estimate
+    (   'alt', c_double), # [m], altitude relative to WGS84 estimate
+    (    'vn', c_double), # [m/sec], north velocity estimate
+    (    've', c_double), # [m/sec], east velocity estimate
+    (    'vd', c_double), # [m/sec], down velocity estimate
+    (   'phi', c_double), # [rad], Euler roll angle estimate
+    (   'the', c_double), # [rad], Euler pitch angle estimate
+    (   'psi', c_double), # [rad], Euler yaw angle estimate
+    (  'quat', c_double*4), # Quaternions estimate
+    (    'ab', c_double*3), # [m/sec^2], accelerometer bias estimate
+    (    'gb', c_double*3), # [rad/sec], rate gyro bias estimate
+    (   'asf', c_double*3), # [m/sec^2], accelerometer scale factor estimate
+    (   'gsf', c_double*3), # [rad/sec], rate gyro scale factor estimate
+    (    'Pp', c_double*3), # [rad], covariance estimate for position
+    (    'Pv', c_double*3), # [rad], covariance estimate for velocity
+    (    'Pa', c_double*3), # [rad], covariance estimate for angles
+    (   'Pab', c_double*3), # [rad], covariance estimate for accelerometer bias
+    (   'Pgb', c_double*3), # [rad], covariance estimate for rate gyro bias
+    (  'Pasf', c_double*3), # [rad], covariance estimate for accelerometer scale factor
+    (  'Pgsf', c_double*3), # [rad], covariance estimate for rate gyro scale factor
+    ('err_type', c_int),     # NAV filter status
+    (      'time', c_double), # [sec], timestamp of NAV filter
+    (  'wn', c_double), # [m/s], estimated wind speed in the north direction
+    (  'we', c_double), # [m/s], estimated wind speed in the east direction
+    (  'wd', c_double), # [m/s], estimated wind speed in the down direction
+    (  'signal_0', c_double), # //< user defined dummy variable
+    (  'signal_1', c_double), # //< user defined dummy variable
+    (  'signal_2', c_double), # //< user defined dummy variable
+    (  'signal_3', c_double), # //< user defined dummy variable
+    (  'signal_4', c_double), # //< user defined dummy variable
+    (  'signal_5', c_double), # //< user defined dummy variable
+    (  'signal_6', c_double), # //< user defined dummy variable
+    (  'signal_7', c_double), # //< user defined dummy variable
+    (  'signal_8', c_double), # //< user defined dummy variable
+    (  'signal_9', c_double)  # //< user defined dummy variable    
+    ]
 
 class SENSORDATA(Structure):
 	_fields_ = [
@@ -191,5 +250,6 @@ class SENSORDATA(Structure):
 	('gpsData_l_ptr', POINTER(GPS)), # pointer to left gps data structure
 	('gpsData_r_ptr', POINTER(GPS)), # pointer to right gps data structure
 	('adData_ptr',    POINTER(AIRDATA)), # pointer to airdata data structure
-	('surfData_ptr',  POINTER(SURFACE))  # pointer to surface data structure
+	('surfData_ptr',  POINTER(SURFACE)), # pointer to surface data structure
+  ('inceptorData_ptr', POINTER(INCEPTOR))  # pointer to pilot inceptor data structure
 	]

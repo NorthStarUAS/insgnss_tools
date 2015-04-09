@@ -18,30 +18,45 @@ April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
 # Note: Rerunning this in interactive mode has unexpected results.  
 #       It doesn't seem to reload the latest `.so`
 import subprocess, os, sys
+join = os.path.join
 
 if not os.path.isdir('Cbuild'):
     os.mkdir('Cbuild')
 
+FLAG_FILTERTYPE = 'BASELINE'        # 'BASELINE' or 'RESEARCH'
+RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
+
+if FLAG_FILTERTYPE == 'BASELINE':
+  path_nav_filter = join('Csources', 'navigation', 'EKF_15state_quat.c')
+elif FLAG_FILTERTYPE == 'RESEARCH':
+  print("Using 'researchNavigation' folder")
+  path_nav_filter = join('Csources', 'researchNavigation', RESEARCH_FILTERNAME)
+else:
+  sys.exit("Ending Program.  Argument 'FLAG_FILTERTYPE' unrecognized.")
+
+
 BUILD_FAILED_FLAG = 0
-join = os.path.join
 ## Build `nav_functions.o`
-cmd = 'gcc -o '+ join('Cbuild', 'nav_functions.o') + ' -c ' + join('Csources', 'nav_functions.c') +' -fPIC'
+path_nav_functions = join('Csources', 'navigation' ,'nav_functions.c')
+cmd = 'gcc -o '+ join('Cbuild', 'nav_functions.o') + ' -c ' + path_nav_functions +' -fPIC'
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait() # p.wait() returns a '1' if process failed
 
 ## Build `matrix.o`
-cmd = 'gcc -o ' + join('Cbuild', 'matrix.o') + ' -c ' + join('Csources', 'matrix.c') + ' -fPIC'
+path_matrix = join('Csources', 'utils', 'matrix.c')
+cmd = 'gcc -o ' + join('Cbuild', 'matrix.o') + ' -c ' + path_matrix + ' -fPIC'
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait()
 
 ## Build `EKF_15state_quat.o`
-cmd = 'gcc -o ' + join('Cbuild', 'EKF_15state_quat.o') + ' -c ' + join('Csources', 'EKF_15state_quat.c') + ' -fPIC'
+
+cmd = 'gcc -o ' + join('Cbuild', 'nav_filter.o') + ' -c ' + path_nav_filter + ' -fPIC'
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait()
 
 ## Link into shared object
-cmd = 'gcc -lm -shared -Wl",-soname,EKF_15state_quat" -o ' + join('Cbuild', 'EKF_15state_quat.so') + ' ' \
-                                                           + join('Cbuild', 'EKF_15state_quat.o')  + ' ' \
+cmd = 'gcc -lm -shared -Wl",-soname,nav_filter" -o ' + join('Cbuild', 'nav_filter.so') + ' ' \
+                                                           + join('Cbuild', 'nav_filter.o')  + ' ' \
                                                            + join('Cbuild', 'matrix.o') + ' ' \
                                                            + join('Cbuild', 'nav_functions.o')
 p = subprocess.Popen(cmd, shell=True)
@@ -64,13 +79,18 @@ byref   = ctypes.byref
 # Declare Structures from globaldefs.py
 sensordata = globaldefs.SENSORDATA()
 imu = globaldefs.IMU()
-nav = globaldefs.NAV()
 controlData = globaldefs.CONTROL()
 gpsData     = globaldefs.GPS()
 gpsData_l   = globaldefs.GPS()
 gpsData_r   = globaldefs.GPS()
 airData     = globaldefs.AIRDATA()
 surface     = globaldefs.SURFACE()
+inceptor    = globaldefs.INCEPTOR()
+if FLAG_FILTERTYPE == 'BASELINE':
+  nav = globaldefs.NAV()
+else:
+  # Research navigation filter
+  nav = globaldefs.RESEARCHNAV()
 
 # Assign pointers that use the structures just declared
 sensordata.imuData_ptr = ctypes.pointer(imu)
@@ -79,27 +99,40 @@ sensordata.gpsData_l_ptr = ctypes.pointer(gpsData_l)
 sensordata.gpsData_r_ptr = ctypes.pointer(gpsData_r)
 sensordata.adData_ptr   = ctypes.pointer(airData)
 sensordata.surfData_ptr = ctypes.pointer(surface)
+sensordata.inceptorData_ptr = ctypes.pointer(inceptor)
 
 
 # Load compilied `.so` file.
-compiled_test_nav_filter = ctypes.CDLL(os.path.abspath('Cbuild/EKF_15state_quat.so'))
+compiled_test_nav_filter = ctypes.CDLL(os.path.abspath('Cbuild/nav_filter.so'))
 
-# Name the init_nav function defined as the init_nav from the compiled nav filter
-init_nav = compiled_test_nav_filter.init_nav
-# Declare inputs to the init_nav function
-init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                          POINTER(globaldefs.NAV), 
-                          POINTER(globaldefs.CONTROL)]
+if FLAG_FILTERTYPE == 'BASELINE':
+  # Name the init_nav function defined as the init_nav from the compiled nav filter
+  init_nav = compiled_test_nav_filter.init_nav
+  # Declare inputs to the init_nav function
+  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                            POINTER(globaldefs.NAV), 
+                            POINTER(globaldefs.CONTROL)]
 
-# Name the get_nav function defined as the get_nav from the compiled nav filter
-get_nav = compiled_test_nav_filter.get_nav
-# Declare inputs to the get_nav function
-get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                         POINTER(globaldefs.NAV), 
-                         POINTER(globaldefs.CONTROL)]
+  # Name the get_nav function defined as the get_nav from the compiled nav filter
+  get_nav = compiled_test_nav_filter.get_nav
+  # Declare inputs to the get_nav function
+  get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                      POINTER(globaldefs.NAV), 
+                      POINTER(globaldefs.CONTROL)]
+  # Name the close_nav function defined as the close_nav from the compiled nav filter
+  close_nav = compiled_test_nav_filter.close_nav
+else:
+  # Research navigation filter
+  init_nav = compiled_test_nav_filter.init_researchNav
+  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                       POINTER(globaldefs.RESEARCHNAV)]
 
-# Name the close_nav function defined as the close_nav from the compiled nav filter
-close_nav = compiled_test_nav_filter.close_nav
+  get_nav = compiled_test_nav_filter.get_researchNav
+  # Declare inputs to the get_nav function
+  get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                      POINTER(globaldefs.RESEARCHNAV)]
+  close_nav = compiled_test_nav_filter.close_researchNav                 
+
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
 import os
@@ -185,6 +218,7 @@ old_GPS_alt = 0.0
 # properly in the while loop.
 psi_store, the_store, phi_store = [],[],[]
 navlat_store, navlon_store, navalt_store = [],[],[]
+wn_store, we_store, wd_store = [], [], []
 navStatus_store = []
 t_store = []
 
@@ -235,9 +269,15 @@ while k < len(t):
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        init_nav(sensordata, nav, controlData)
+        if FLAG_FILTERTYPE == 'BASELINE':
+          init_nav(sensordata, nav, controlData)
+        else:
+          init_nav(sensordata, nav)
     else:
+      if FLAG_FILTERTYPE == 'BASELINE':
         get_nav(sensordata, nav, controlData)
+      else:
+        get_nav(sensordata, nav)
 
     # Store the desired results obtained from the compiled test navigation filter
     psi_store.append(nav.psi)
@@ -247,6 +287,9 @@ while k < len(t):
     navlon_store.append(nav.lon)
     navalt_store.append(nav.alt)
     navStatus_store.append(nav.err_type)
+    wn_store.append(nav.wn)
+    we_store.append(nav.we)
+    wd_store.append(nav.wd)
     t_store.append(t[k])
 
     # Increment time up one step for the next iteration of the while loop.    
@@ -286,6 +329,16 @@ plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c
 plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='onboard', c='k', lw=3, alpha=.5)
 plt.plot(t_store, navalt_store, label='PythonWrap',c='blue', lw=2)
 plt.ylabel('ALTITUDE (METERS)', weight='bold')
+plt.legend(loc=0)
+plt.grid()
+
+# Wind Plot
+plt.figure()
+plt.title('WIND ESTIMATES - Only from PythonWrap')
+plt.plot(t_store[kstart:len(t)], wn_store[kstart:len(t)], label='North',c='blue', lw=2)
+plt.plot(t_store[kstart:len(t)], we_store[kstart:len(t)], label='East',c='cyan', lw=2)
+plt.plot(t_store[kstart:len(t)], wd_store[kstart:len(t)], label='Down',c='yellow', lw=2)
+plt.ylabel('WIND (METERS/SECOND)', weight='bold')
 plt.legend(loc=0)
 plt.grid()
 
