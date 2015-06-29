@@ -1,20 +1,53 @@
-UAV Nav PyWrap
-==============
+# UAV Nav PyWrap
 Hamid M. and Trevor L.
 September 25, 2014
 
-This work wraps the navigation filter `.c` code and works with them in Python.
+This work wraps both a navigation and researchNavigation filter `.c` code and works with them in Python.  A `.mat` flight data file is used to play through the navigation code.
 
 * **wrap_nav_filter.py**: wrap the entire nav filter C-Code
-* **Csource/EKF_15state_quat.c**: 15-state INS/GPS filter function
-* **Csource/nav_functions.c**: utility navigation functions
-* **Csource/matrix.c**: matrix library
+* **Csource/navigation/**: baseline navigation (15-state INS/GPS) filter code as well as navigation function library
+* **Csource/researchNavigation**: research navigation code
+* **Csource/utils/matrix.c**: matrix library
+ 
+## Change Log
 
-Getting Started
----------------
+* June 19, 2014      *Hamid M.* 
+    - Initial version for experimental AHRS/air-speed dead-reckoning filter.
+* August 19, 2014    *Trevor L* 
+    - Extended to work with nominal INS/GPS.
+* September 25, 2014 *Hamid M.* 
+    - Clean up comments and naming.
+* March 31, 2014     *Hamid M.* 
+    - Add commands to build .so on run.
+* April 8, 2015      *Hamid M.* 
+    - Fix bug in plotting altitude and ground track.
+    - Add input flags.  Extend to work with research.
+* April 9, 2015      *Hamid M.* 
+    - Add way to affect mission->haveGPS.
+* April 22, 2015     *Hamid M.* 
+    - Modify architecture to run both nav and researchNav in parallel
 
-These instructions are for running **wrap_nav_filter.py*.  This script loads compiled INS/GPS C-code and runs the code using `.mat` flight data.
+## Getting Started
 
+By running `wrap_nav_filter.py` the c-code will get compiled, wrapped, and the flight data will be played through the code.  Finally, plots will be generated.  This script should not be used in interactive mode and should instead by called from the terminal:
+>python wrap_nav_filter.py
+
+## Note on Original C-Code
+The original c-code has dependencies which are needed when compiling the entire flight code.  However, in this case we are only running the navigation filter and hence these are not required.  Thus, the C-code is modified to exclude these additional dependencies.  A nominal list used in EKF_15state_quat.c is:
+
+    #include <stdio.h>
+    #include <string.h>
+    #include <stdlib.h>
+    #include <math.h>
+
+    #include "globaldefs.h"
+    #include "matrix.h"
+
+    #include "nav_functions.h"
+
+## Manual Compiling of C-Code
+
+Although `wrap_nav_filter.py` automatically builds the code, these instructions are kept for documentation on how to manually compiles the C-code into shared objects..
 
 1. Create a folder `Cbuild`.  This is where the compiled code will go. 
 
@@ -41,23 +74,5 @@ These instructions are for running **wrap_nav_filter.py*.  This script loads com
 
 3. Copy `EKF_15state_quat.so` (other *object files* not needed) into `Cbuild` directory.
 
-4. Open IPython and run `wrap_nav_filter.py`.  
+The `.so` shared object can be loaded into Python and wrapped, as is done in `wrap_nav_filter.py`.
 
-Looking at the for-loop in `wrap_nav_filter.py` should make clear how to log extra terms.
-
-Note on Original C-Code
------------------------
-
-The original c-code has dependencies which are needed when compiling the entire flight code.  However, in this case we are only running the navigation filter and hence these are not required.  Thus, the C-code is modified to exclude these additional dependencies.  A nominal list used in EKF_15state_quat.c is:
-
-    #include <stdio.h>
-    #include <string.h>
-    #include <stdlib.h>
-    #include <math.h>
-
-    #include "globaldefs.h"
-    #include "matrix.h"
-
-    #include "nav_functions.h"
-
-Additionally the nav_functions.c file's dependencies may need to be slightly altered from the normal aircraft version depending on the location/directory of matrix.c.  The standard matrix.c dependencies should be fine.

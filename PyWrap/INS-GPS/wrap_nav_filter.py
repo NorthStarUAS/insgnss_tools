@@ -1,29 +1,31 @@
 """WRAP_NAV_FILTER.PY
+This script plays `.mat` flight data through navigation filter C-Code.
+Both baseline navigation and researchNavigation are compiled into `.so` 
+shared objects and wrapped in Python.  
 
-This script wraps the a navigation filter C-Code (assuming it is compiled 
-into a `.so` shared object) and plays `.mat` flight data that has been
-converted to have the flight_data and flight_info structures through the 
-code in python.
+This code automatically calls necessary terminal calls to gcc to compile
+the functions.  However, more details on compiling the C-Code to make the 
+`.so` manually can be found in `README.md`.
 
-More details on compiling the C-Code to make the `.so` can be found in
-`README.md`.
+A set of customizable input flags are defined at the start of the script.
 
-June 19, 2014      [Hamid M. ] initial version for experimental AHRS/air-speed dead-reckoning filter
-August 19, 2014    [Trevor L.] modified and extended to work with nominal INS/GPS
-September 25, 2014 [Hamid M. ] clean up comments and naming
-March 31, 2014     [Hamid M. ] add commands to build .so on run
-April 8, 2015      [Hamid M. ] Fix bug in plotting altitude and ground track
-                   [Hamid M. ] Add input flags.  Extend to work with research.
-April 9, 2015      [Hamid M. ] Add way to affect mission->haveGPS
+**Note:** Rerunning this in interactive mode has unexpected results!
+          It doesn't seem to reload the latest `.so`.  This script
+          should be called from the terminal.  For example:
+          >> python wrap_nav_filter.py
+
+Author: Hamid M.
+Last Update: April 22, 2015
 """
-# Note: Rerunning this in interactive mode has unexpected results.  
-#       It doesn't seem to reload the latest `.so`
+
 # # # # # START INPUTS # # # # #
 
-FLAG_UNBIASED_IMU = True           # Choose whether accel & gyro should be bias-free
-FLAG_FILTERTYPE = 'BASELINE'       # 'BASELINE' or 'RESEARCH'
-RESEARCH_FILTERNAME = 'empty_nav.c' # Only used if running 'RESEARCH' filter.
-T_GPSOFF = 350           # Time, above which, mission->haveGPS set to 0.  
+FLAG_UNBIASED_IMU = False             # Choose if accel/gyro should be bias-free.
+BASELINE_FILTERNAME = 'EKF_15state_quat.c'  # Name of 'BASELINE' filter.
+RESEARCH_FILTERNAME = 'empty_nav.c'         # Name of 'RESEARCH' filter.
+MAT_FILENAME = 'thor_flight75_WaypointTracker_150squareWaypointNew_2012_10_10'
+T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
+                        # To always keep GPS, set to: -1
 FLAG_FORCE_INIT = True  # If True, will force the position and orientation estimates
                         # to initialize using the logged INS/GPS results from the `.mat`
                         # data file.
@@ -43,13 +45,8 @@ join = os.path.join
 if not os.path.isdir('Cbuild'):
     os.mkdir('Cbuild')
 
-if FLAG_FILTERTYPE == 'BASELINE':
-  path_nav_filter = join('Csources', 'navigation', 'EKF_15state_quat.c')
-elif FLAG_FILTERTYPE == 'RESEARCH':
-  print("Using 'researchNavigation' folder")
-  path_nav_filter = join('Csources', 'researchNavigation', RESEARCH_FILTERNAME)
-else:
-  sys.exit("Ending Program.  Argument 'FLAG_FILTERTYPE' unrecognized.")
+path_nav_filter = join('Csources', 'navigation', BASELINE_FILTERNAME)
+path_researchNav_filter = join('Csources', 'researchNavigation', RESEARCH_FILTERNAME)
 
 
 BUILD_FAILED_FLAG = 0
@@ -65,9 +62,12 @@ cmd = 'gcc -o ' + join('Cbuild', 'matrix.o') + ' -c ' + path_matrix + ' -fPIC'
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait()
 
-## Build `EKF_15state_quat.o`
-
+# Build `nav_filter.o` & researchNav_filter.o
 cmd = 'gcc -o ' + join('Cbuild', 'nav_filter.o') + ' -c ' + path_nav_filter + ' -fPIC'
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait()
+
+cmd = 'gcc -o ' + join('Cbuild', 'researchNav_filter.o') + ' -c ' + path_researchNav_filter + ' -fPIC'
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait()
 
@@ -78,6 +78,14 @@ cmd = 'gcc -lm -shared -Wl",-soname,nav_filter" -o ' + join('Cbuild', 'nav_filte
                                                            + join('Cbuild', 'nav_functions.o')
 p = subprocess.Popen(cmd, shell=True)
 BUILD_FAILED_FLAG |= p.wait()
+
+cmd = 'gcc -lm -shared -Wl",-soname,researchNav_filter" -o ' + join('Cbuild', 'researchNav_filter.so') + ' ' \
+                                                           + join('Cbuild', 'researchNav_filter.o')  + ' ' \
+                                                           + join('Cbuild', 'matrix.o') + ' ' \
+                                                           + join('Cbuild', 'nav_functions.o')
+p = subprocess.Popen(cmd, shell=True)
+BUILD_FAILED_FLAG |= p.wait()
+
 
 if BUILD_FAILED_FLAG:
     sys.exit('Ending Program.  Failed to build C-code.')
@@ -107,11 +115,6 @@ mission     = globaldefs.MISSION()
 
 nav = globaldefs.NAV()
 researchNav = globaldefs.RESEARCHNAV()
-if FLAG_FILTERTYPE == 'BASELINE':
-  nav_active = nav
-else:
-  # Research navigation filter
-  nav_active = researchNav 
 
 # Assign pointers that use the structures just declared
 sensordata.imuData_ptr = ctypes.pointer(imu)
@@ -124,39 +127,39 @@ sensordata.inceptorData_ptr = ctypes.pointer(inceptor)
 
 
 # Load compilied `.so` file.
-compiled_test_nav_filter = ctypes.CDLL(os.path.abspath('Cbuild/nav_filter.so'))
+compiled_nav_filter = ctypes.CDLL(os.path.abspath('Cbuild/nav_filter.so'))
+compiled_researchNav_filter = ctypes.CDLL(os.path.abspath('Cbuild/researchNav_filter.so'))
 
-if FLAG_FILTERTYPE == 'BASELINE':
-  # Name the init_nav function defined as the init_nav from the compiled nav filter
-  init_nav = compiled_test_nav_filter.init_nav
-  # Declare inputs to the init_nav function
-  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                            POINTER(globaldefs.NAV), 
-                            POINTER(globaldefs.CONTROL)]
+# Name the init_nav function defined as the init_nav from the compiled nav filter
+init_nav = compiled_nav_filter.init_nav
+# Declare inputs to the init_nav function
+init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                     POINTER(globaldefs.NAV), 
+                     POINTER(globaldefs.CONTROL)]
 
-  # Name the get_nav function defined as the get_nav from the compiled nav filter
-  get_nav = compiled_test_nav_filter.get_nav
-  # Declare inputs to the get_nav function
-  get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                      POINTER(globaldefs.NAV), 
-                      POINTER(globaldefs.CONTROL)]
-  # Name the close_nav function defined as the close_nav from the compiled nav filter
-  close_nav = compiled_test_nav_filter.close_nav
-else:
-  # Research navigation filter
-  init_nav = compiled_test_nav_filter.init_researchNav
-  init_nav.argtypes = [POINTER(globaldefs.SENSORDATA),
-                       POINTER(globaldefs.MISSION),
-                       POINTER(globaldefs.NAV), 
-                       POINTER(globaldefs.RESEARCHNAV)]
+# Name the get_nav function defined as the get_nav from the compiled nav filter
+get_nav = compiled_nav_filter.get_nav
+# Declare inputs to the get_nav function
+get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+                    POINTER(globaldefs.NAV), 
+                    POINTER(globaldefs.CONTROL)]
+# Name the close_nav function defined as the close_nav from the compiled nav filter
+close_nav = compiled_nav_filter.close_nav
 
-  get_nav = compiled_test_nav_filter.get_researchNav
-  # Declare inputs to the get_nav function
-  get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                      POINTER(globaldefs.MISSION),
-                      POINTER(globaldefs.NAV),
-                      POINTER(globaldefs.RESEARCHNAV)]
-  close_nav = compiled_test_nav_filter.close_researchNav                 
+# Research navigation filter
+init_researchNav = compiled_researchNav_filter.init_researchNav
+init_researchNav.argtypes = [POINTER(globaldefs.SENSORDATA),
+                             POINTER(globaldefs.MISSION),
+                             POINTER(globaldefs.NAV),
+                             POINTER(globaldefs.RESEARCHNAV)]
+
+get_researchNav = compiled_researchNav_filter.get_researchNav
+# Declare inputs to the get_nav function
+get_researchNav.argtypes = [POINTER(globaldefs.SENSORDATA),
+                            POINTER(globaldefs.MISSION),
+                            POINTER(globaldefs.NAV),
+                            POINTER(globaldefs.RESEARCHNAV)]
+close_researchNav = compiled_researchNav_filter.close_researchNav
 
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
@@ -166,21 +169,36 @@ from scipy import io as sio
 from matplotlib import pyplot as plt
 r2d = np.rad2deg
 
+class dict2struct():
+  pass
+
+
 # Directory to converted flight data that contains the flight_data and flight_info structures
 directory = 'flight_data'
 
 # Name of .mat file that exists in the directory defined above and has the flight_data and flight_info structures
-filename = 'thor_flight75_WaypointTracker_150squareWaypointNew_2012_10_10'
-filepath = directory+os.sep+filename
+filepath = directory+os.sep+MAT_FILENAME
 
 # Load Flight Data: ## IMPORTANT to have the .mat file in the flight_data and flight_info structures for this function ##
 data = sio.loadmat(filepath, struct_as_record=False, squeeze_me=True)
-flight_data, flight_info = data['flight_data'], data['flight_info']
-del(data)
 print('Loaded Data Summary')
 print('* File: %s' % filepath.split(os.path.sep))[-1]
-print('* Date: %s' % flight_info.date)
-print('* Aircraft: %s' % flight_info.aircraft)
+try:
+  flight_data, flight_info = data['flight_data'], data['flight_info']
+  print('* Date: %s' % flight_info.date)
+  print('* Aircraft: %s' % flight_info.aircraft)
+except KeyError:
+  # Convert from Python dictionary to struct-like before
+  flight_data = dict2struct()
+  for k in data:
+    exec("flight_data.%s = data['%s']" % (k, k))
+del(data)
+
+# Add both names for pitch: the and theta
+try:
+  flight_data.theta = flight_data.the
+except AttributeError:
+  pass
 
 # Fill in time data
 t = flight_data.time
@@ -242,13 +260,48 @@ old_GPS_alt = 0.0
 # variables and they need to be in the globaldefs.c and globaldefs.py to allow for
 # pulling them out and saving. These python variables need to be initialized to work
 # properly in the while loop.
-psi_store, the_store, phi_store = [],[],[]
-navlat_store, navlon_store, navalt_store = [],[],[]
-wn_store, we_store, wd_store = [], [], []
-signal_store = []
-navStatus_store = []
+nav_data_dict = {}
+researchNav_data_dict = {}
 haveGPS_store = []
 t_store = []
+
+def store_data(data_dict, nav_ptr):
+  """
+  Append current elements from `nav_ptr` into
+  `data_dict`.  
+  """
+  # Initialize dictionary if needed (e.g.) first iteration.
+  if len(data_dict) == 0:
+    data_dict['psi_store'] = []
+    data_dict['psi_store'] = []
+    data_dict['the_store'] = []
+    data_dict['phi_store'] = []
+    data_dict['navlat_store'] = []
+    data_dict['navlon_store'] = []
+    data_dict['navalt_store'] = []
+    data_dict['navStatus_store'] = []
+    data_dict['wn_store'] = []
+    data_dict['we_store'] = []
+    data_dict['wd_store'] = []
+    data_dict['signal_store'] = []
+
+  # Store data
+  data_dict['psi_store'].append(nav_ptr.psi)
+  data_dict['the_store'].append(nav_ptr.the)
+  data_dict['phi_store'].append(nav_ptr.phi)
+  data_dict['navlat_store'].append(nav_ptr.lat)
+  data_dict['navlon_store'].append(nav_ptr.lon)
+  data_dict['navalt_store'].append(nav_ptr.alt)
+  data_dict['navStatus_store'].append(nav_ptr.err_type)
+  data_dict['wn_store'].append(nav_ptr.wn)
+  data_dict['we_store'].append(nav_ptr.we)
+  data_dict['wd_store'].append(nav_ptr.wd)
+  data_dict['signal_store'].append([nav_ptr.signal_0, nav_ptr.signal_1,
+                                    nav_ptr.signal_2, nav_ptr.signal_3,
+                                    nav_ptr.signal_4, nav_ptr.signal_5, 
+                                    nav_ptr.signal_6, nav_ptr.signal_7,
+                                    nav_ptr.signal_8, nav_ptr.signal_9])
+  return data_dict
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
 while k < len(t):
@@ -303,40 +356,34 @@ while k < len(t):
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        if FLAG_FILTERTYPE == 'BASELINE':
-          init_nav(sensordata, nav, controlData)
-        else:
-          init_nav(sensordata, mission, nav, researchNav)
+        init_nav(sensordata, nav, controlData)
+        init_researchNav(sensordata, mission, nav, researchNav)
 
         if FLAG_FORCE_INIT:
-          # Force initial values to match logged INS/GPS result
-          nav_active.psi = flight_data.psi[k]
-          nav_active.the = flight_data.theta[k]
-          nav_active.phi = flight_data.phi[k]
+            # Force initial values to match logged INS/GPS result
+            nav.psi = flight_data.psi[k]
+            nav.the = flight_data.theta[k]
+            nav.phi = flight_data.phi[k]
 
-          nav_active.lat = flight_data.navlat[k] # Note: should be radians
-          nav_active.lon = flight_data.navlon[k] # Note: should be radians
-          nav_active.alt = flight_data.navalt[k]
+            researchNav.lat = flight_data.navlat[k] # Note: should be radians
+            researchNav.lon = flight_data.navlon[k] # Note: should be radians
+            researchNav.alt = flight_data.navalt[k]
+
+            researchNav.psi = flight_data.psi[k]
+            researchNav.the = flight_data.theta[k]
+            researchNav.phi = flight_data.phi[k]
+
+            researchNav.lat = flight_data.navlat[k] # Note: should be radians
+            researchNav.lon = flight_data.navlon[k] # Note: should be radians
+            researchNav.alt = flight_data.navalt[k]
     else:
-      if FLAG_FILTERTYPE == 'BASELINE':
         get_nav(sensordata, nav, controlData)
-      else:
-        get_nav(sensordata, mission, nav, researchNav)
+        get_researchNav(sensordata, mission, nav, researchNav)
 
     # Store the desired results obtained from the compiled test navigation filter
-    psi_store.append(nav_active.psi)
-    the_store.append(nav_active.the)
-    phi_store.append(nav_active.phi)
-    navlat_store.append(nav_active.lat)
-    navlon_store.append(nav_active.lon)
-    navalt_store.append(nav_active.alt)
-    navStatus_store.append(nav_active.err_type)
-    wn_store.append(nav_active.wn)
-    we_store.append(nav_active.we)
-    wd_store.append(nav_active.wd)
-    signal_store.append([nav_active.signal_0, nav_active.signal_1, nav_active.signal_2, nav_active.signal_3,
-                         nav_active.signal_4, nav_active.signal_5, nav_active.signal_6, nav_active.signal_7,
-                         nav_active.signal_8, nav_active.signal_9])
+    # and the baseline filter
+    nav_data_dict = store_data(nav_data_dict, nav)
+    researchNav_data_dict = store_data(researchNav_data_dict, researchNav)
     haveGPS_store.append(mission.haveGPS)
     t_store.append(t[k])
 
@@ -345,70 +392,87 @@ while k < len(t):
 
 # When k = len(t) execute the close_nav function freeing up memory from matrices.
 close_nav()
+close_researchNav()
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
   fig, [ax1, ax2, ax3] = plt.subplots(3,1)
 
   # Yaw Plot
-  ax1.set_title(filename, fontsize=10)
+  psi_nav = nav_data_dict['psi_store']
+  psi_researchNav = researchNav_data_dict['psi_store']
+  ax1.set_title(MAT_FILENAME, fontsize=10)
   ax1.set_ylabel('YAW (DEGREES)', weight='bold')
-  ax1.plot(t, r2d(flight_data.psi), label='onboard', c='k', lw=3, alpha=.5)
-  ax1.plot(t_store, r2d(psi_store), label='PythonWrap',c='blue', lw=2)
+  ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
+  ax1.plot(t_store, r2d(psi_researchNav), label='researchNav',c='blue', lw=2)
   ax1.grid()
   ax1.legend(loc=0)
 
   # Pitch PLot
+  the_nav = nav_data_dict['the_store']
+  the_researchNav = researchNav_data_dict['the_store']  
   ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
-  ax2.plot(t, r2d(flight_data.theta), label='onboard', c='k', lw=3, alpha=.5)
-  ax2.plot(t_store, r2d(the_store), label='PythonWrap',c='blue', lw=2)
+  ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
+  ax2.plot(t_store, r2d(the_researchNav), label='researchNav',c='blue', lw=2)
   ax2.grid()
 
   # Roll PLot
+  phi_nav = nav_data_dict['phi_store']
+  phi_researchNav = researchNav_data_dict['phi_store']   
   ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
-  ax3.plot(t, r2d(flight_data.phi), label='onboard', c='k', lw=3, alpha=.5)
-  ax3.plot(t_store, r2d(phi_store), label='PythonWrap', c='blue',lw=2)
+  ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
+  ax3.plot(t_store, r2d(phi_researchNav), label='researchNav', c='blue',lw=2)
   ax3.set_xlabel('TIME (SECONDS)', weight='bold')
   ax3.grid()
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
+  navalt = nav_data_dict['navalt_store']
+  researchNavalt = researchNav_data_dict['navalt_store']
   plt.figure()
   plt.title('ALTITUDE')
   plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
-  plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='onboard', c='k', lw=3, alpha=.5)
-  plt.plot(t_store, navalt_store, label='PythonWrap',c='blue', lw=2)
+  plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
+  plt.plot(t_store, researchNavalt, label='researchNav',c='blue', lw=2)
   plt.ylabel('ALTITUDE (METERS)', weight='bold')
   plt.legend(loc=0)
   plt.grid()
 
 # Wind Plot
 if FLAG_PLOT_WIND:
+  wn = researchNav_data_dict['wn_store']
+  we = researchNav_data_dict['we_store']
+  wd = researchNav_data_dict['wd_store']
   plt.figure()
-  plt.title('WIND ESTIMATES - Only from PythonWrap')
-  plt.plot(t_store, wn_store, label='North',c='gray', lw=2)
-  plt.plot(t_store, we_store, label='East',c='black', lw=2)
-  plt.plot(t_store, wd_store, label='Down',c='blue', lw=2)
+  plt.title('WIND ESTIMATES - Only from researchNav')
+  plt.plot(t_store, wn, label='North',c='gray', lw=2)
+  plt.plot(t_store, we, label='East',c='black', lw=2)
+  plt.plot(t_store, wd, label='Down',c='blue', lw=2)
   plt.ylabel('WIND (METERS/SECOND)', weight='bold')
   plt.legend(loc=0)
   plt.grid()
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
+  navlat = nav_data_dict['navlat_store']
+  navlon = nav_data_dict['navlon_store']
+  researchNavlat = researchNav_data_dict['navlat_store']
+  researchNavlon = researchNav_data_dict['navlon_store']
   plt.figure()
-  plt.title(filename, fontsize=10)
+  plt.title(MAT_FILENAME, fontsize=10)
   plt.ylabel('LATITUDE (DEGREES)', weight='bold')
   plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
   plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], label='GPS Sensor', c='green', lw=2, alpha=.5)
-  plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='onboard', c='k', lw=3, alpha=.5)
-  plt.plot(r2d(navlon_store), r2d(navlat_store), label='PythonWrap', c='blue', lw=2)
+  plt.plot(r2d(navlon), r2d(navlat), label='nav', c='k', lw=3, alpha=.5)
+  plt.plot(r2d(researchNavlon), r2d(researchNavlat), label='researchNav', c='blue', lw=2)
   plt.grid()
   plt.legend(loc=0)
 
 if FLAG_PLOT_SIGNALS:
-  signal_store = np.array(signal_store)
   plt.figure()
-  plt.title('SIGNAL PLOTS')
+  plt.title('SIGNAL PLOTS - Only from researchNav')
+  signal_store = researchNav_data_dict['signal_store']
+  signal_store = np.array(signal_store)
   for sig in SIGNAL_LIST:
     plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
   plt.ylabel('SIGNAL UNITS', weight='bold')
