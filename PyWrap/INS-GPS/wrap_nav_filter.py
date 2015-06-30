@@ -365,9 +365,9 @@ while k < len(t):
             nav.the = flight_data.theta[k]
             nav.phi = flight_data.phi[k]
 
-            researchNav.lat = flight_data.navlat[k] # Note: should be radians
-            researchNav.lon = flight_data.navlon[k] # Note: should be radians
-            researchNav.alt = flight_data.navalt[k]
+            nav.lat = flight_data.navlat[k] # Note: should be radians
+            nav.lon = flight_data.navlon[k] # Note: should be radians
+            nav.alt = flight_data.navalt[k]
 
             researchNav.psi = flight_data.psi[k]
             researchNav.the = flight_data.theta[k]
