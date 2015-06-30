@@ -45,6 +45,31 @@ The original c-code has dependencies which are needed when compiling the entire 
 
     #include "nav_functions.h"
 
+## Flight Data Parameters
+
+The loaded `.mat` flight data file must have the following entries:
+
+Parameter | Units | note
+--- | --- | ---
+time | sec | 
+p, q, r | rad/s | x, y, z-body axis gyros
+ax, ay, az | m/s^2 | x, y, z-body axis accels
+hx, hy, hz | Guass | x, y, z-body axis (note used nominally)
+vn, ve, vd | m/s | GPS velocity north, east, down 
+lat, lon, alt | deg, m | GPS position
+
+where the GPS observations are simply repeated until the new measurement is available.  In this way all arrays are of the same length.
+
+If `FLAG_FOCE_INIT` is used, then additionally the on-board computed navigation solution is required:
+
+
+Parameter | Units | note
+--- | --- | ---
+psi, theta, phi | rad | yaw, pitch, roll
+navlat, navlon, alt | radian, m | GPS position
+
+*Note: navlat, navlon have different units than lat, lon.*
+
 ## Manual Compiling of C-Code
 
 Although `wrap_nav_filter.py` automatically builds the code, these instructions are kept for documentation on how to manually compiles the C-code into shared objects..
