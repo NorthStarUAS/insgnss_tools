@@ -52,6 +52,8 @@ The loaded `.mat` flight data file must have the following entries:
 Parameter | Units | note
 --- | --- | ---
 time | sec | 
+ias | m/s | indicated airspeed
+h   | m   | baro-altimeter
 p, q, r | rad/s | x, y, z-body axis gyros
 ax, ay, az | m/s^2 | x, y, z-body axis accels
 hx, hy, hz | Guass | x, y, z-body axis (note used nominally)
