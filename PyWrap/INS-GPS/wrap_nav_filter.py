@@ -285,6 +285,25 @@ def store_data(data_dict, nav_ptr):
     data_dict['wd_store'] = []
     data_dict['signal_store'] = []
 
+    data_dict['ax_bias'] = []
+    data_dict['ay_bias'] = [] 
+    data_dict['az_bias'] = []
+    data_dict['p_bias'] = []
+    data_dict['q_bias'] = []
+    data_dict['r_bias'] = []
+
+    data_dict['NS_std'] = []
+    data_dict['WE_std'] = []
+    data_dict['alt_std'] = []
+
+    # Attitude errors (small angle errors about N-E-D)
+    # Note: epsN and epsE are in general different than roll, pitch uncertainty.  
+    data_dict['epsN_std'] = []
+    data_dict['epsE_std'] = []
+    data_dict['epsD_std'] = [] # yaw uncertainty [rad]
+
+
+
   # Store data
   data_dict['psi_store'].append(nav_ptr.psi)
   data_dict['the_store'].append(nav_ptr.the)
@@ -301,6 +320,22 @@ def store_data(data_dict, nav_ptr):
                                     nav_ptr.signal_4, nav_ptr.signal_5, 
                                     nav_ptr.signal_6, nav_ptr.signal_7,
                                     nav_ptr.signal_8, nav_ptr.signal_9])
+
+  data_dict['ax_bias'].append(nav_ptr.ab[0])
+  data_dict['ay_bias'].append(nav_ptr.ab[1])
+  data_dict['az_bias'].append(nav_ptr.ab[2])
+  data_dict['p_bias'].append(nav_ptr.gb[0])
+  data_dict['q_bias'].append(nav_ptr.gb[1])
+  data_dict['r_bias'].append(nav_ptr.gb[2])
+
+  data_dict['NS_std'].append(np.sqrt(nav_ptr.Pp[0]))
+  data_dict['WE_std'].append(np.sqrt(nav_ptr.Pp[1]))
+  data_dict['alt_std'].append(np.sqrt(nav_ptr.Pp[2]))
+
+  data_dict['epsN_std'].append(np.sqrt(nav_ptr.Pa[0]))
+  data_dict['epsE_std'].append(np.sqrt(nav_ptr.Pa[1]))
+  data_dict['epsD_std'].append(np.sqrt(nav_ptr.Pa[2])) # yaw uncertainty [rad]
+
   return data_dict
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
@@ -405,6 +440,7 @@ if FLAG_PLOT_ATTITUDE:
   ax1.set_ylabel('YAW (DEGREES)', weight='bold')
   ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
   ax1.plot(t_store, r2d(psi_researchNav), label='researchNav',c='blue', lw=2)
+  ax1.plot(t[kstart:len(t)], r2d(flight_data.psi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax1.grid()
   ax1.legend(loc=0)
 
@@ -414,6 +450,7 @@ if FLAG_PLOT_ATTITUDE:
   ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
   ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
   ax2.plot(t_store, r2d(the_researchNav), label='researchNav',c='blue', lw=2)
+  ax2.plot(t[kstart:len(t)], r2d(flight_data.theta[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax2.grid()
 
   # Roll PLot
@@ -422,6 +459,7 @@ if FLAG_PLOT_ATTITUDE:
   ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
   ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
   ax3.plot(t_store, r2d(phi_researchNav), label='researchNav', c='blue',lw=2)
+  ax3.plot(t[kstart:len(t)], r2d(flight_data.phi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax3.set_xlabel('TIME (SECONDS)', weight='bold')
   ax3.grid()
 
@@ -432,6 +470,7 @@ if FLAG_PLOT_ALTITUDE:
   plt.figure()
   plt.title('ALTITUDE')
   plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
+  plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='On-Board', c='green', lw=2, alpha=.5)
   plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
   plt.plot(t_store, researchNavalt, label='researchNav',c='blue', lw=2)
   plt.ylabel('ALTITUDE (METERS)', weight='bold')
@@ -463,6 +502,7 @@ if FLAG_PLOT_GROUNDTRACK:
   plt.ylabel('LATITUDE (DEGREES)', weight='bold')
   plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
   plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], label='GPS Sensor', c='green', lw=2, alpha=.5)
+  plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='On-Board', c='green', lw=1, alpha=.85)
   plt.plot(r2d(navlon), r2d(navlat), label='nav', c='k', lw=3, alpha=.5)
   plt.plot(r2d(researchNavlon), r2d(researchNavlat), label='researchNav', c='blue', lw=2)
   plt.grid()
