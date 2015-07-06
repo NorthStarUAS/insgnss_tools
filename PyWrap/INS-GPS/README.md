@@ -62,7 +62,7 @@ lat, lon, alt | deg, m | GPS position
 
 where the GPS observations are simply repeated until the new measurement is available.  In this way all arrays are of the same length.
 
-If `FLAG_FOCE_INIT` is used, then additionally the on-board computed navigation solution is required:
+If `FLAG_FORCE_INIT` is used, then additionally the on-board computed navigation solution is required:
 
 
 Parameter | Units | note
