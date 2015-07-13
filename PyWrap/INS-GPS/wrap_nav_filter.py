@@ -36,7 +36,7 @@ FLAG_PLOT_WIND     = True
 FLAG_PLOT_HAVEGPS  = True
 FLAG_PLOT_SIGNALS  = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
-
+FLAG_WRITE2CSV = False # Write results to CSV file.
 # # # # # END INPUTS # # # # #
 
 import subprocess, os, sys
@@ -164,9 +164,11 @@ close_researchNav = compiled_researchNav_filter.close_researchNav
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
 import os
+import csv
 import numpy as np
 from scipy import io as sio
 from matplotlib import pyplot as plt
+import navpy
 r2d = np.rad2deg
 
 class dict2struct():
@@ -528,3 +530,46 @@ if FLAG_PLOT_HAVEGPS:
   plt.grid()
 
 plt.show()
+
+
+# Save Results to CSV File
+if FLAG_WRITE2CSV:
+    OUTPUT_FILENAME = filepath + '_postprocess.csv'
+    hdr_list = ['Time Stamp (us)', 'Lat (deg)', 'Lon (deg)', 'Alt (m)',
+                'Yaw (deg)', 'Pitch (deg)', 'Roll (deg)',
+                'North-South std (m)', 'West-East std (m)', 'Alt std (m)',
+                'Yaw std (deg)', 'Pitch std (deg)', 'Roll std (deg)']
+    with open(OUTPUT_FILENAME, 'w') as fobj:
+      # TODO: Print header
+      csv_writer = csv.writer(fobj)
+      csv_writer.writerow(hdr_list)
+      for k in range(len(t_store)):
+        # Convert eps_NED to eps_YPR
+        yaw_rad   = nav_data_dict['psi_store'][k]
+        pitch_rad = nav_data_dict['the_store'][k]
+        roll_rad  = nav_data_dict['phi_store'][k]
+
+        # Note, as part of transformation we are
+        # ignoring uncertinty in the mapping.
+        epsNED_std_deg = [r2d(nav_data_dict['epsN_std'][k]),
+                          r2d(nav_data_dict['epsE_std'][k]),
+                          r2d(nav_data_dict['epsD_std'][k])]
+        yaw_std_deg = epsNED_std_deg[2]
+        pitch_std_deg = navpy.angle2dcm(yaw_rad, 0, 0, input_unit='rad').dot(epsNED_std_deg)[1]
+        roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
+
+        row = [int(t_store[k]*1e6), 
+               r2d(nav_data_dict['navlat_store'][k]),
+               r2d(nav_data_dict['navlon_store'][k]),
+               nav_data_dict['navalt_store'][k],
+               r2d(yaw_rad),
+               r2d(pitch_rad),
+               r2d(roll_rad),
+               nav_data_dict['NS_std'][k],
+               nav_data_dict['WE_std'][k],
+               nav_data_dict['alt_std'][k],
+               yaw_std_deg,
+               pitch_std_deg,
+               roll_std_deg]
+        csv_writer.writerow(row)
+    print("Playback results written to: %s" % OUTPUT_FILENAME)
