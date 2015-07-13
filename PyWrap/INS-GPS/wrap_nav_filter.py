@@ -535,7 +535,7 @@ plt.show()
 # Save Results to CSV File
 if FLAG_WRITE2CSV:
     OUTPUT_FILENAME = filepath + '_postprocess.csv'
-    hdr_list = ['Time Stamp (us)', 'Lat (deg)', 'Lon (deg)', 'Alt (m)',
+    hdr_list = ['Time Stamp (us)', 'Lat (1e-7 deg)', 'Lon (1e-7 deg)', 'Alt (m)',
                 'Yaw (deg)', 'Pitch (deg)', 'Roll (deg)',
                 'North-South std (m)', 'West-East std (m)', 'Alt std (m)',
                 'Yaw std (deg)', 'Pitch std (deg)', 'Roll std (deg)']
@@ -559,8 +559,8 @@ if FLAG_WRITE2CSV:
         roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
 
         row = [int(t_store[k]*1e6), 
-               r2d(nav_data_dict['navlat_store'][k]),
-               r2d(nav_data_dict['navlon_store'][k]),
+               int(r2d(nav_data_dict['navlat_store'][k])*1e7),
+               int(r2d(nav_data_dict['navlon_store'][k])*1e7),
                nav_data_dict['navalt_store'][k],
                r2d(yaw_rad),
                r2d(pitch_rad),
