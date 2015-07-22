@@ -535,8 +535,9 @@ plt.show()
 # Save Results to CSV File
 if FLAG_WRITE2CSV:
     OUTPUT_FILENAME = filepath + '_postprocess.csv'
-    hdr_list = ['Time Stamp (us)', 'Lat (1e-7 deg)', 'Lon (1e-7 deg)', 'Alt (m)',
-                'Yaw (deg)', 'Pitch (deg)', 'Roll (deg)',
+    hdr_list = ['OMAP Timestamp (microseconds since epoch)', 
+                'Lat (1e-7 deg)', 'Lon (1e-7 deg)', 'Alt (m)',
+                'Aircraft Roll (1e-4 rad)', 'Aircraft Pitch (1e-4 rad)', 'Aircraft Yaw (1e-4 rad)',
                 'North-South std (m)', 'West-East std (m)', 'Alt std (m)',
                 'Yaw std (deg)', 'Pitch std (deg)', 'Roll std (deg)']
     with open(OUTPUT_FILENAME, 'w') as fobj:
@@ -562,9 +563,9 @@ if FLAG_WRITE2CSV:
                int(r2d(nav_data_dict['navlat_store'][k])*1e7),
                int(r2d(nav_data_dict['navlon_store'][k])*1e7),
                nav_data_dict['navalt_store'][k],
-               r2d(yaw_rad),
-               r2d(pitch_rad),
-               r2d(roll_rad),
+               int(roll_rad*1e4),
+               int(pitch_rad*1e4),
+               int(yaw_rad*1e4),
                nav_data_dict['NS_std'][k],
                nav_data_dict['WE_std'][k],
                nav_data_dict['alt_std'][k],
