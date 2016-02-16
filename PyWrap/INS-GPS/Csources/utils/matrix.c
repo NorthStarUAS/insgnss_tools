@@ -627,7 +627,7 @@ MATRIX mat_inv(MATRIX a, MATRIX C)
 			mat_free(B);
 			mat_free(C);
 			mat_free(P);
-			printf("mat_inv error: failed to invert\n");
+			printf("mat_inv error (LU-decomp): failed to invert\n");
 			return (NULL);
 		}
 
