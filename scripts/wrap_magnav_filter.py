@@ -42,65 +42,6 @@ FLAG_WRITE2CSV = False # Write results to CSV file.
 import subprocess, os, sys
 join = os.path.join
 
-if not os.path.isdir('Cbuild'):
-    os.mkdir('Cbuild')
-
-path_nav_filter = join('Csources', 'navigation', BASELINE_FILTERNAME)
-path_magnav_filter = join('Csources', 'magnav', BASELINE_FILTERNAME)
-
-
-BUILD_FAILED_FLAG = 0
-## Build `nav_functions.o`
-path_nav_functions = join('Csources', 'navigation' ,'nav_functions.c')
-cmd = 'gcc -o '+ join('Cbuild', 'nav_functions.o') + ' -c ' + path_nav_functions +' -fPIC'
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait() # p.wait() returns a '1' if process failed
-
-## Build `matrix.o`
-path_matrix = join('Csources', 'utils', 'matrix.c')
-cmd = 'gcc -o ' + join('Cbuild', 'matrix.o') + ' -c ' + path_matrix + ' -fPIC'
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-## Build `coremag.o`
-path_coremag = join('Csources', 'utils', 'coremag.c')
-cmd = 'gcc -o ' + join('Cbuild', 'coremag.o') + ' -c ' + path_coremag + ' -fPIC'
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-# Build `nav_filter.o` & researchNav_filter.o
-cmd = 'gcc -o ' + join('Cbuild', 'nav_filter.o') + ' -c ' + path_nav_filter + ' -fPIC'
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-cmd = 'gcc -o ' + join('Cbuild', 'magnav_filter.o') + ' -c ' + path_magnav_filter + ' -fPIC'
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-## Link into shared object
-cmd = 'gcc -lm -shared -Wl",-soname,nav_filter" -o ' + join('Cbuild', 'nav_filter.so') + ' ' \
-                                                           + join('Cbuild', 'nav_filter.o')  + ' ' \
-                                                           + join('Cbuild', 'matrix.o') + ' ' \
-                                                           + join('Cbuild', 'nav_functions.o')
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-cmd = 'gcc -lm -shared -Wl",-soname,magnav_filter" -o ' + join('Cbuild', 'magnav_filter.so') + ' ' \
-                                                           + join('Cbuild', 'magnav_filter.o')  + ' ' \
-                                                           + join('Cbuild', 'matrix.o') + ' ' \
-                                                           + join('Cbuild', 'nav_functions.o') + ' ' \
-                                                           + join('Cbuild', 'coremag.o')
-                                                                  
-p = subprocess.Popen(cmd, shell=True)
-BUILD_FAILED_FLAG |= p.wait()
-
-
-if BUILD_FAILED_FLAG:
-    sys.exit('Ending Program.  Failed to build C-code.')
-
-
-
-
 # Import these ctypes for proper declaration of globaldefs.py structures
 import ctypes
 # Import the globaldefs.py file
@@ -135,8 +76,8 @@ sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
 sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
 
 # Load compilied `.so` file.
-compiled_nav_filter = ctypes.CDLL(os.path.abspath('Cbuild/nav_filter.so'))
-compiled_magnav_filter = ctypes.CDLL(os.path.abspath('Cbuild/magnav_filter.so'))
+compiled_nav_filter = ctypes.CDLL(os.path.abspath('../build/src/navigation/.libs/libnavigation.so'))
+compiled_magnav_filter = ctypes.CDLL(os.path.abspath('../build/src/magnav/.libs/libnavigation_mag.so'))
 
 # Name the init_nav function defined as the init_nav from the compiled nav filter
 init_nav = compiled_nav_filter.init_nav
