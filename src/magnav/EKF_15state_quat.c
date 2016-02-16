@@ -21,8 +21,9 @@
 #include <math.h>
 
 
-#include "../globaldefs.h"
+#include "../include/globaldefs.h"
 #include "../utils/matrix.h"
+#include "../utils/coremag.h"
 
 #include "nav_functions.h"
 #include "nav_interface.h"
@@ -46,6 +47,8 @@
 #define		SIG_GPS_P_D  5
 #define		SIG_GPS_V	 0.5
 
+#define         SIG_MAG         4.0
+
 #define		P_P_INIT	10.0
 #define		P_V_INIT	1.0
 #define		P_A_INIT	0.34906		// 20 deg
@@ -63,15 +66,16 @@ static MATRIX Rw, Q, Qw, R;
 static MATRIX x, y, eul, Rbodtonav, grav, f_b, om_ib, nr;
 static MATRIX pos_ref, pos_ins_ecef, pos_ins_ned;
 static MATRIX pos_gps, pos_gps_ecef, pos_gps_ned;
+static MATRIX mag_ned, mag_ekf, mag_sense;
 static MATRIX I15, I3, ImKH, KRKt;
-static MATRIX dx, a_temp31, b_temp31, temp33, atemp33, temp615, temp1515, temp66, atemp66, temp156, temp1512;
+static MATRIX dx, a_temp31, b_temp31, temp33, atemp33, temp915, temp1515, temp99, atemp99, temp159, temp1512;
 static double quat[4];
 
 static double denom, Re, Rn;
 static double tprev;
 
 	
-void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct control *controlData_ptr){
+void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	/*++++++++++++++++++++++++++++++++++++++++++++++++
 	 *matrix creation for navigation computation
 	 *++++++++++++++++++++++++++++++++++++++++++++++++*/	
@@ -83,10 +87,10 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	Rw 			= mat_creat(12,12,ZERO_MATRIX);
 	Qw 			= mat_creat(15,15,ZERO_MATRIX);
 	Q 			= mat_creat(15,15,ZERO_MATRIX);		// Process Noise Matrix
-	R 			= mat_creat(6,6,ZERO_MATRIX);		// GPS Measurement Noise matrix
+	R 			= mat_creat(9,9,ZERO_MATRIX);		// GPS Measurement Noise matrix
 	
 	x			= mat_creat(15,1,ZERO_MATRIX);
-	y			= mat_creat(6,1,ZERO_MATRIX);		// GPS Measurement
+	y			= mat_creat(9,1,ZERO_MATRIX);		// GPS Measurement
 	eul			= mat_creat(3,1,ZERO_MATRIX);
 	Rbodtonav 	= mat_creat(3,3,ZERO_MATRIX);
 	grav		= mat_creat(3,1,ZERO_MATRIX);		// Gravity Model
@@ -94,8 +98,8 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	om_ib		= mat_creat(3,1,ZERO_MATRIX);
 	nr			= mat_creat(3,1,ZERO_MATRIX);		// Nav Transport Rate
 	
-	K 			= mat_creat(15,6,ZERO_MATRIX);		// Kalman Gain
-	H			= mat_creat(6,15,ZERO_MATRIX);
+	K 			= mat_creat(15,9,ZERO_MATRIX);		// Kalman Gain
+	H			= mat_creat(9,15,ZERO_MATRIX);
 	
 	C_N2B 		= mat_creat(3,3,ZERO_MATRIX);		// DCM
 	C_B2N 		= mat_creat(3,3,ZERO_MATRIX);		// DCM Transpose
@@ -107,6 +111,9 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	pos_gps		= mat_creat(3,1,ZERO_MATRIX);
 	pos_gps_ecef= mat_creat(3,1,ZERO_MATRIX);
 	pos_gps_ned	= mat_creat(3,1,ZERO_MATRIX);
+	mag_ned	        = mat_creat(3,1,ZERO_MATRIX);    // WMM2015
+	mag_ekf	        = mat_creat(3,1,ZERO_MATRIX);    // mag_ned in body frame
+	mag_sense        = mat_creat(3,1,ZERO_MATRIX);    // sensed mag vector
 	
 	I15			= mat_creat(15,15,UNIT_MATRIX);		// Identity
 	I3			= mat_creat(3,3,UNIT_MATRIX);		// Identity
@@ -119,10 +126,10 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	temp33		= mat_creat(3,3,ZERO_MATRIX);		// Temporary
 	atemp33		= mat_creat(3,3,ZERO_MATRIX);		// Temporary
 	temp1515	= mat_creat(15,15,ZERO_MATRIX);
-	temp615 	= mat_creat(6,15,ZERO_MATRIX);
-	temp66		= mat_creat(6,6,ZERO_MATRIX);
-	atemp66 	= mat_creat(6,6,ZERO_MATRIX);
-	temp156		= mat_creat(15,6,ZERO_MATRIX);
+	temp915 	= mat_creat(9,15,ZERO_MATRIX);
+	temp99		= mat_creat(9,9,ZERO_MATRIX);
+	atemp99 	= mat_creat(9,9,ZERO_MATRIX);
+	temp159		= mat_creat(15,9,ZERO_MATRIX);
 	temp1512	= mat_creat(15,12,ZERO_MATRIX);
 	
 	// Assemble the matrices
@@ -132,6 +139,10 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	// ... H
 	H[0][0] = 1.0; 	H[1][1] = 1.0; 	H[2][2] = 1.0;
 	H[3][3] = 1.0; 	H[4][4] = 1.0; 	H[5][5] = 1.0;
+	// FIXME: Waiting for Demoz official derivation
+	H[6][0] = 1.0;
+	H[7][1] = 1.0;
+	H[8][2] = 1.0;
 	
 	// ... Rw
 	Rw[0][0] = SIG_W_AX*SIG_W_AX;		Rw[1][1] = SIG_W_AY*SIG_W_AY;			Rw[2][2] = SIG_W_AZ*SIG_W_AZ;
@@ -158,6 +169,9 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	// ... R
 	R[0][0] = SIG_GPS_P_NE*SIG_GPS_P_NE;	R[1][1] = SIG_GPS_P_NE*SIG_GPS_P_NE;	R[2][2] = SIG_GPS_P_D*SIG_GPS_P_D;
 	R[3][3] = SIG_GPS_V*SIG_GPS_V;			R[4][4] = SIG_GPS_V*SIG_GPS_V;			R[5][5] = SIG_GPS_V*SIG_GPS_V;
+	R[6][6] = SIG_MAG;
+	R[7][7] = SIG_MAG;
+	R[8][8] = SIG_MAG;
 	
 
 	// .. then initialize states with GPS Data
@@ -169,12 +183,35 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	navData_ptr->ve = sensorData_ptr->gpsData_ptr->ve;
 	navData_ptr->vd = sensorData_ptr->gpsData_ptr->vd;
 	
+	// ideal magnetic vector
+	long int jd = now_to_julian_days();
+	double field[6];
+	calc_magvar( navData_ptr->lat, navData_ptr->lon,
+		     navData_ptr->alt / 1000.0, jd, field );
+	mag_ned[0][0] = field[3];
+	mag_ned[1][0] = field[4];
+	mag_ned[2][0] = field[5];
+	double mag_norm = mat_norm(mag_ned, 1);
+	if ( mag_norm > 0.0001 ) {
+	    mag_ned[0][0] /= mag_norm;
+	    mag_ned[1][0] /= mag_norm;
+	    mag_ned[2][0] /= mag_norm;
+	}
+	printf("Ideal mag vector (ned): %.2f %.2f %.2f\n",
+	       mag_ned[0][0], mag_ned[1][0], mag_ned[2][0]);
+
+	// initial heading
+	double init_psi_rad = 90.0*D2R;
+	if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
+	    init_psi_rad = atan2(mag_ned[0][1], mag_ned[0][0]);
+	}
+	
 	// ... and initialize states with IMU Data
 	//navData_ptr->the = asin(sensorData_ptr->imuData_ptr->ax/g); // theta from Ax, aircraft at rest
 	//navData_ptr->phi = asin(-sensorData_ptr->imuData_ptr->ay/(g*cos(navData_ptr->the))); // phi from Ay, aircraft at rest
-	navData_ptr->the = 8*D2R;
+	navData_ptr->the = 0*D2R;
 	navData_ptr->phi = 0*D2R;
-	navData_ptr->psi = 90.0*D2R;
+	navData_ptr->psi = init_psi_rad;
 	
 	eul2quat(navData_ptr->quat,(navData_ptr->phi),(navData_ptr->the),(navData_ptr->psi));
 	
@@ -194,7 +231,7 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 	om_ib[0][0] = sensorData_ptr->imuData_ptr->p - navData_ptr->gb[0];
 	om_ib[1][0] = sensorData_ptr->imuData_ptr->q - navData_ptr->gb[1];
 	om_ib[2][0] = sensorData_ptr->imuData_ptr->r - navData_ptr->gb[2];
-	
+
 	// Time during initialization
 	tprev = sensorData_ptr->imuData_ptr->time;
 	
@@ -204,7 +241,7 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 }
 
 // Main get_nav filter function
-void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct control *controlData_ptr){
+void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	double tnow, imu_dt;
 	double dq[4], quat_new[4];
 
@@ -380,6 +417,32 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct 
 		pos_gps_ecef = lla2ecef(pos_gps,pos_gps_ecef);
 		
 		pos_gps_ned = ecef2ned(pos_gps_ecef,pos_gps_ned,pos_ref);
+
+		// ideal mag vector in body frame (then normalized)
+		double mag_norm = 0.0;
+		mat_mul(C_N2B, mag_ned, mag_ekf);
+		mag_norm = mat_norm(mag_ekf, 1);
+		if ( mag_norm > 0.0001 ) {
+		    mag_ekf[0][0] /= mag_norm;
+		    mag_ekf[1][0] /= mag_norm;
+		    mag_ekf[2][0] /= mag_norm;
+		}
+		/* printf("mag vector (ekf): %.2f %.2f %.2f\n",
+		   mag_ekf[0][0], mag_ekf[1][0], mag_ekf[2][0]); */
+
+		// measured mag vector
+		mag_sense[0][0] = sensorData_ptr->imuData_ptr->hx;
+		mag_sense[1][0] = sensorData_ptr->imuData_ptr->hy;
+		mag_sense[2][0] = sensorData_ptr->imuData_ptr->hz;
+    		mag_norm = mat_norm(mag_sense, 1);
+		if ( mag_norm > 0.0001 ) {
+		    mag_sense[0][0] /= mag_norm;
+		    mag_sense[1][0] /= mag_norm;
+		    mag_sense[2][0] /= mag_norm;
+		}
+		/* printf("mag vector (sense): %.2f %.2f %.2f\n",
+		   mag_sense[0][0], mag_sense[1][0], mag_sense[2][0]); */
+		printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", mag_ekf[0][0], mag_ekf[1][0], mag_ekf[2][0], mag_sense[0][0], mag_sense[1][0], mag_sense[2][0]);
 		
 		// Create Measurement: y
 		y[0][0] = pos_gps_ned[0][0] - pos_ins_ned[0][0];
@@ -389,27 +452,31 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct 
 		y[3][0] = sensorData_ptr->gpsData_ptr->vn - navData_ptr->vn;
 		y[4][0] = sensorData_ptr->gpsData_ptr->ve - navData_ptr->ve;
 		y[5][0] = sensorData_ptr->gpsData_ptr->vd - navData_ptr->vd;
-		
+
+		y[6][0] = mag_sense[0][0] - mag_ekf[0][0];
+		y[7][0] = mag_sense[1][0] - mag_ekf[1][0];
+		y[8][0] = mag_sense[2][0] - mag_ekf[2][0];
+
 		//fprintf(stderr,"Measurement Matrix, y, created\n");
 		
 		// Kalman Gain
-		temp615 = mat_mul(H,P,temp615);
-		temp66 = mat_transmul(temp615,H,temp66);
-		atemp66 = mat_add(temp66,R,atemp66);
-		temp66 = mat_inv(atemp66,temp66); // temp66 = inv(H*P*H'+R)
+		temp915 = mat_mul(H,P,temp915);
+		temp99 = mat_transmul(temp915,H,temp99);
+		atemp99 = mat_add(temp99,R,atemp99);
+		temp99 = mat_inv(atemp99,temp99); // temp99 = inv(H*P*H'+R)
 		//fprintf(stderr,"inv(H*P*H'+R) Computed\n");
 		
-		temp156 = mat_transmul(P,H,temp156); // P*H'
+		temp159 = mat_transmul(P,H,temp159); // P*H'
 		//fprintf(stderr,"P*H' Computed\n");
-		K = mat_mul(temp156,temp66,K);	   // K = P*H'*inv(H*P*H'+R)
+		K = mat_mul(temp159,temp99,K);	   // K = P*H'*inv(H*P*H'+R)
 		//fprintf(stderr,"Kalman Gain Computed\n");
 		
 		// Covariance Update
 		temp1515 = mat_mul(K,H,temp1515);
 		ImKH = mat_sub(I15,temp1515,ImKH);	// ImKH = I - K*H
 		
-		temp615 = mat_transmul(R,K,temp615);
-		KRKt = mat_mul(K,temp615,KRKt);		// KRKt = K*R*K'
+		temp915 = mat_transmul(R,K,temp915);
+		KRKt = mat_mul(K,temp915,KRKt);		// KRKt = K*R*K'
 		
 		temp1515 = mat_transmul(P,ImKH,temp1515);
 		P = mat_mul(ImKH,temp1515,P);		// ImKH*P*ImKH'
@@ -524,6 +591,9 @@ void close_nav(void){
 	mat_free(pos_gps);
 	mat_free(pos_gps_ecef);
 	mat_free(pos_gps_ned);
+	mat_free(mag_ned);
+	mat_free(mag_ekf);
+	mat_free(mag_sense);
 	mat_free(I15);
 	mat_free(I3);
 	mat_free(ImKH);
@@ -534,10 +604,10 @@ void close_nav(void){
 	mat_free(temp33);
 	mat_free(atemp33);
 	mat_free(temp1515);
-	mat_free(temp615);
-	mat_free(temp66);
-	mat_free(atemp66);
-	mat_free(temp156);
+	mat_free(temp915);
+	mat_free(temp99);
+	mat_free(atemp99);
+	mat_free(temp159);
 	mat_free(temp1512);
 	
 }
