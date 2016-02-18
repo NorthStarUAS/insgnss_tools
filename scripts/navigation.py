@@ -11,25 +11,11 @@ byref   = ctypes.byref
 # Declare Structures from globaldefs.py
 sensordata = globaldefs.SENSORDATA()
 imu = globaldefs.IMU()
-controlData = globaldefs.CONTROL()
 gpsData     = globaldefs.GPS()
-airData     = globaldefs.AIRDATA()
-surface     = globaldefs.SURFACE()
-mission     = globaldefs.MISSION()
-
-sensordata_mag = globaldefs.SENSORDATA()
-imu_mag = globaldefs.IMU()
-gpsData_mag     = globaldefs.GPS()
 
 # Assign pointers that use the structures just declared
 sensordata.imuData_ptr = ctypes.pointer(imu)
 sensordata.gpsData_ptr   = ctypes.pointer(gpsData)
-sensordata.adData_ptr   = ctypes.pointer(airData)
-sensordata.surfData_ptr = ctypes.pointer(surface)
-
-sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
-sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
-
 
 class filter():
     def __init__(self):
