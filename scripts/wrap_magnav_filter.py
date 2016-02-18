@@ -90,22 +90,22 @@ data = sio.loadmat(filepath, struct_as_record=False, squeeze_me=True)
 print 'Loaded Data Summary'
 print '* File: %s' % filepath.split(os.path.sep)[-1]
 try:
-  flight_data, flight_info = data['flight_data'], data['flight_info']
-  print('* Date: %s' % flight_info.date)
-  print('* Aircraft: %s' % flight_info.aircraft)
+    flight_data, flight_info = data['flight_data'], data['flight_info']
+    print('* Date: %s' % flight_info.date)
+    print('* Aircraft: %s' % flight_info.aircraft)
 except KeyError:
-  print 'KeyError'
-  # Convert from Python dictionary to struct-like before
-  flight_data = dict2struct()
-  for k in data:
-      exec("flight_data.%s = data['%s']" % (k, k))
+    print 'KeyError'
+    # Convert from Python dictionary to struct-like before
+    flight_data = dict2struct()
+    for k in data:
+        exec("flight_data.%s = data['%s']" % (k, k))
 del(data)
 
 # Add both names for pitch: the and theta
 try:
-  flight_data.theta = flight_data.the
+    flight_data.theta = flight_data.the
 except AttributeError:
-  pass
+    pass
 
 # Fill in time data
 t = flight_data.time
@@ -124,17 +124,16 @@ imu = np.vstack((t, flight_data.p, flight_data.q, flight_data.r,
 # have the nav-estimated bias removed before datalogging. So to work with raw
 # imu-data, we add back the on-board estimated biases.
 if not FLAG_UNBIASED_IMU:
-  try:
-     imu[:, 1:4] += np.vstack((flight_data.p_bias, 
-                             flight_data.q_bias, 
-                             flight_data.r_bias)).T
-                             
-     imu[:, 4:7] += np.vstack((flight_data.ax_bias,
-                             flight_data.ay_bias,
-                             flight_data.az_bias)).T
-  except AttributeError:
-     print('Note: On board estimated bias not found.')
-     pass
+    try:
+        imu[:, 1:4] += np.vstack((flight_data.p_bias, 
+                                  flight_data.q_bias, 
+                                  flight_data.r_bias)).T
+
+        imu[:, 4:7] += np.vstack((flight_data.ax_bias,
+                                  flight_data.ay_bias,
+                                  flight_data.az_bias)).T
+    except AttributeError:
+        print('Note: On board estimated bias not found.')
 
 # Air Data
 ias = flight_data.ias # indicated airspeed (m/s)
@@ -157,101 +156,103 @@ lat = flight_data.lat
 lon = flight_data.lon
 alt = flight_data.alt
 
-# kstart set to when the navigation filter used onboard the aircraft was initialized
-# and this is accomplished by detecting when navlat is no longer 0.0. This choice
-# of kstart will ensure the filter being tested is using the same initialization
-# time step as the onboard filter allowing for apples to apples comparisons.
+# kstart set to when the navigation filter used onboard the aircraft
+# was initialized and this is accomplished by detecting when navlat is
+# no longer 0.0. This choice of kstart will ensure the filter being
+# tested is using the same initialization time step as the onboard
+# filter allowing for apples to apples comparisons.
 kstart = (abs(flight_data.navlat) > 0.0).tolist().index(True)
 k = kstart
 print('Initialized at Time: %.2f s (k=%i)' % (t[k], k))
 
-# Set previous value of GPS altitude to 0.0. This will be used to trigger GPS newData
-# flag which is commonly used in our navigation filters for deciding if the GPS
-# data has been updated. However, in python we have no log of newData (typically). So
-# a comparison of current GPS altitude to the previous epoch's GPS altitude is used to
+# Set previous value of GPS altitude to 0.0. This will be used to
+# trigger GPS newData flag which is commonly used in our navigation
+# filters for deciding if the GPS data has been updated. However, in
+# python we have no log of newData (typically). So a comparison of
+# current GPS altitude to the previous epoch's GPS altitude is used to
 # determine if GPS has been updated.
 old_GPS_alt = 0.0
 
-# Values (Calculated by compiled test navigation filter) need to be stored in python
-# variables and they need to be in the globaldefs.c and globaldefs.py to allow for
-# pulling them out and saving. These python variables need to be initialized to work
-# properly in the while loop.
+# Values (Calculated by compiled test navigation filter) need to be
+# stored in python variables and they need to be in the globaldefs.c
+# and globaldefs.py to allow for pulling them out and saving. These
+# python variables need to be initialized to work properly in the
+# while loop.
 nav_data_dict = {}
 nav_mag_data_dict = {}
 haveGPS_store = []
 t_store = []
 
 def store_data(data_dict, nav_ptr):
-  """
-  Append current elements from `nav_ptr` into
-  `data_dict`.  
-  """
-  # Initialize dictionary if needed (e.g.) first iteration.
-  if len(data_dict) == 0:
-    data_dict['psi_store'] = []
-    data_dict['psi_store'] = []
-    data_dict['the_store'] = []
-    data_dict['phi_store'] = []
-    data_dict['navlat_store'] = []
-    data_dict['navlon_store'] = []
-    data_dict['navalt_store'] = []
-    data_dict['navStatus_store'] = []
-    data_dict['wn_store'] = []
-    data_dict['we_store'] = []
-    data_dict['wd_store'] = []
-    data_dict['signal_store'] = []
+    """
+    Append current elements from `nav_ptr` into
+    `data_dict`.  
+    """
+    # Initialize dictionary if needed (e.g.) first iteration.
+    if len(data_dict) == 0:
+        data_dict['psi_store'] = []
+        data_dict['psi_store'] = []
+        data_dict['the_store'] = []
+        data_dict['phi_store'] = []
+        data_dict['navlat_store'] = []
+        data_dict['navlon_store'] = []
+        data_dict['navalt_store'] = []
+        data_dict['navStatus_store'] = []
+        data_dict['wn_store'] = []
+        data_dict['we_store'] = []
+        data_dict['wd_store'] = []
+        data_dict['signal_store'] = []
 
-    data_dict['ax_bias'] = []
-    data_dict['ay_bias'] = [] 
-    data_dict['az_bias'] = []
-    data_dict['p_bias'] = []
-    data_dict['q_bias'] = []
-    data_dict['r_bias'] = []
+        data_dict['ax_bias'] = []
+        data_dict['ay_bias'] = [] 
+        data_dict['az_bias'] = []
+        data_dict['p_bias'] = []
+        data_dict['q_bias'] = []
+        data_dict['r_bias'] = []
 
-    data_dict['NS_std'] = []
-    data_dict['WE_std'] = []
-    data_dict['alt_std'] = []
+        data_dict['NS_std'] = []
+        data_dict['WE_std'] = []
+        data_dict['alt_std'] = []
 
-    # Attitude errors (small angle errors about N-E-D)
-    # Note: epsN and epsE are in general different than roll, pitch uncertainty.  
-    data_dict['epsN_std'] = []
-    data_dict['epsE_std'] = []
-    data_dict['epsD_std'] = [] # yaw uncertainty [rad]
+        # Attitude errors (small angle errors about N-E-D)
+        # Note: epsN and epsE are in general different than roll, pitch uncertainty.  
+        data_dict['epsN_std'] = []
+        data_dict['epsE_std'] = []
+        data_dict['epsD_std'] = [] # yaw uncertainty [rad]
 
+    # Store data
+    data_dict['psi_store'].append(nav_ptr.psi)
+    data_dict['the_store'].append(nav_ptr.the)
+    data_dict['phi_store'].append(nav_ptr.phi)
+    data_dict['navlat_store'].append(nav_ptr.lat)
+    data_dict['navlon_store'].append(nav_ptr.lon)
+    data_dict['navalt_store'].append(nav_ptr.alt)
+    data_dict['navStatus_store'].append(nav_ptr.err_type)
+    data_dict['wn_store'].append(nav_ptr.wn)
+    data_dict['we_store'].append(nav_ptr.we)
+    data_dict['wd_store'].append(nav_ptr.wd)
+    data_dict['signal_store'].append([nav_ptr.signal_0, nav_ptr.signal_1,
+                                      nav_ptr.signal_2, nav_ptr.signal_3,
+                                      nav_ptr.signal_4, nav_ptr.signal_5, 
+                                      nav_ptr.signal_6, nav_ptr.signal_7,
+                                      nav_ptr.signal_8, nav_ptr.signal_9])
 
-  # Store data
-  data_dict['psi_store'].append(nav_ptr.psi)
-  data_dict['the_store'].append(nav_ptr.the)
-  data_dict['phi_store'].append(nav_ptr.phi)
-  data_dict['navlat_store'].append(nav_ptr.lat)
-  data_dict['navlon_store'].append(nav_ptr.lon)
-  data_dict['navalt_store'].append(nav_ptr.alt)
-  data_dict['navStatus_store'].append(nav_ptr.err_type)
-  data_dict['wn_store'].append(nav_ptr.wn)
-  data_dict['we_store'].append(nav_ptr.we)
-  data_dict['wd_store'].append(nav_ptr.wd)
-  data_dict['signal_store'].append([nav_ptr.signal_0, nav_ptr.signal_1,
-                                    nav_ptr.signal_2, nav_ptr.signal_3,
-                                    nav_ptr.signal_4, nav_ptr.signal_5, 
-                                    nav_ptr.signal_6, nav_ptr.signal_7,
-                                    nav_ptr.signal_8, nav_ptr.signal_9])
+    data_dict['ax_bias'].append(nav_ptr.ab[0])
+    data_dict['ay_bias'].append(nav_ptr.ab[1])
+    data_dict['az_bias'].append(nav_ptr.ab[2])
+    data_dict['p_bias'].append(nav_ptr.gb[0])
+    data_dict['q_bias'].append(nav_ptr.gb[1])
+    data_dict['r_bias'].append(nav_ptr.gb[2])
 
-  data_dict['ax_bias'].append(nav_ptr.ab[0])
-  data_dict['ay_bias'].append(nav_ptr.ab[1])
-  data_dict['az_bias'].append(nav_ptr.ab[2])
-  data_dict['p_bias'].append(nav_ptr.gb[0])
-  data_dict['q_bias'].append(nav_ptr.gb[1])
-  data_dict['r_bias'].append(nav_ptr.gb[2])
+    data_dict['NS_std'].append(np.sqrt(nav_ptr.Pp[0]))
+    data_dict['WE_std'].append(np.sqrt(nav_ptr.Pp[1]))
+    data_dict['alt_std'].append(np.sqrt(nav_ptr.Pp[2]))
 
-  data_dict['NS_std'].append(np.sqrt(nav_ptr.Pp[0]))
-  data_dict['WE_std'].append(np.sqrt(nav_ptr.Pp[1]))
-  data_dict['alt_std'].append(np.sqrt(nav_ptr.Pp[2]))
+    data_dict['epsN_std'].append(np.sqrt(nav_ptr.Pa[0]))
+    data_dict['epsE_std'].append(np.sqrt(nav_ptr.Pa[1]))
+    data_dict['epsD_std'].append(np.sqrt(nav_ptr.Pa[2])) # yaw uncertainty [rad]
 
-  data_dict['epsN_std'].append(np.sqrt(nav_ptr.Pa[0]))
-  data_dict['epsE_std'].append(np.sqrt(nav_ptr.Pa[1]))
-  data_dict['epsD_std'].append(np.sqrt(nav_ptr.Pa[2])) # yaw uncertainty [rad]
-
-  return data_dict
+    return data_dict
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
 while k < len(t):
@@ -261,8 +262,9 @@ while k < len(t):
     ax, ay, az = imu[k, 4:7]
     hx, hy, hz = imu[k, 7:10]
     
-    # Assign that IMU data extracted from the .mat file at the current epoch to the 
-    # pointer values and structures to be passed into "get_" functions of the c-code.
+    # Assign that IMU data extracted from the .mat file at the current
+    # epoch to the pointer values and structures to be passed into
+    # "get_" functions of the c-code.
     imuData.p = p
     imuData.q = q
     imuData.r = r
