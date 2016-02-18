@@ -21,7 +21,6 @@ Last Update: April 22, 2015
 # # # # # START INPUTS # # # # #
 
 FLAG_UNBIASED_IMU = False             # Choose if accel/gyro should be bias-free.
-BASELINE_FILTERNAME = 'EKF_15state_quat.c'  # Name of 'BASELINE' filter.
 MAT_FILENAME = 'thor_flight75_WaypointTracker_150squareWaypointNew_2012_10_10.mat'
 #MAT_FILENAME = 'flightdata_595.4961sec.mat'
 T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
@@ -39,8 +38,14 @@ SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
 # # # # # END INPUTS # # # # #
 
-import subprocess, os, sys
+import os, sys
 join = os.path.join
+
+import navigation
+nav1 = navigation.filter()
+
+import magnav
+nav2 = magnav.filter()
 
 # Import these ctypes for proper declaration of globaldefs.py structures
 import ctypes
@@ -74,37 +79,6 @@ sensordata.surfData_ptr = ctypes.pointer(surface)
 
 sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
 sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
-
-# Load compilied `.so` file.
-compiled_nav_filter = ctypes.CDLL(os.path.abspath('../build/src/navigation/.libs/libnavigation.so'))
-compiled_magnav_filter = ctypes.CDLL(os.path.abspath('../build/src/magnav/.libs/libnavigation_mag.so'))
-
-# Name the init_nav function defined as the init_nav from the compiled nav filter
-init_nav = compiled_nav_filter.init_nav
-# Declare inputs to the init_nav function
-init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                     POINTER(globaldefs.NAV), 
-                     POINTER(globaldefs.CONTROL)]
-
-# Name the get_nav function defined as the get_nav from the compiled nav filter
-get_nav = compiled_nav_filter.get_nav
-# Declare inputs to the get_nav function
-get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                    POINTER(globaldefs.NAV), 
-                    POINTER(globaldefs.CONTROL)]
-# Name the close_nav function defined as the close_nav from the compiled nav filter
-close_nav = compiled_nav_filter.close_nav
-
-# mag navigation filter
-init_magnav = compiled_magnav_filter.init_nav
-init_magnav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                        POINTER(globaldefs.NAV)]
-
-get_magnav = compiled_magnav_filter.get_nav
-# Declare inputs to the get_nav function
-get_magnav.argtypes = [POINTER(globaldefs.SENSORDATA), 
-                       POINTER(globaldefs.NAV)]
-close_magnav = compiled_magnav_filter.close_nav
 
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
@@ -375,8 +349,8 @@ while k < len(t):
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        init_nav(sensordata, nav, controlData)
-        init_magnav(sensordata_mag, magnav)
+        nav1.init_nav(sensordata, nav, controlData)
+        nav2.init_nav(sensordata_mag, magnav)
 
         if FLAG_FORCE_INIT:
             # Force initial values to match logged INS/GPS result
@@ -396,8 +370,8 @@ while k < len(t):
             magnav.lon = flight_data.navlon[k] # Note: should be radians
             magnav.alt = flight_data.navalt[k]
     else:
-        get_nav(sensordata, nav, controlData)
-        get_magnav(sensordata_mag, magnav)
+        nav1.get_nav(sensordata, nav, controlData)
+        nav2.get_nav(sensordata_mag, magnav)
 
     # Store the desired results obtained from the compiled test navigation filter
     # and the baseline filter
@@ -410,8 +384,8 @@ while k < len(t):
     k+=1
 
 # When k = len(t) execute the close_nav function freeing up memory from matrices.
-close_nav()
-close_magnav()
+nav1.close_nav()
+nav2.close_nav()
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
