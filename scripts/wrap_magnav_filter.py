@@ -342,8 +342,8 @@ while k < len(t):
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        nav1.init_nav(sensordata, nav)
-        nav2.init_nav(sensordata_mag, magnav)
+        nav1.init(sensordata, nav)
+        nav2.init(sensordata_mag, magnav)
 
         if FLAG_FORCE_INIT:
             # Force initial values to match logged INS/GPS result
@@ -363,8 +363,8 @@ while k < len(t):
             magnav.lon = flight_data.navlon[k] # Note: should be radians
             magnav.alt = flight_data.navalt[k]
     else:
-        nav1.get_nav(sensordata, nav)
-        nav2.get_nav(sensordata_mag, magnav)
+        nav1.update(sensordata, nav)
+        nav2.update(sensordata_mag, magnav)
 
     # Store the desired results obtained from the compiled test navigation filter
     # and the baseline filter
@@ -377,8 +377,8 @@ while k < len(t):
     k+=1
 
 # When k = len(t) execute the close_nav function freeing up memory from matrices.
-nav1.close_nav()
-nav2.close_nav()
+nav1.close()
+nav2.close()
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
