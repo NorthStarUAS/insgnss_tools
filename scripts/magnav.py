@@ -8,22 +8,6 @@ import globaldefs
 POINTER = ctypes.POINTER
 byref   = ctypes.byref
 
-# Declare Structures from globaldefs.py
-sensordata = globaldefs.SENSORDATA()
-imu = globaldefs.IMU()
-gpsData     = globaldefs.GPS()
-
-sensordata_mag = globaldefs.SENSORDATA()
-imu_mag = globaldefs.IMU()
-gpsData_mag     = globaldefs.GPS()
-
-# Assign pointers that use the structures just declared
-sensordata.imuData_ptr = ctypes.pointer(imu)
-sensordata.gpsData_ptr   = ctypes.pointer(gpsData)
-
-sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
-sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
-
 class filter():
     def __init__(self):
         # Load compilied `.so` file.

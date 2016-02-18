@@ -56,7 +56,6 @@ POINTER = ctypes.POINTER
 byref   = ctypes.byref
 
 # Declare Structures from globaldefs.py
-sensordata = globaldefs.SENSORDATA()
 imuData = globaldefs.IMU()
 gpsData     = globaldefs.GPS()
 
@@ -65,10 +64,6 @@ gpsData_mag     = globaldefs.GPS()
 
 nav = globaldefs.NAV()
 nav_mag = globaldefs.NAV()
-
-# Assign pointers that use the structures just declared
-sensordata.imuData_ptr = ctypes.pointer(imuData)
-sensordata.gpsData_ptr   = ctypes.pointer(gpsData)
 
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
@@ -285,17 +280,17 @@ while k < len(t):
     imuData.time = t[k]    
 
     # Assign Air Data
-    # sensordata.adData_ptr.contents.ias = ias[k]
-    # sensordata.adData_ptr.contents.h = h[k]
+    # adData.ias = ias[k]
+    # adData.h = h[k]
 
     # Assign GPS Data
-    sensordata.gpsData_ptr.contents.vn = vn[k]
-    sensordata.gpsData_ptr.contents.ve = ve[k]
-    sensordata.gpsData_ptr.contents.vd = vd[k]
+    gpsData.vn = vn[k]
+    gpsData.ve = ve[k]
+    gpsData.vd = vd[k]
 
-    sensordata.gpsData_ptr.contents.lat = lat[k]
-    sensordata.gpsData_ptr.contents.lon = lon[k]
-    sensordata.gpsData_ptr.contents.alt = alt[k]
+    gpsData.lat = lat[k]
+    gpsData.lon = lon[k]
+    gpsData.alt = alt[k]
 
     imuData_mag.p = p
     imuData_mag.q = q
@@ -329,11 +324,11 @@ while k < len(t):
 
     # Set GPS newData flag
     if ((abs(flight_data.alt[k] - old_GPS_alt))>.0001):
-        sensordata.gpsData_ptr.contents.newData = 1
+        gpsData.newData = 1
         gpsData_mag.newData = 1
         old_GPS_alt = flight_data.alt[k]
     else:
-        sensordata.gpsData_ptr.contents.newData = 0
+        gpsData.newData = 0
         gpsData_mag.newData = 0
 
     # If k is at the initialization time init_nav else get_nav
