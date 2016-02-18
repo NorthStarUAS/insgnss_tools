@@ -71,7 +71,7 @@ static double denom, Re, Rn;
 static double tprev;
 
 	
-void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct control *controlData_ptr){
+void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	/*++++++++++++++++++++++++++++++++++++++++++++++++
 	 *matrix creation for navigation computation
 	 *++++++++++++++++++++++++++++++++++++++++++++++++*/	
@@ -204,7 +204,7 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct
 }
 
 // Main get_nav filter function
-void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr, struct control *controlData_ptr){
+void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	double tnow, imu_dt;
 	double dq[4], quat_new[4];
 

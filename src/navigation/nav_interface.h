@@ -20,9 +20,7 @@
  * \ingroup nav_fcns
 */
 void init_nav(struct sensordata *sensorData_ptr,	///< pointer to sensorData structure
-		struct nav *navData_ptr,			///< pointer to navData structure
-		struct control *controlData_ptr		///< pointer to controlData structure
-		);
+		struct nav *navData_ptr);
 
 /// Standard function to call the navigation filter.
 /*!
@@ -30,9 +28,7 @@ void init_nav(struct sensordata *sensorData_ptr,	///< pointer to sensorData stru
  * \ingroup nav_fcns
 */
 void get_nav(struct sensordata *sensorData_ptr,	///< pointer to sensorData structure
-		struct nav *navData_ptr,			///< pointer to navData structure
-		struct control *controlData_ptr		///< pointer to controlData structure
-		);
+		struct nav *navData_ptr);
 
 /// Standard function to close the navigation filter.
 /*!
