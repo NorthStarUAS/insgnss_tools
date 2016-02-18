@@ -30,18 +30,20 @@ class filter():
         self.sharedobj = ctypes.CDLL(os.path.abspath('../build/src/magnav/.libs/libnavigation_mag.so'))
         
         # Declare inputs to the init_nav function
-        self.sharedobj.init_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+        self.sharedobj.init_nav.argtypes = [POINTER(globaldefs.IMU),
+                                            POINTER(globaldefs.GPS),
                                             POINTER(globaldefs.NAV)]
 
         # Declare inputs to the get_nav function
-        self.sharedobj.get_nav.argtypes = [POINTER(globaldefs.SENSORDATA), 
+        self.sharedobj.get_nav.argtypes = [POINTER(globaldefs.IMU),
+                                           POINTER(globaldefs.GPS),
                                            POINTER(globaldefs.NAV)]
 
-    def init(self, sensorp, navp):
-        self.sharedobj.init_nav(sensorp, navp)
+    def init(self, imup, gpsp, navp):
+        self.sharedobj.init_nav(imup, gpsp, navp)
 
-    def update(self, sensorp, navp):
-        self.sharedobj.get_nav(sensorp, navp)
+    def update(self, imup, gpsp, navp):
+        self.sharedobj.get_nav(imup, gpsp, navp)
 
     def close(self):
         self.sharedobj.close_nav()

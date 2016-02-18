@@ -57,22 +57,18 @@ byref   = ctypes.byref
 
 # Declare Structures from globaldefs.py
 sensordata = globaldefs.SENSORDATA()
-imu = globaldefs.IMU()
+imuData = globaldefs.IMU()
 gpsData     = globaldefs.GPS()
 
-sensordata_mag = globaldefs.SENSORDATA()
-imu_mag = globaldefs.IMU()
+imuData_mag = globaldefs.IMU()
 gpsData_mag     = globaldefs.GPS()
 
 nav = globaldefs.NAV()
-magnav = globaldefs.NAV()
+nav_mag = globaldefs.NAV()
 
 # Assign pointers that use the structures just declared
-sensordata.imuData_ptr = ctypes.pointer(imu)
+sensordata.imuData_ptr = ctypes.pointer(imuData)
 sensordata.gpsData_ptr   = ctypes.pointer(gpsData)
-
-sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
-sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
 
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
@@ -124,8 +120,8 @@ hm  = np.vstack((flight_data.hx, -flight_data.hy, -flight_data.hz)).T
 
 # Populate IMU Data
 imu = np.vstack((t, flight_data.p, flight_data.q, flight_data.r, 
-                    flight_data.ax, flight_data.ay, flight_data.az,
-                    hm[:,0], hm[:,1], hm[:,2])).T
+                 flight_data.ax, flight_data.ay, flight_data.az,
+                 hm[:,0], hm[:,1], hm[:,2])).T
 
 # Note that accelerometer and gyro measurements logged by UAV
 # after 11/17/2011 flight (seemingly, see 
@@ -186,7 +182,7 @@ old_GPS_alt = 0.0
 # pulling them out and saving. These python variables need to be initialized to work
 # properly in the while loop.
 nav_data_dict = {}
-magnav_data_dict = {}
+nav_mag_data_dict = {}
 haveGPS_store = []
 t_store = []
 
@@ -272,21 +268,21 @@ while k < len(t):
     
     # Assign that IMU data extracted from the .mat file at the current epoch to the 
     # pointer values and structures to be passed into "get_" functions of the c-code.
-    sensordata.imuData_ptr.contents.p = p
-    sensordata.imuData_ptr.contents.q = q
-    sensordata.imuData_ptr.contents.r = r
+    imuData.p = p
+    imuData.q = q
+    imuData.r = r
 
 
-    sensordata.imuData_ptr.contents.ax = ax
-    sensordata.imuData_ptr.contents.ay = ay
-    sensordata.imuData_ptr.contents.az = az
+    imuData.ax = ax
+    imuData.ay = ay
+    imuData.az = az
 
-    sensordata.imuData_ptr.contents.hx = hx
-    sensordata.imuData_ptr.contents.hy = hy
-    sensordata.imuData_ptr.contents.hz = hz
+    imuData.hx = hx
+    imuData.hy = hy
+    imuData.hz = hz
 
     # Assign the current time
-    sensordata.imuData_ptr.contents.time = t[k]    
+    imuData.time = t[k]    
 
     # Assign Air Data
     # sensordata.adData_ptr.contents.ias = ias[k]
@@ -301,29 +297,29 @@ while k < len(t):
     sensordata.gpsData_ptr.contents.lon = lon[k]
     sensordata.gpsData_ptr.contents.alt = alt[k]
 
-    sensordata_mag.imuData_ptr.contents.p = p
-    sensordata_mag.imuData_ptr.contents.q = q
-    sensordata_mag.imuData_ptr.contents.r = r
+    imuData_mag.p = p
+    imuData_mag.q = q
+    imuData_mag.r = r
 
-    sensordata_mag.imuData_ptr.contents.ax = ax
-    sensordata_mag.imuData_ptr.contents.ay = ay
-    sensordata_mag.imuData_ptr.contents.az = az
+    imuData_mag.ax = ax
+    imuData_mag.ay = ay
+    imuData_mag.az = az
 
-    sensordata_mag.imuData_ptr.contents.hx = hx
-    sensordata_mag.imuData_ptr.contents.hy = hy
-    sensordata_mag.imuData_ptr.contents.hz = hz
+    imuData_mag.hx = hx
+    imuData_mag.hy = hy
+    imuData_mag.hz = hz
 
     # Assign the current time
-    sensordata_mag.imuData_ptr.contents.time = t[k]    
+    imuData_mag.time = t[k]    
 
     # Assign GPS Data
-    sensordata_mag.gpsData_ptr.contents.vn = vn[k]
-    sensordata_mag.gpsData_ptr.contents.ve = ve[k]
-    sensordata_mag.gpsData_ptr.contents.vd = vd[k]
+    gpsData_mag.vn = vn[k]
+    gpsData_mag.ve = ve[k]
+    gpsData_mag.vd = vd[k]
 
-    sensordata_mag.gpsData_ptr.contents.lat = lat[k]
-    sensordata_mag.gpsData_ptr.contents.lon = lon[k]
-    sensordata_mag.gpsData_ptr.contents.alt = alt[k]
+    gpsData_mag.lat = lat[k]
+    gpsData_mag.lon = lon[k]
+    gpsData_mag.alt = alt[k]
 
     # Update Mission
     # mission.haveGPS = 1
@@ -334,16 +330,16 @@ while k < len(t):
     # Set GPS newData flag
     if ((abs(flight_data.alt[k] - old_GPS_alt))>.0001):
         sensordata.gpsData_ptr.contents.newData = 1
-        sensordata_mag.gpsData_ptr.contents.newData = 1
+        gpsData_mag.newData = 1
         old_GPS_alt = flight_data.alt[k]
     else:
         sensordata.gpsData_ptr.contents.newData = 0
-        sensordata_mag.gpsData_ptr.contents.newData = 0
+        gpsData_mag.newData = 0
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        nav1.init(sensordata, nav)
-        nav2.init(sensordata_mag, magnav)
+        nav1.init(imuData, gpsData, nav)
+        nav2.init(imuData_mag, gpsData_mag, nav_mag)
 
         if FLAG_FORCE_INIT:
             # Force initial values to match logged INS/GPS result
@@ -355,21 +351,21 @@ while k < len(t):
             nav.lon = flight_data.navlon[k] # Note: should be radians
             nav.alt = flight_data.navalt[k]
             
-            magnav.psi = flight_data.psi[k]
-            magnav.the = flight_data.theta[k]
-            magnav.phi = flight_data.phi[k]
+            nav_mag.psi = flight_data.psi[k]
+            nav_mag.the = flight_data.theta[k]
+            nav_mag.phi = flight_data.phi[k]
 
-            magnav.lat = flight_data.navlat[k] # Note: should be radians
-            magnav.lon = flight_data.navlon[k] # Note: should be radians
-            magnav.alt = flight_data.navalt[k]
+            nav_mag.lat = flight_data.navlat[k] # Note: should be radians
+            nav_mag.lon = flight_data.navlon[k] # Note: should be radians
+            nav_mag.alt = flight_data.navalt[k]
     else:
-        nav1.update(sensordata, nav)
-        nav2.update(sensordata_mag, magnav)
+        nav1.update(imuData, gpsData, nav)
+        nav2.update(imuData_mag, gpsData_mag, nav_mag)
 
     # Store the desired results obtained from the compiled test navigation filter
     # and the baseline filter
     nav_data_dict = store_data(nav_data_dict, nav)
-    magnav_data_dict = store_data(magnav_data_dict, magnav)
+    nav_mag_data_dict = store_data(nav_mag_data_dict, nav_mag)
     # haveGPS_store.append(mission.haveGPS)
     t_store.append(t[k])
 
@@ -386,30 +382,30 @@ if FLAG_PLOT_ATTITUDE:
 
   # Yaw Plot
   psi_nav = nav_data_dict['psi_store']
-  psi_magnav = magnav_data_dict['psi_store']
+  psi_nav_mag = nav_mag_data_dict['psi_store']
   ax1.set_title(MAT_FILENAME, fontsize=10)
   ax1.set_ylabel('YAW (DEGREES)', weight='bold')
   ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax1.plot(t_store, r2d(psi_magnav), label='magnav',c='blue', lw=2)
+  ax1.plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue', lw=2)
   ax1.plot(t[kstart:len(t)], r2d(flight_data.psi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax1.grid()
   ax1.legend(loc=0)
 
   # Pitch PLot
   the_nav = nav_data_dict['the_store']
-  the_magnav = magnav_data_dict['the_store']  
+  the_nav_mag = nav_mag_data_dict['the_store']  
   ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
   ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax2.plot(t_store, r2d(the_magnav), label='magnav',c='blue', lw=2)
+  ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
   ax2.plot(t[kstart:len(t)], r2d(flight_data.theta[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax2.grid()
 
   # Roll PLot
   phi_nav = nav_data_dict['phi_store']
-  phi_magnav = magnav_data_dict['phi_store']   
+  phi_nav_mag = nav_mag_data_dict['phi_store']   
   ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
   ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax3.plot(t_store, r2d(phi_magnav), label='magnav', c='blue',lw=2)
+  ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
   ax3.plot(t[kstart:len(t)], r2d(flight_data.phi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
   ax3.set_xlabel('TIME (SECONDS)', weight='bold')
   ax3.grid()
@@ -417,24 +413,24 @@ if FLAG_PLOT_ATTITUDE:
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
   navalt = nav_data_dict['navalt_store']
-  magnavalt = magnav_data_dict['navalt_store']
+  nav_magalt = nav_mag_data_dict['navalt_store']
   plt.figure()
   plt.title('ALTITUDE')
   plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
   plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='On-Board', c='green', lw=2, alpha=.5)
   plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
-  plt.plot(t_store, magnavalt, label='magnav',c='blue', lw=2)
+  plt.plot(t_store, nav_magalt, label='nav_mag',c='blue', lw=2)
   plt.ylabel('ALTITUDE (METERS)', weight='bold')
   plt.legend(loc=0)
   plt.grid()
 
 # Wind Plot
 if FLAG_PLOT_WIND:
-  wn = magnav_data_dict['wn_store']
-  we = magnav_data_dict['we_store']
-  wd = magnav_data_dict['wd_store']
+  wn = nav_mag_data_dict['wn_store']
+  we = nav_mag_data_dict['we_store']
+  wd = nav_mag_data_dict['wd_store']
   plt.figure()
-  plt.title('WIND ESTIMATES - Only from magnav')
+  plt.title('WIND ESTIMATES - Only from nav_mag')
   plt.plot(t_store, wn, label='North',c='gray', lw=2)
   plt.plot(t_store, we, label='East',c='black', lw=2)
   plt.plot(t_store, wd, label='Down',c='blue', lw=2)
@@ -446,8 +442,8 @@ if FLAG_PLOT_WIND:
 if FLAG_PLOT_GROUNDTRACK:
   navlat = nav_data_dict['navlat_store']
   navlon = nav_data_dict['navlon_store']
-  magnavlat = magnav_data_dict['navlat_store']
-  magnavlon = magnav_data_dict['navlon_store']
+  nav_maglat = nav_mag_data_dict['navlat_store']
+  nav_maglon = nav_mag_data_dict['navlon_store']
   plt.figure()
   plt.title(MAT_FILENAME, fontsize=10)
   plt.ylabel('LATITUDE (DEGREES)', weight='bold')
@@ -455,14 +451,14 @@ if FLAG_PLOT_GROUNDTRACK:
   plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], '*', label='GPS Sensor', c='red', lw=2, alpha=.5)
   plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='On-Board', c='green', lw=1, alpha=.85)
   plt.plot(r2d(navlon), r2d(navlat), label='nav', c='k', lw=3, alpha=.5)
-  plt.plot(r2d(magnavlon), r2d(magnavlat), label='magnav', c='blue', lw=2)
+  plt.plot(r2d(nav_maglon), r2d(nav_maglat), label='nav_mag', c='blue', lw=2)
   plt.grid()
   plt.legend(loc=0)
 
 if FLAG_PLOT_SIGNALS:
   plt.figure()
-  plt.title('SIGNAL PLOTS - Only from magnav')
-  signal_store = magnav_data_dict['signal_store']
+  plt.title('SIGNAL PLOTS - Only from nav_mag')
+  signal_store = nav_mag_data_dict['signal_store']
   signal_store = np.array(signal_store)
   for sig in SIGNAL_LIST:
     plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)

@@ -71,7 +71,7 @@ static double denom, Re, Rn;
 static double tprev;
 
 	
-void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
+void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr){
 	/*++++++++++++++++++++++++++++++++++++++++++++++++
 	 *matrix creation for navigation computation
 	 *++++++++++++++++++++++++++++++++++++++++++++++++*/	
@@ -161,17 +161,17 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	
 
 	// .. then initialize states with GPS Data
-	navData_ptr->lat = sensorData_ptr->gpsData_ptr->lat*D2R;
-	navData_ptr->lon = sensorData_ptr->gpsData_ptr->lon*D2R;
-	navData_ptr->alt = sensorData_ptr->gpsData_ptr->alt;
+	navData_ptr->lat = gpsData_ptr->lat*D2R;
+	navData_ptr->lon = gpsData_ptr->lon*D2R;
+	navData_ptr->alt = gpsData_ptr->alt;
 	
-	navData_ptr->vn = sensorData_ptr->gpsData_ptr->vn;
-	navData_ptr->ve = sensorData_ptr->gpsData_ptr->ve;
-	navData_ptr->vd = sensorData_ptr->gpsData_ptr->vd;
+	navData_ptr->vn = gpsData_ptr->vn;
+	navData_ptr->ve = gpsData_ptr->ve;
+	navData_ptr->vd = gpsData_ptr->vd;
 	
 	// ... and initialize states with IMU Data
-	//navData_ptr->the = asin(sensorData_ptr->imuData_ptr->ax/g); // theta from Ax, aircraft at rest
-	//navData_ptr->phi = asin(-sensorData_ptr->imuData_ptr->ay/(g*cos(navData_ptr->the))); // phi from Ay, aircraft at rest
+	//navData_ptr->the = asin(imuData_ptr->ax/g); // theta from Ax, aircraft at rest
+	//navData_ptr->phi = asin(-imuData_ptr->ay/(g*cos(navData_ptr->the))); // phi from Ay, aircraft at rest
 	navData_ptr->the = 8*D2R;
 	navData_ptr->phi = 0*D2R;
 	navData_ptr->psi = 90.0*D2R;
@@ -182,21 +182,21 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	navData_ptr->ab[1] = 0.0; 
 	navData_ptr->ab[2] = 0.0;
 	
-	navData_ptr->gb[0] = sensorData_ptr->imuData_ptr->p;
-	navData_ptr->gb[1] = sensorData_ptr->imuData_ptr->q;
-	navData_ptr->gb[2] = sensorData_ptr->imuData_ptr->r;
+	navData_ptr->gb[0] = imuData_ptr->p;
+	navData_ptr->gb[1] = imuData_ptr->q;
+	navData_ptr->gb[2] = imuData_ptr->r;
 	
 	// Specific forces and Rotation Rate
-	f_b[0][0] = sensorData_ptr->imuData_ptr->ax - navData_ptr->ab[0];
-	f_b[1][0] = sensorData_ptr->imuData_ptr->ay - navData_ptr->ab[1];
-	f_b[2][0] = sensorData_ptr->imuData_ptr->az - navData_ptr->ab[2];
+	f_b[0][0] = imuData_ptr->ax - navData_ptr->ab[0];
+	f_b[1][0] = imuData_ptr->ay - navData_ptr->ab[1];
+	f_b[2][0] = imuData_ptr->az - navData_ptr->ab[2];
 	
-	om_ib[0][0] = sensorData_ptr->imuData_ptr->p - navData_ptr->gb[0];
-	om_ib[1][0] = sensorData_ptr->imuData_ptr->q - navData_ptr->gb[1];
-	om_ib[2][0] = sensorData_ptr->imuData_ptr->r - navData_ptr->gb[2];
+	om_ib[0][0] = imuData_ptr->p - navData_ptr->gb[0];
+	om_ib[1][0] = imuData_ptr->q - navData_ptr->gb[1];
+	om_ib[2][0] = imuData_ptr->r - navData_ptr->gb[2];
 	
 	// Time during initialization
-	tprev = sensorData_ptr->imuData_ptr->time;
+	tprev = imuData_ptr->time;
 	
 	navData_ptr->err_type = data_valid;
 	//send_status("NAV filter initialized");
@@ -204,13 +204,13 @@ void init_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 }
 
 // Main get_nav filter function
-void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
+void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr){
 	double tnow, imu_dt;
 	double dq[4], quat_new[4];
 
 	// compute time-elapsed 'dt'
 	// This compute the navigation state at the DAQ's Time Stamp
-	tnow = sensorData_ptr->imuData_ptr->time;
+	tnow = imuData_ptr->time;
 	imu_dt = tnow - tprev;
 	tprev = tnow;		
 	
@@ -358,10 +358,10 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	navData_ptr->err_type = TU_only;
 	//fprintf(stderr,"Time Update Done\n");
 	// ==================  DONE TU  ===================
-	if(sensorData_ptr->gpsData_ptr->newData){
+	if(gpsData_ptr->newData){
 	
 		// ==================  GPS Update  ===================
-		sensorData_ptr->gpsData_ptr->newData = 0; // Reset the flag
+		gpsData_ptr->newData = 0; // Reset the flag
 		
 		// Position, converted to NED
 		a_temp31[0][0] = navData_ptr->lat;
@@ -373,9 +373,9 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 		pos_ref = mat_copy(a_temp31,pos_ref);
 		pos_ins_ned = ecef2ned(pos_ins_ecef,pos_ins_ned,pos_ref);
 		
-		pos_gps[0][0] = sensorData_ptr->gpsData_ptr->lat*D2R;
-		pos_gps[1][0] = sensorData_ptr->gpsData_ptr->lon*D2R;
-		pos_gps[2][0] = sensorData_ptr->gpsData_ptr->alt;
+		pos_gps[0][0] = gpsData_ptr->lat*D2R;
+		pos_gps[1][0] = gpsData_ptr->lon*D2R;
+		pos_gps[2][0] = gpsData_ptr->alt;
 		
 		pos_gps_ecef = lla2ecef(pos_gps,pos_gps_ecef);
 		
@@ -386,9 +386,9 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 		y[1][0] = pos_gps_ned[1][0] - pos_ins_ned[1][0];
 		y[2][0] = pos_gps_ned[2][0] - pos_ins_ned[2][0];
 		
-		y[3][0] = sensorData_ptr->gpsData_ptr->vn - navData_ptr->vn;
-		y[4][0] = sensorData_ptr->gpsData_ptr->ve - navData_ptr->ve;
-		y[5][0] = sensorData_ptr->gpsData_ptr->vd - navData_ptr->vd;
+		y[3][0] = gpsData_ptr->vn - navData_ptr->vn;
+		y[4][0] = gpsData_ptr->ve - navData_ptr->ve;
+		y[5][0] = gpsData_ptr->vd - navData_ptr->vd;
 		
 		//fprintf(stderr,"Measurement Matrix, y, created\n");
 		
@@ -476,22 +476,22 @@ void get_nav(struct sensordata *sensorData_ptr, struct nav *navData_ptr){
 	}
 	
 	// Remove current estimated biases from rate gyro and accels
-	sensorData_ptr->imuData_ptr->p -= navData_ptr->gb[0];
-	sensorData_ptr->imuData_ptr->q -= navData_ptr->gb[1];
-	sensorData_ptr->imuData_ptr->r -= navData_ptr->gb[2];
-	sensorData_ptr->imuData_ptr->ax -= navData_ptr->ab[0];
-	sensorData_ptr->imuData_ptr->ay -= navData_ptr->ab[1];
-	sensorData_ptr->imuData_ptr->az -= navData_ptr->ab[2];
+	imuData_ptr->p -= navData_ptr->gb[0];
+	imuData_ptr->q -= navData_ptr->gb[1];
+	imuData_ptr->r -= navData_ptr->gb[2];
+	imuData_ptr->ax -= navData_ptr->ab[0];
+	imuData_ptr->ay -= navData_ptr->ab[1];
+	imuData_ptr->az -= navData_ptr->ab[2];
 
 	// Get the new Specific forces and Rotation Rate,
 	// use in the next time update
-	f_b[0][0] = sensorData_ptr->imuData_ptr->ax;
-	f_b[1][0] = sensorData_ptr->imuData_ptr->ay;
-	f_b[2][0] = sensorData_ptr->imuData_ptr->az;
+	f_b[0][0] = imuData_ptr->ax;
+	f_b[1][0] = imuData_ptr->ay;
+	f_b[2][0] = imuData_ptr->az;
 
-	om_ib[0][0] = sensorData_ptr->imuData_ptr->p;
-	om_ib[1][0] = sensorData_ptr->imuData_ptr->q;
-	om_ib[2][0] = sensorData_ptr->imuData_ptr->r;
+	om_ib[0][0] = imuData_ptr->p;
+	om_ib[1][0] = imuData_ptr->q;
+	om_ib[2][0] = imuData_ptr->r;
 
 
 }
