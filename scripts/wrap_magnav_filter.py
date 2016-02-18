@@ -32,7 +32,7 @@ FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND     = True
-FLAG_PLOT_HAVEGPS  = True
+# FLAG_PLOT_HAVEGPS  = True
 FLAG_PLOT_SIGNALS  = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
@@ -58,11 +58,7 @@ byref   = ctypes.byref
 # Declare Structures from globaldefs.py
 sensordata = globaldefs.SENSORDATA()
 imu = globaldefs.IMU()
-controlData = globaldefs.CONTROL()
 gpsData     = globaldefs.GPS()
-airData     = globaldefs.AIRDATA()
-surface     = globaldefs.SURFACE()
-mission     = globaldefs.MISSION()
 
 sensordata_mag = globaldefs.SENSORDATA()
 imu_mag = globaldefs.IMU()
@@ -74,8 +70,6 @@ magnav = globaldefs.NAV()
 # Assign pointers that use the structures just declared
 sensordata.imuData_ptr = ctypes.pointer(imu)
 sensordata.gpsData_ptr   = ctypes.pointer(gpsData)
-sensordata.adData_ptr   = ctypes.pointer(airData)
-sensordata.surfData_ptr = ctypes.pointer(surface)
 
 sensordata_mag.imuData_ptr = ctypes.pointer(imu_mag)
 sensordata_mag.gpsData_ptr   = ctypes.pointer(gpsData_mag)
@@ -234,7 +228,6 @@ def store_data(data_dict, nav_ptr):
     data_dict['epsD_std'] = [] # yaw uncertainty [rad]
 
 
-
   # Store data
   data_dict['psi_store'].append(nav_ptr.psi)
   data_dict['the_store'].append(nav_ptr.the)
@@ -296,8 +289,8 @@ while k < len(t):
     sensordata.imuData_ptr.contents.time = t[k]    
 
     # Assign Air Data
-    sensordata.adData_ptr.contents.ias = ias[k]
-    sensordata.adData_ptr.contents.h = h[k]
+    # sensordata.adData_ptr.contents.ias = ias[k]
+    # sensordata.adData_ptr.contents.h = h[k]
 
     # Assign GPS Data
     sensordata.gpsData_ptr.contents.vn = vn[k]
@@ -333,9 +326,9 @@ while k < len(t):
     sensordata_mag.gpsData_ptr.contents.alt = alt[k]
 
     # Update Mission
-    mission.haveGPS = 1
-    if (t[k] != -1) and (t[k] >= T_GPSOFF):
-      mission.haveGPS = 0
+    # mission.haveGPS = 1
+    # if (t[k] != -1) and (t[k] >= T_GPSOFF):
+    #   mission.haveGPS = 0
     
 
     # Set GPS newData flag
@@ -349,7 +342,7 @@ while k < len(t):
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        nav1.init_nav(sensordata, nav, controlData)
+        nav1.init_nav(sensordata, nav)
         nav2.init_nav(sensordata_mag, magnav)
 
         if FLAG_FORCE_INIT:
@@ -370,14 +363,14 @@ while k < len(t):
             magnav.lon = flight_data.navlon[k] # Note: should be radians
             magnav.alt = flight_data.navalt[k]
     else:
-        nav1.get_nav(sensordata, nav, controlData)
+        nav1.get_nav(sensordata, nav)
         nav2.get_nav(sensordata_mag, magnav)
 
     # Store the desired results obtained from the compiled test navigation filter
     # and the baseline filter
     nav_data_dict = store_data(nav_data_dict, nav)
     magnav_data_dict = store_data(magnav_data_dict, magnav)
-    haveGPS_store.append(mission.haveGPS)
+    # haveGPS_store.append(mission.haveGPS)
     t_store.append(t[k])
 
     # Increment time up one step for the next iteration of the while loop.    
@@ -478,12 +471,12 @@ if FLAG_PLOT_SIGNALS:
   plt.grid()
 
 # haveGPS Plot
-if FLAG_PLOT_HAVEGPS:
-  plt.figure()
-  plt.title('MISSION HAVEGPS FLAG')
-  plt.plot(t_store, haveGPS_store, c='black', lw=2)
-  plt.ylim([-2,2])
-  plt.grid()
+# if FLAG_PLOT_HAVEGPS:
+#   plt.figure()
+#   plt.title('MISSION HAVEGPS FLAG')
+#   plt.plot(t_store, haveGPS_store, c='black', lw=2)
+#   plt.ylim([-2,2])
+#   plt.grid()
 
 plt.show()
 
