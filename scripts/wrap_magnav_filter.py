@@ -281,7 +281,7 @@ for k, imupt in enumerate(imu_data):
         gps_index = len(gps_data)-1
     gpspt = gps_data[gps_index-1]
     gpspt.newData = new_gps
-    print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
+    #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
