@@ -25,9 +25,6 @@ import numpy as np
 #MAT_FILENAME = 'flightdata_595.4961sec.mat'
 T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
                         # To always keep GPS, set to: -1
-FLAG_FORCE_INIT = True  # If True, will force the position and orientation estimates
-                        # to initialize using the logged INS/GPS results from the `.mat`
-                        # data file.
 FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
@@ -38,13 +35,17 @@ SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
 # # # # # END INPUTS # # # # #
 
-#import os, sys
-#join = os.path.join
+mport os
+import csv
+import numpy as np
+from matplotlib import pyplot as plt
+import navpy
+r2d = np.rad2deg
 
+# filter interfaces
 import navigation
-nav1 = navigation.filter()
-
 import magnav
+nav1 = navigation.filter()
 nav2 = magnav.filter()
 
 import pydefs
@@ -53,19 +54,7 @@ insgps = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
 insgps_mag = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                            np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
-# simpler python structures for sensor input and filter output
-import pydefs
-
-# Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
-import os
-import csv
-import numpy as np
-#from scipy import io as sio
-from matplotlib import pyplot as plt
-import navpy
-r2d = np.rad2deg
-
-class dict2struct():
+iclass dict2struct():
     pass
 
 # Values (Calculated by compiled test navigation filter) need to be
@@ -199,30 +188,12 @@ for k, imupt in enumerate(imu_data):
     if k == 0:
         insgps = nav1.init(imupt, gpspt)
         insgps_mag = nav2.init(imupt, gpspt)
-
-        # if FLAG_FORCE_INIT:
-        #     # Force initial values to match logged INS/GPS result
-        #     insgps.psi = flight_data.psi[k]
-        #     insgps.the = flight_data.theta[k]
-        #     insgps.phi = flight_data.phi[k]
-
-        #     insgps.lat = flight_data.navlat[k] # Note: should be radians
-        #     insgps.lon = flight_data.navlon[k] # Note: should be radians
-        #     insgps.alt = flight_data.navalt[k]
-            
-        #     insgps_mag.psi = flight_data.psi[k]
-        #     insgps_mag.the = flight_data.theta[k]
-        #     insgps_mag.phi = flight_data.phi[k]
-
-        #     insgps_mag.lat = flight_data.navlat[k] # Note: should be radians
-        #     insgps_mag.lon = flight_data.navlon[k] # Note: should be radians
-        #     insgps_mag.alt = flight_data.navalt[k]
     elif k > 0:
         insgps = nav1.update(imupt, gpspt)
         insgps_mag = nav2.update(imupt, gpspt)
 
-    # Store the desired results obtained from the compiled test navigation filter
-    # and the baseline filter
+    # Store the desired results obtained from the compiled test
+    # navigation filter and the baseline filter
     if k >= 0:
         nav_data_dict = store_data(nav_data_dict, insgps)
         nav_mag_data_dict = store_data(nav_mag_data_dict, insgps_mag)
@@ -232,7 +203,8 @@ for k, imupt in enumerate(imu_data):
     # Increment time up one step for the next iteration of the while loop.    
     k += 1
 
-# When k = len(t) execute the close_nav function freeing up memory from matrices.
+# When k = len(t) execute the close_nav function freeing up memory
+# from matrices.
 nav1.close()
 nav2.close()
 
