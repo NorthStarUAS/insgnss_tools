@@ -50,21 +50,23 @@ nav2 = magnav.filter()
 # Import these ctypes for proper declaration of globaldefs.py structures
 import ctypes
 # Import the globaldefs.py file
-import globaldefs
+import cdefs
 # Abbreviate these ctypes commands
 POINTER = ctypes.POINTER
 byref   = ctypes.byref
 
-# Declare Structures from globaldefs.py
-imuData = globaldefs.cIMU()
-gpsData     = globaldefs.cGPS()
+# Declare Structures from cdefs.py
+imuData = cdefs.cIMU()
+gpsData     = cdefs.cGPS()
 
-imuData_mag = globaldefs.cIMU()
-gpsData_mag     = globaldefs.cGPS()
+imuData_mag = cdefs.cIMU()
+gpsData_mag     = cdefs.cGPS()
 
-nav = globaldefs.cNAV()
-nav_mag = globaldefs.cNAV()
+nav = cdefs.cNAV()
+nav_mag = cdefs.cNAV()
 
+# simpler python structures for sensor input and filter output
+import pydefs
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
 import os
@@ -77,7 +79,6 @@ r2d = np.rad2deg
 
 class dict2struct():
     pass
-
 
 # Directory to converted flight data that contains the flight_data and flight_info structures
 directory = 'flight_data'
@@ -171,11 +172,11 @@ print('Initialized at Time: %.2f s (k=%i)' % (t[k], k))
 # python we have no log of newData (typically). So a comparison of
 # current GPS altitude to the previous epoch's GPS altitude is used to
 # determine if GPS has been updated.
-old_GPS_alt = 0.0
+last_gps_alt = -9999.9
 
 # Values (Calculated by compiled test navigation filter) need to be
 # stored in python variables and they need to be in the globaldefs.c
-# and globaldefs.py to allow for pulling them out and saving. These
+# and cdefs.py to allow for pulling them out and saving. These
 # python variables need to be initialized to work properly in the
 # while loop.
 nav_data_dict = {}
@@ -254,11 +255,28 @@ def store_data(data_dict, nav_ptr):
 
     return data_dict
 
-# create 
+# create data structures for ekf processing
 imu_data = []
 gps_data = []
+k = kstart
+while k < len(t):
+    p, q, r = imu[k, 1:4]
+    ax, ay, az = imu[k, 4:7]
+    hx, hy, hz = imu[k, 7:10]
+    imu_pt = pydefs.IMU(t[k], 0, p, q, r, ax, ay, az, hx, hy, hz, 15.0)
+    imu_data.append(imu_pt)
+    
+    if abs(alt[k] - last_gps_alt) > 0.0001:
+        last_gps_alt = alt[k]
+        gps_pt = pydefs.GPS(t[k], 0, t[k], lat[k], lon[k], alt[k], vn[k], ve[k], vd[k])
+        gps_data.append(gps_pt)
+
+    k += 1
+print "imu records:", len(imu_data)
+print "gps records:", len(gps_data)
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
+k = kstart
 while k < len(t):
 
     # Populate this epoch's IMU data
@@ -329,10 +347,10 @@ while k < len(t):
     
 
     # Set GPS newData flag
-    if ((abs(flight_data.alt[k] - old_GPS_alt))>.0001):
+    if ((abs(flight_data.alt[k] - last_gps_alt))>.0001):
         gpsData.newData = 1
         gpsData_mag.newData = 1
-        old_GPS_alt = flight_data.alt[k]
+        last_gps_alt = flight_data.alt[k]
     else:
         gpsData.newData = 0
         gpsData_mag.newData = 0
@@ -379,93 +397,93 @@ nav2.close()
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
-  fig, [ax1, ax2, ax3] = plt.subplots(3,1)
+    fig, [ax1, ax2, ax3] = plt.subplots(3,1)
 
-  # Yaw Plot
-  psi_nav = nav_data_dict['psi_store']
-  psi_nav_mag = nav_mag_data_dict['psi_store']
-  ax1.set_title(MAT_FILENAME, fontsize=10)
-  ax1.set_ylabel('YAW (DEGREES)', weight='bold')
-  ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax1.plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue', lw=2)
-  ax1.plot(t[kstart:len(t)], r2d(flight_data.psi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
-  ax1.grid()
-  ax1.legend(loc=0)
+    # Yaw Plot
+    psi_nav = nav_data_dict['psi_store']
+    psi_nav_mag = nav_mag_data_dict['psi_store']
+    ax1.set_title(MAT_FILENAME, fontsize=10)
+    ax1.set_ylabel('YAW (DEGREES)', weight='bold')
+    ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
+    ax1.plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue', lw=2)
+    ax1.plot(t[kstart:len(t)], r2d(flight_data.psi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
+    ax1.grid()
+    ax1.legend(loc=0)
 
-  # Pitch PLot
-  the_nav = nav_data_dict['the_store']
-  the_nav_mag = nav_mag_data_dict['the_store']  
-  ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
-  ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
-  ax2.plot(t[kstart:len(t)], r2d(flight_data.theta[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
-  ax2.grid()
+    # Pitch PLot
+    the_nav = nav_data_dict['the_store']
+    the_nav_mag = nav_mag_data_dict['the_store']  
+    ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
+    ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
+    ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
+    ax2.plot(t[kstart:len(t)], r2d(flight_data.theta[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
+    ax2.grid()
 
-  # Roll PLot
-  phi_nav = nav_data_dict['phi_store']
-  phi_nav_mag = nav_mag_data_dict['phi_store']   
-  ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
-  ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
-  ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
-  ax3.plot(t[kstart:len(t)], r2d(flight_data.phi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
-  ax3.set_xlabel('TIME (SECONDS)', weight='bold')
-  ax3.grid()
+    # Roll PLot
+    phi_nav = nav_data_dict['phi_store']
+    phi_nav_mag = nav_mag_data_dict['phi_store']   
+    ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
+    ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
+    ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
+    ax3.plot(t[kstart:len(t)], r2d(flight_data.phi[kstart:len(t)]), label='On-Board', c='green', lw=2, alpha=.5)
+    ax3.set_xlabel('TIME (SECONDS)', weight='bold')
+    ax3.grid()
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-  navalt = nav_data_dict['navalt_store']
-  nav_magalt = nav_mag_data_dict['navalt_store']
-  plt.figure()
-  plt.title('ALTITUDE')
-  plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
-  plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='On-Board', c='green', lw=2, alpha=.5)
-  plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
-  plt.plot(t_store, nav_magalt, label='nav_mag',c='blue', lw=2)
-  plt.ylabel('ALTITUDE (METERS)', weight='bold')
-  plt.legend(loc=0)
-  plt.grid()
+    navalt = nav_data_dict['navalt_store']
+    nav_magalt = nav_mag_data_dict['navalt_store']
+    plt.figure()
+    plt.title('ALTITUDE')
+    plt.plot(t[kstart:len(t)], flight_data.alt[kstart:len(t)], label='GPS Sensor', c='green', lw=3, alpha=.5)
+    plt.plot(t[kstart:len(t)], flight_data.navalt[kstart:len(t)], label='On-Board', c='green', lw=2, alpha=.5)
+    plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
+    plt.plot(t_store, nav_magalt, label='nav_mag',c='blue', lw=2)
+    plt.ylabel('ALTITUDE (METERS)', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
 
 # Wind Plot
 if FLAG_PLOT_WIND:
-  wn = nav_mag_data_dict['wn_store']
-  we = nav_mag_data_dict['we_store']
-  wd = nav_mag_data_dict['wd_store']
-  plt.figure()
-  plt.title('WIND ESTIMATES - Only from nav_mag')
-  plt.plot(t_store, wn, label='North',c='gray', lw=2)
-  plt.plot(t_store, we, label='East',c='black', lw=2)
-  plt.plot(t_store, wd, label='Down',c='blue', lw=2)
-  plt.ylabel('WIND (METERS/SECOND)', weight='bold')
-  plt.legend(loc=0)
-  plt.grid()
+    wn = nav_mag_data_dict['wn_store']
+    we = nav_mag_data_dict['we_store']
+    wd = nav_mag_data_dict['wd_store']
+    plt.figure()
+    plt.title('WIND ESTIMATES - Only from nav_mag')
+    plt.plot(t_store, wn, label='North',c='gray', lw=2)
+    plt.plot(t_store, we, label='East',c='black', lw=2)
+    plt.plot(t_store, wd, label='Down',c='blue', lw=2)
+    plt.ylabel('WIND (METERS/SECOND)', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-  navlat = nav_data_dict['navlat_store']
-  navlon = nav_data_dict['navlon_store']
-  nav_maglat = nav_mag_data_dict['navlat_store']
-  nav_maglon = nav_mag_data_dict['navlon_store']
-  plt.figure()
-  plt.title(MAT_FILENAME, fontsize=10)
-  plt.ylabel('LATITUDE (DEGREES)', weight='bold')
-  plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
-  plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], '*', label='GPS Sensor', c='red', lw=2, alpha=.5)
-  plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='On-Board', c='green', lw=1, alpha=.85)
-  plt.plot(r2d(navlon), r2d(navlat), label='nav', c='k', lw=3, alpha=.5)
-  plt.plot(r2d(nav_maglon), r2d(nav_maglat), label='nav_mag', c='blue', lw=2)
-  plt.grid()
-  plt.legend(loc=0)
+    navlat = nav_data_dict['navlat_store']
+    navlon = nav_data_dict['navlon_store']
+    nav_maglat = nav_mag_data_dict['navlat_store']
+    nav_maglon = nav_mag_data_dict['navlon_store']
+    plt.figure()
+    plt.title(MAT_FILENAME, fontsize=10)
+    plt.ylabel('LATITUDE (DEGREES)', weight='bold')
+    plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
+    plt.plot(flight_data.lon[kstart:len(t)], flight_data.lat[kstart:len(t)], '*', label='GPS Sensor', c='red', lw=2, alpha=.5)
+    plt.plot(r2d(flight_data.navlon[kstart:len(t)]), r2d(flight_data.navlat[kstart:len(t)]), label='On-Board', c='green', lw=1, alpha=.85)
+    plt.plot(r2d(navlon), r2d(navlat), label='nav', c='k', lw=3, alpha=.5)
+    plt.plot(r2d(nav_maglon), r2d(nav_maglat), label='nav_mag', c='blue', lw=2)
+    plt.grid()
+    plt.legend(loc=0)
 
 if FLAG_PLOT_SIGNALS:
-  plt.figure()
-  plt.title('SIGNAL PLOTS - Only from nav_mag')
-  signal_store = nav_mag_data_dict['signal_store']
-  signal_store = np.array(signal_store)
-  for sig in SIGNAL_LIST:
-    plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
-  plt.ylabel('SIGNAL UNITS', weight='bold')
-  plt.legend(loc=0)
-  plt.grid()
+    plt.figure()
+    plt.title('SIGNAL PLOTS - Only from nav_mag')
+    signal_store = nav_mag_data_dict['signal_store']
+    signal_store = np.array(signal_store)
+    for sig in SIGNAL_LIST:
+        plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
+    plt.ylabel('SIGNAL UNITS', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
 
 # haveGPS Plot
 # if FLAG_PLOT_HAVEGPS:
@@ -487,36 +505,36 @@ if FLAG_WRITE2CSV:
                 'North-South std (m)', 'West-East std (m)', 'Alt std (m)',
                 'Yaw std (deg)', 'Pitch std (deg)', 'Roll std (deg)']
     with open(OUTPUT_FILENAME, 'w') as fobj:
-      # TODO: Print header
-      csv_writer = csv.writer(fobj)
-      csv_writer.writerow(hdr_list)
-      for k in range(len(t_store)):
-        # Convert eps_NED to eps_YPR
-        yaw_rad   = nav_data_dict['psi_store'][k]
-        pitch_rad = nav_data_dict['the_store'][k]
-        roll_rad  = nav_data_dict['phi_store'][k]
+        # TODO: Print header
+        csv_writer = csv.writer(fobj)
+        csv_writer.writerow(hdr_list)
+        for k in range(len(t_store)):
+            # Convert eps_NED to eps_YPR
+            yaw_rad   = nav_data_dict['psi_store'][k]
+            pitch_rad = nav_data_dict['the_store'][k]
+            roll_rad  = nav_data_dict['phi_store'][k]
 
-        # Note, as part of transformation we are
-        # ignoring uncertinty in the mapping.
-        epsNED_std_deg = [r2d(nav_data_dict['epsN_std'][k]),
-                          r2d(nav_data_dict['epsE_std'][k]),
-                          r2d(nav_data_dict['epsD_std'][k])]
-        yaw_std_deg = epsNED_std_deg[2]
-        pitch_std_deg = navpy.angle2dcm(yaw_rad, 0, 0, input_unit='rad').dot(epsNED_std_deg)[1]
-        roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
+            # Note, as part of transformation we are
+            # ignoring uncertinty in the mapping.
+            epsNED_std_deg = [r2d(nav_data_dict['epsN_std'][k]),
+                              r2d(nav_data_dict['epsE_std'][k]),
+                              r2d(nav_data_dict['epsD_std'][k])]
+            yaw_std_deg = epsNED_std_deg[2]
+            pitch_std_deg = navpy.angle2dcm(yaw_rad, 0, 0, input_unit='rad').dot(epsNED_std_deg)[1]
+            roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
 
-        row = [int(t_store[k]*1e6), 
-               int(r2d(nav_data_dict['navlat_store'][k])*1e7),
-               int(r2d(nav_data_dict['navlon_store'][k])*1e7),
-               nav_data_dict['navalt_store'][k],
-               int(roll_rad*1e4),
-               int(pitch_rad*1e4),
-               int(yaw_rad*1e4),
-               nav_data_dict['NS_std'][k],
-               nav_data_dict['WE_std'][k],
-               nav_data_dict['alt_std'][k],
-               yaw_std_deg,
-               pitch_std_deg,
-               roll_std_deg]
-        csv_writer.writerow(row)
+            row = [int(t_store[k]*1e6), 
+                   int(r2d(nav_data_dict['navlat_store'][k])*1e7),
+                   int(r2d(nav_data_dict['navlon_store'][k])*1e7),
+                   nav_data_dict['navalt_store'][k],
+                   int(roll_rad*1e4),
+                   int(pitch_rad*1e4),
+                   int(yaw_rad*1e4),
+                   nav_data_dict['NS_std'][k],
+                   nav_data_dict['WE_std'][k],
+                   nav_data_dict['alt_std'][k],
+                   yaw_std_deg,
+                   pitch_std_deg,
+                   roll_std_deg]
+            csv_writer.writerow(row)
     print("Playback results written to: %s" % OUTPUT_FILENAME)
