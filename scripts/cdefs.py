@@ -15,7 +15,7 @@ Revised August 19, 2014 by Trevor Layh
 from ctypes import *
 
 # IMU Data Structure
-class cIMU(Structure):
+class IMU(Structure):
     _fields_ = [
         (  'p',	c_double), # [rad/sec], body X axis angular rate (roll)
         (  'q',	c_double), # [rad/sec], body Y axis angular rate (pitch)
@@ -37,7 +37,7 @@ class cIMU(Structure):
     ]
 
 # GPS Data Structure
-class cGPS(Structure):
+class GPS(Structure):
     _fields_ = [
         (    'lat', c_double), # [deg], Geodetic latitude
         (    'lon', c_double), # [deg], Geodetic longitude
@@ -77,7 +77,7 @@ class cGPS(Structure):
 
 
 # Air Data Structure
-class cAIRDATA(Structure):
+class AIRDATA(Structure):
     _fields_ = [
         (       'h', c_double), # [m], barometric altitude above ground level (AGL)
         (     'ias', c_double), # [m/sec], indicated airspeed
@@ -99,7 +99,7 @@ class cAIRDATA(Structure):
 
 
 # Control surface deflections
-class cSURFACE(Structure):
+class SURFACE(Structure):
     _fields_ = [
         ('dthr_pos', c_double), # [0-1], measured throttle position
         (  'de_pos', c_double), # [rad], measured elevator position, +TED
@@ -111,7 +111,7 @@ class cSURFACE(Structure):
     ]
 
 # Pilot inceptor data structure
-class cINCEPTOR(Structure):
+class INCEPTOR(Structure):
     _fields_ = [
         ('throttle', c_double), # throttle stick command from the pilot, ND
         (   'pitch', c_double), # pitch stick command from the pilot, ND
@@ -120,7 +120,7 @@ class cINCEPTOR(Structure):
     ]
     
 # Mission manager data structure
-class cMISSION(Structure):
+class MISSION(Structure):
     _fields_ = [
         (       'mode', c_ushort), # mode variable; 0 = dump data, 1 = manual control, 2 = autopilot control
         (    'run_num', c_ushort), # counter for number of autopilot engagements
@@ -130,7 +130,7 @@ class cMISSION(Structure):
     ]
 
 # Control Data structure
-class cCONTROL(Structure):
+class CONTROL(Structure):
     _fields_ = [
         (      'dthr', c_double), #   ///< [0-1], throttle command
         (        'de', c_double), #     ///< [rad], elevator command, +TED
@@ -164,7 +164,7 @@ class cCONTROL(Structure):
     ]
 
 # Research Control Data structure
-class cRESEARCHCONTROL(Structure):
+class RESEARCHCONTROL(Structure):
     _fields_ = [
         (      'dthr', c_double), #   ///< [0-1], throttle command
         (        'de', c_double), #     ///< [rad], elevator command, +TED
@@ -199,7 +199,7 @@ class cRESEARCHCONTROL(Structure):
 
 
 # Navigation Filter Data Structure
-class cNAV(Structure):
+class NAV(Structure):
     _fields_ = [
         (   'lat', c_double), # [rad], geodetic latitude estimate
         (   'lon', c_double), # [rad], geodetic longitude estimate
@@ -240,7 +240,7 @@ class cNAV(Structure):
     ]
 
 # Research Navigation Filter Data Structure
-class cRESEARCHNAV(Structure):
+class RESEARCHNAV(Structure):
     _fields_ = [
         (   'lat', c_double), # [rad], geodetic latitude estimate
         (   'lon', c_double), # [rad], geodetic longitude estimate
@@ -280,13 +280,13 @@ class cRESEARCHNAV(Structure):
         (  'signal_9', c_double)  # //< user defined dummy variable    
     ]
 
-class cSENSORDATA(Structure):
+class SENSORDATA(Structure):
     _fields_ = [
-	('imuData_ptr',   POINTER(cIMU)), # pointer to imu data structure		
-	('gpsData_ptr',   POINTER(cGPS)), # pointer to gps data structure
-	('gpsData_l_ptr', POINTER(cGPS)), # pointer to left gps data structure
-	('gpsData_r_ptr', POINTER(cGPS)), # pointer to right gps data structure
-	('adData_ptr',    POINTER(cAIRDATA)), # pointer to airdata data structure
-	('surfData_ptr',  POINTER(cSURFACE)), # pointer to surface data structure
-        ('inceptorData_ptr', POINTER(cINCEPTOR))  # pointer to pilot inceptor data structure
+	('imuData_ptr',   POINTER(IMU)), # pointer to imu data structure		
+	('gpsData_ptr',   POINTER(GPS)), # pointer to gps data structure
+	('gpsData_l_ptr', POINTER(GPS)), # pointer to left gps data structure
+	('gpsData_r_ptr', POINTER(GPS)), # pointer to right gps data structure
+	('adData_ptr',    POINTER(AIRDATA)), # pointer to airdata data structure
+	('surfData_ptr',  POINTER(SURFACE)), # pointer to surface data structure
+        ('inceptorData_ptr', POINTER(INCEPTOR))  # pointer to pilot inceptor data structure
     ]
