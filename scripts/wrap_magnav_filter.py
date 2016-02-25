@@ -18,6 +18,8 @@ Author: Hamid M.
 Last Update: April 22, 2015
 """
 
+import numpy as np
+
 # # # # # START INPUTS # # # # #
 
 FLAG_UNBIASED_IMU = False             # Choose if accel/gyro should be bias-free.
@@ -47,23 +49,11 @@ nav1 = navigation.filter()
 import magnav
 nav2 = magnav.filter()
 
-# Import these ctypes for proper declaration of globaldefs.py structures
-import ctypes
-# Import the globaldefs.py file
-import cdefs
-# Abbreviate these ctypes commands
-POINTER = ctypes.POINTER
-byref   = ctypes.byref
-
-# Declare Structures from cdefs.py
-imuData = cdefs.cIMU()
-gpsData     = cdefs.cGPS()
-
-imuData_mag = cdefs.cIMU()
-gpsData_mag     = cdefs.cGPS()
-
-nav = cdefs.cNAV()
-nav_mag = cdefs.cNAV()
+import pydefs
+insgps = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
+                       np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
+insgps_mag = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
+                           np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
 # simpler python structures for sensor input and filter output
 import pydefs
@@ -184,9 +174,9 @@ nav_mag_data_dict = {}
 haveGPS_store = []
 t_store = []
 
-def store_data(data_dict, nav_ptr):
+def store_data(data_dict, insgps):
     """
-    Append current elements from `nav_ptr` into
+    Append current elements from `insgps` into
     `data_dict`.  
     """
     # Initialize dictionary if needed (e.g.) first iteration.
@@ -222,43 +212,43 @@ def store_data(data_dict, nav_ptr):
         data_dict['epsD_std'] = [] # yaw uncertainty [rad]
 
     # Store data
-    data_dict['psi_store'].append(nav_ptr.psi)
-    data_dict['the_store'].append(nav_ptr.the)
-    data_dict['phi_store'].append(nav_ptr.phi)
-    data_dict['navlat_store'].append(nav_ptr.lat)
-    data_dict['navlon_store'].append(nav_ptr.lon)
-    data_dict['navalt_store'].append(nav_ptr.alt)
-    data_dict['navStatus_store'].append(nav_ptr.err_type)
-    data_dict['wn_store'].append(nav_ptr.wn)
-    data_dict['we_store'].append(nav_ptr.we)
-    data_dict['wd_store'].append(nav_ptr.wd)
-    data_dict['signal_store'].append([nav_ptr.signal_0, nav_ptr.signal_1,
-                                      nav_ptr.signal_2, nav_ptr.signal_3,
-                                      nav_ptr.signal_4, nav_ptr.signal_5, 
-                                      nav_ptr.signal_6, nav_ptr.signal_7,
-                                      nav_ptr.signal_8, nav_ptr.signal_9])
+    data_dict['psi_store'].append(insgps.estATT[0])
+    data_dict['the_store'].append(insgps.estATT[1])
+    data_dict['phi_store'].append(insgps.estATT[2])
+    data_dict['navlat_store'].append(insgps.estPOS[0])
+    data_dict['navlon_store'].append(insgps.estPOS[1])
+    data_dict['navalt_store'].append(insgps.estPOS[2])
+    data_dict['navStatus_store'].append(insgps.valid) #fixme: was err_type
+    #data_dict['wn_store'].append(insgps.wn)
+    #data_dict['we_store'].append(insgps.we)
+    #data_dict['wd_store'].append(insgps.wd)
+    #data_dict['signal_store'].append([insgps.signal_0, insgps.signal_1,
+    #                                  insgps.signal_2, insgps.signal_3,
+    #                                  insgps.signal_4, insgps.signal_5, 
+    #                                  insgps.signal_6, insgps.signal_7,
+    #                                  insgps.signal_8, insgps.signal_9])
 
-    data_dict['ax_bias'].append(nav_ptr.ab[0])
-    data_dict['ay_bias'].append(nav_ptr.ab[1])
-    data_dict['az_bias'].append(nav_ptr.ab[2])
-    data_dict['p_bias'].append(nav_ptr.gb[0])
-    data_dict['q_bias'].append(nav_ptr.gb[1])
-    data_dict['r_bias'].append(nav_ptr.gb[2])
+    data_dict['ax_bias'].append(insgps.estAB[0])
+    data_dict['ay_bias'].append(insgps.estAB[1])
+    data_dict['az_bias'].append(insgps.estAB[2])
+    data_dict['p_bias'].append(insgps.estGB[0])
+    data_dict['q_bias'].append(insgps.estGB[1])
+    data_dict['r_bias'].append(insgps.estGB[2])
 
-    data_dict['NS_std'].append(np.sqrt(nav_ptr.Pp[0]))
-    data_dict['WE_std'].append(np.sqrt(nav_ptr.Pp[1]))
-    data_dict['alt_std'].append(np.sqrt(nav_ptr.Pp[2]))
+    data_dict['NS_std'].append(np.sqrt(insgps.P[0]))
+    data_dict['WE_std'].append(np.sqrt(insgps.P[1]))
+    data_dict['alt_std'].append(np.sqrt(insgps.P[2]))
 
-    data_dict['epsN_std'].append(np.sqrt(nav_ptr.Pa[0]))
-    data_dict['epsE_std'].append(np.sqrt(nav_ptr.Pa[1]))
-    data_dict['epsD_std'].append(np.sqrt(nav_ptr.Pa[2])) # yaw uncertainty [rad]
+    data_dict['epsN_std'].append(np.sqrt(insgps.P[6]))
+    data_dict['epsE_std'].append(np.sqrt(insgps.P[7]))
+    data_dict['epsD_std'].append(np.sqrt(insgps.P[8])) # yaw uncertainty [rad]
 
     return data_dict
 
 # create data structures for ekf processing
 imu_data = []
 gps_data = []
-k = kstart
+k = 0
 while k < len(t):
     p, q, r = imu[k, 1:4]
     ax, ay, az = imu[k, 4:7]
@@ -277,119 +267,58 @@ print "gps records:", len(gps_data)
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
 k = kstart
-while k < len(t):
-
-    # Populate this epoch's IMU data
-    p ,  q,  r = imu[k, 1:4]
-    ax, ay, az = imu[k, 4:7]
-    hx, hy, hz = imu[k, 7:10]
-    
-    # Assign that IMU data extracted from the .mat file at the current
-    # epoch to the pointer values and structures to be passed into
-    # "get_" functions of the c-code.
-    imuData.p = p
-    imuData.q = q
-    imuData.r = r
-
-
-    imuData.ax = ax
-    imuData.ay = ay
-    imuData.az = az
-
-    imuData.hx = hx
-    imuData.hy = hy
-    imuData.hz = hz
-
-    # Assign the current time
-    imuData.time = t[k]    
-
-    # Assign Air Data
-    # adData.ias = ias[k]
-    # adData.h = h[k]
-
-    # Assign GPS Data
-    gpsData.vn = vn[k]
-    gpsData.ve = ve[k]
-    gpsData.vd = vd[k]
-
-    gpsData.lat = lat[k]
-    gpsData.lon = lon[k]
-    gpsData.alt = alt[k]
-
-    imuData_mag.p = p
-    imuData_mag.q = q
-    imuData_mag.r = r
-
-    imuData_mag.ax = ax
-    imuData_mag.ay = ay
-    imuData_mag.az = az
-
-    imuData_mag.hx = hx
-    imuData_mag.hy = hy
-    imuData_mag.hz = hz
-
-    # Assign the current time
-    imuData_mag.time = t[k]    
-
-    # Assign GPS Data
-    gpsData_mag.vn = vn[k]
-    gpsData_mag.ve = ve[k]
-    gpsData_mag.vd = vd[k]
-
-    gpsData_mag.lat = lat[k]
-    gpsData_mag.lon = lon[k]
-    gpsData_mag.alt = alt[k]
-
-    # Update Mission
-    # mission.haveGPS = 1
-    # if (t[k] != -1) and (t[k] >= T_GPSOFF):
-    #   mission.haveGPS = 0
-    
-
-    # Set GPS newData flag
-    if ((abs(flight_data.alt[k] - last_gps_alt))>.0001):
-        gpsData.newData = 1
-        gpsData_mag.newData = 1
-        last_gps_alt = flight_data.alt[k]
+gps_index = 0
+new_gps = 0
+for k, imupt in enumerate(imu_data):
+    # walk the gps counter forward as needed
+    if imupt.time >= gps_data[gps_index].time:
+        gps_index += 1
+        new_gps = 1
     else:
-        gpsData.newData = 0
-        gpsData_mag.newData = 0
+        new_gps = 0
+    if gps_index >= len(gps_data):
+        # no more gps data, stay on the last record
+        gps_index = len(gps_data)-1
+    gpspt = gps_data[gps_index-1]
+    gpspt.newData = new_gps
+    print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
     # If k is at the initialization time init_nav else get_nav
     if k == kstart:
-        nav1.init(imuData, gpsData, nav)
-        nav2.init(imuData_mag, gpsData_mag, nav_mag)
+        insgps = nav1.init(imupt, gpspt)
+        insgps_mag = nav2.init(imupt, gpspt)
 
         if FLAG_FORCE_INIT:
             # Force initial values to match logged INS/GPS result
-            nav.psi = flight_data.psi[k]
-            nav.the = flight_data.theta[k]
-            nav.phi = flight_data.phi[k]
+            insgps.psi = flight_data.psi[k]
+            insgps.the = flight_data.theta[k]
+            insgps.phi = flight_data.phi[k]
 
-            nav.lat = flight_data.navlat[k] # Note: should be radians
-            nav.lon = flight_data.navlon[k] # Note: should be radians
-            nav.alt = flight_data.navalt[k]
+            insgps.lat = flight_data.navlat[k] # Note: should be radians
+            insgps.lon = flight_data.navlon[k] # Note: should be radians
+            insgps.alt = flight_data.navalt[k]
             
-            nav_mag.psi = flight_data.psi[k]
-            nav_mag.the = flight_data.theta[k]
-            nav_mag.phi = flight_data.phi[k]
+            insgps_mag.psi = flight_data.psi[k]
+            insgps_mag.the = flight_data.theta[k]
+            insgps_mag.phi = flight_data.phi[k]
 
-            nav_mag.lat = flight_data.navlat[k] # Note: should be radians
-            nav_mag.lon = flight_data.navlon[k] # Note: should be radians
-            nav_mag.alt = flight_data.navalt[k]
-    else:
-        nav1.update(imuData, gpsData, nav)
-        nav2.update(imuData_mag, gpsData_mag, nav_mag)
+            insgps_mag.lat = flight_data.navlat[k] # Note: should be radians
+            insgps_mag.lon = flight_data.navlon[k] # Note: should be radians
+            insgps_mag.alt = flight_data.navalt[k]
+    elif k > kstart:
+        insgps = nav1.update(imupt, gpspt)
+        insgps_mag = nav2.update(imupt, gpspt)
 
     # Store the desired results obtained from the compiled test navigation filter
     # and the baseline filter
-    nav_data_dict = store_data(nav_data_dict, nav)
-    nav_mag_data_dict = store_data(nav_mag_data_dict, nav_mag)
-    # haveGPS_store.append(mission.haveGPS)
-    t_store.append(t[k])
+    if k >= kstart:
+        nav_data_dict = store_data(nav_data_dict, insgps)
+        nav_mag_data_dict = store_data(nav_mag_data_dict, insgps_mag)
+        # haveGPS_store.append(mission.haveGPS)
+        t_store.append(imupt.time)
 
     # Increment time up one step for the next iteration of the while loop.    
-    k+=1
+    k += 1
 
 # When k = len(t) execute the close_nav function freeing up memory from matrices.
 nav1.close()
@@ -444,18 +373,18 @@ if FLAG_PLOT_ALTITUDE:
     plt.grid()
 
 # Wind Plot
-if FLAG_PLOT_WIND:
-    wn = nav_mag_data_dict['wn_store']
-    we = nav_mag_data_dict['we_store']
-    wd = nav_mag_data_dict['wd_store']
-    plt.figure()
-    plt.title('WIND ESTIMATES - Only from nav_mag')
-    plt.plot(t_store, wn, label='North',c='gray', lw=2)
-    plt.plot(t_store, we, label='East',c='black', lw=2)
-    plt.plot(t_store, wd, label='Down',c='blue', lw=2)
-    plt.ylabel('WIND (METERS/SECOND)', weight='bold')
-    plt.legend(loc=0)
-    plt.grid()
+#if FLAG_PLOT_WIND:
+#    wn = nav_mag_data_dict['wn_store']
+#    we = nav_mag_data_dict['we_store']
+#    wd = nav_mag_data_dict['wd_store']
+#    plt.figure()
+#    plt.title('WIND ESTIMATES - Only from nav_mag')
+#    plt.plot(t_store, wn, label='North',c='gray', lw=2)
+#    plt.plot(t_store, we, label='East',c='black', lw=2)
+#    plt.plot(t_store, wd, label='Down',c='blue', lw=2)
+#    plt.ylabel('WIND (METERS/SECOND)', weight='bold')
+#    plt.legend(loc=0)
+#    plt.grid()
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
@@ -474,16 +403,16 @@ if FLAG_PLOT_GROUNDTRACK:
     plt.grid()
     plt.legend(loc=0)
 
-if FLAG_PLOT_SIGNALS:
-    plt.figure()
-    plt.title('SIGNAL PLOTS - Only from nav_mag')
-    signal_store = nav_mag_data_dict['signal_store']
-    signal_store = np.array(signal_store)
-    for sig in SIGNAL_LIST:
-        plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
-    plt.ylabel('SIGNAL UNITS', weight='bold')
-    plt.legend(loc=0)
-    plt.grid()
+# if FLAG_PLOT_SIGNALS:
+#     plt.figure()
+#     plt.title('SIGNAL PLOTS - Only from nav_mag')
+#     signal_store = nav_mag_data_dict['signal_store']
+#     signal_store = np.array(signal_store)
+#     for sig in SIGNAL_LIST:
+#         plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
+#     plt.ylabel('SIGNAL UNITS', weight='bold')
+#     plt.legend(loc=0)
+#     plt.grid()
 
 # haveGPS Plot
 # if FLAG_PLOT_HAVEGPS:

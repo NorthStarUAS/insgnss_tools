@@ -25,19 +25,6 @@ class GPS():
         self.ve = ve
         self.vd = vd
 
-class FILTER():
-    def __init__(self, time, lat, lon, alt, vn, ve, vd, phi, the, psi):
-        self.time = time
-        self.lat = lat
-        self.lon = lon
-        self.alt = alt
-        self.vn = vn
-        self.ve = ve
-        self.vd = vd
-        self.phi = phi
-        self.the = the
-        self.psi = psi
-
 class INSGPS():
     def __init__(self, valid, time, estPOS, estVEL, estATT, estAB, estGB,
                  P, stateInnov):

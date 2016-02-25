@@ -140,9 +140,9 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 	H[0][0] = 1.0; 	H[1][1] = 1.0; 	H[2][2] = 1.0;
 	H[3][3] = 1.0; 	H[4][4] = 1.0; 	H[5][5] = 1.0;
 	// FIXME: Waiting for Demoz official derivation
-	H[6][0] = 1.0;
-	H[7][1] = 1.0;
-	H[8][2] = 1.0;
+	H[6][0] = 0.0 /*1.0*/;
+	H[7][1] = 0.0 /*1.0*/;
+	H[8][2] = 0.0 /*1.0*/;
 	
 	// ... Rw
 	Rw[0][0] = SIG_W_AX*SIG_W_AX;		Rw[1][1] = SIG_W_AY*SIG_W_AY;			Rw[2][2] = SIG_W_AZ*SIG_W_AZ;
@@ -442,7 +442,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		}
 		/* printf("mag vector (sense): %.2f %.2f %.2f\n",
 		   mag_sense[0][0], mag_sense[1][0], mag_sense[2][0]); */
-		printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", mag_ekf[0][0], mag_ekf[1][0], mag_ekf[2][0], mag_sense[0][0], mag_sense[1][0], mag_sense[2][0]);
+		/*printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", mag_ekf[0][0], mag_ekf[1][0], mag_ekf[2][0], mag_sense[0][0], mag_sense[1][0], mag_sense[2][0]);*/
 		
 		// Create Measurement: y
 		y[0][0] = pos_gps_ned[0][0] - pos_ins_ned[0][0];
