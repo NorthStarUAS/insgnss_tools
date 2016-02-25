@@ -56,14 +56,14 @@ POINTER = ctypes.POINTER
 byref   = ctypes.byref
 
 # Declare Structures from globaldefs.py
-imuData = globaldefs.IMU()
-gpsData     = globaldefs.GPS()
+imuData = globaldefs.cIMU()
+gpsData     = globaldefs.cGPS()
 
-imuData_mag = globaldefs.IMU()
-gpsData_mag     = globaldefs.GPS()
+imuData_mag = globaldefs.cIMU()
+gpsData_mag     = globaldefs.cGPS()
 
-nav = globaldefs.NAV()
-nav_mag = globaldefs.NAV()
+nav = globaldefs.cNAV()
+nav_mag = globaldefs.cNAV()
 
 
 # Import modules including the numpy and scipy.  Matplotlib is used for plotting results.
@@ -76,7 +76,7 @@ import navpy
 r2d = np.rad2deg
 
 class dict2struct():
-  pass
+    pass
 
 
 # Directory to converted flight data that contains the flight_data and flight_info structures
@@ -253,6 +253,10 @@ def store_data(data_dict, nav_ptr):
     data_dict['epsD_std'].append(np.sqrt(nav_ptr.Pa[2])) # yaw uncertainty [rad]
 
     return data_dict
+
+# create 
+imu_data = []
+gps_data = []
 
 # Using while loop starting at k (set to kstart) and going to end of .mat file
 while k < len(t):
