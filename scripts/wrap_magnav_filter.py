@@ -1,5 +1,5 @@
 """WRAP_NAV_FILTER.PY
-This script plays `.mat` flight data through navigation filter C-Code.
+This script plays flight data through navigation filter C-Code.
 Both baseline navigation and researchNavigation are compiled into `.so` 
 shared objects and wrapped in Python.  
 
@@ -35,7 +35,7 @@ SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
 # # # # # END INPUTS # # # # #
 
-mport os
+import os
 import csv
 import numpy as np
 from matplotlib import pyplot as plt
@@ -54,7 +54,7 @@ insgps = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
 insgps_mag = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                            np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
-iclass dict2struct():
+class dict2struct():
     pass
 
 # Values (Calculated by compiled test navigation filter) need to be
@@ -203,8 +203,7 @@ for k, imupt in enumerate(imu_data):
     # Increment time up one step for the next iteration of the while loop.    
     k += 1
 
-# When k = len(t) execute the close_nav function freeing up memory
-# from matrices.
+# proper cleanup
 nav1.close()
 nav2.close()
 
