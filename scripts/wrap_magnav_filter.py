@@ -24,8 +24,9 @@ import argparse
 import numpy as np
 
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--mat-flight', help='load specified .mat flight log')
 parser.add_argument('--aura-dir', help='load specified aura flight log')
+parser.add_argument('--mat-flight', help='load specified .mat flight log')
+parser.add_argument('--sentera-dir', help='load specified sentera flight log')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -146,14 +147,18 @@ def store_data(data_dict, insgps):
 
     return data_dict
 
-import data_umn
 import data_aura
-if args.mat_flight:
-    imu_data, gps_data, filter_data = data_umn.load(args.mat_flight)
-    plotname = os.path.basename(args.mat_flight)
-elif args.aura_dir:
+import data_sentera
+import data_umn
+if args.aura_dir:
     imu_data, gps_data, filter_data = data_aura.load(args.aura_dir)
     plotname = os.path.basename(args.aura_dir)
+elif args.sentera_dir:
+    imu_data, gps_data, filter_data = data_sentera.load(args.sentera_dir)
+    plotname = os.path.basename(args.sentera_dir)
+elif args.mat_flight:
+    imu_data, gps_data, filter_data = data_umn.load(args.mat_flight)
+    plotname = os.path.basename(args.mat_flight)
 else:
     print "no input file / dir specifed"
     quit()
