@@ -12,13 +12,9 @@ from scipy import io as sio
 import pydefs
 
 def load(mat_filename):
-    # Directory to converted flight data that contains the flight_data
-    # and flight_info structures
-    directory = 'flight_data'
-
     # Name of .mat file that exists in the directory defined above and
     # has the flight_data and flight_info structures
-    filepath = directory + os.sep + mat_filename
+    filepath = mat_filename
 
     # Load Flight Data: ## IMPORTANT to have the .mat file in the
     # flight_data and flight_info structures for this function ##

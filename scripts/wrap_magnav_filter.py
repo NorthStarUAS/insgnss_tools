@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """WRAP_NAV_FILTER.PY
 This script plays flight data through navigation filter C-Code.
 Both baseline navigation and researchNavigation are compiled into `.so` 
@@ -18,7 +20,13 @@ Author: Hamid M.
 Last Update: April 22, 2015
 """
 
+import argparse
 import numpy as np
+
+parser = argparse.ArgumentParser(description='nav filter')
+parser.add_argument('--mat-flight', help='load specified .mat flight log')
+parser.add_argument('--aura-dir', help='load specified aura flight log')
+args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
 
@@ -139,9 +147,17 @@ def store_data(data_dict, insgps):
     return data_dict
 
 import data_umn
-mat_filename = 'thor_flight75_WaypointTracker_150squareWaypointNew_2012_10_10.mat'
-imu_data, gps_data, filter_data = data_umn.load(mat_filename)
-
+import data_aura
+if args.mat_flight:
+    imu_data, gps_data, filter_data = data_umn.load(args.mat_flight)
+    plotname = os.path.basename(args.mat_flight)
+elif args.aura_dir:
+    imu_data, gps_data, filter_data = data_aura.load(args.aura_dir)
+    plotname = os.path.basename(args.aura_dir)
+else:
+    print "no input file / dir specifed"
+    quit()
+    
 # rearrange flight data for plotting
 t_gps = []
 lat_gps = []
@@ -152,7 +168,8 @@ for g in gps_data:
     lat_gps.append(g.lat)
     lon_gps.append(g.lon)
     alt_gps.append(g.alt)
-    
+
+t_flight = []
 psi_flight = []
 the_flight = []
 phi_flight = []
@@ -160,6 +177,7 @@ navlat_flight = []
 navlon_flight = []
 navalt_flight = []
 for f in filter_data:
+    t_flight.append(f.time)
     psi_flight.append(f.psi)
     the_flight.append(f.the)
     phi_flight.append(f.phi)
@@ -214,11 +232,11 @@ if FLAG_PLOT_ATTITUDE:
     # Yaw Plot
     psi_nav = nav_data_dict['psi_store']
     psi_nav_mag = nav_mag_data_dict['psi_store']
-    ax1.set_title(mat_filename, fontsize=10)
+    ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('YAW (DEGREES)', weight='bold')
     ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
     ax1.plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue', lw=2)
-    ax1.plot(t_store, r2d(psi_flight), label='On-Board', c='green', lw=2, alpha=.5)
+    ax1.plot(t_flight, r2d(psi_flight), label='On-Board', c='green', lw=2, alpha=.5)
     ax1.grid()
     ax1.legend(loc=0)
 
@@ -228,7 +246,7 @@ if FLAG_PLOT_ATTITUDE:
     ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
     ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
     ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
-    ax2.plot(t_store, r2d(the_flight), label='On-Board', c='green', lw=2, alpha=.5)
+    ax2.plot(t_flight, r2d(the_flight), label='On-Board', c='green', lw=2, alpha=.5)
     ax2.grid()
 
     # Roll PLot
@@ -237,7 +255,7 @@ if FLAG_PLOT_ATTITUDE:
     ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
     ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
     ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
-    ax3.plot(t_store, r2d(phi_flight), label='On-Board', c='green', lw=2, alpha=.5)
+    ax3.plot(t_flight, r2d(phi_flight), label='On-Board', c='green', lw=2, alpha=.5)
     ax3.set_xlabel('TIME (SECONDS)', weight='bold')
     ax3.grid()
 
@@ -248,7 +266,7 @@ if FLAG_PLOT_ALTITUDE:
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
-    plt.plot(t_store, navalt_flight, label='On-Board', c='green', lw=2, alpha=.5)
+    plt.plot(t_flight, navalt_flight, label='On-Board', c='green', lw=2, alpha=.5)
     plt.plot(t_store, navalt, label='nav', c='k', lw=3, alpha=.5)
     plt.plot(t_store, nav_magalt, label='nav_mag',c='blue', lw=2)
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
@@ -276,7 +294,7 @@ if FLAG_PLOT_GROUNDTRACK:
     nav_maglat = nav_mag_data_dict['navlat_store']
     nav_maglon = nav_mag_data_dict['navlon_store']
     plt.figure()
-    plt.title(mat_filename, fontsize=10)
+    plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
     plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
     plt.plot(lon_gps, lat_gps, '*', label='GPS Sensor', c='red', lw=2, alpha=.5)
