@@ -188,6 +188,7 @@ for f in filter_data:
 # Using while loop starting at k (set to kstart) and going to end of .mat file
 gps_index = 0
 new_gps = 0
+filter_init = False
 for k, imupt in enumerate(imu_data):
     # walk the gps counter forward as needed
     if imupt.time >= gps_data[gps_index].time:
@@ -203,16 +204,18 @@ for k, imupt in enumerate(imu_data):
     #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
     # If k is at the initialization time init_nav else get_nav
-    if k == 0:
+    if not filter_init and gps_index > 0:
+        print "init:", imupt.time, gpspt.time
         insgps = nav1.init(imupt, gpspt)
         insgps_mag = nav2.init(imupt, gpspt)
-    elif k > 0:
+        filter_init = True
+    elif filter_init:
         insgps = nav1.update(imupt, gpspt)
         insgps_mag = nav2.update(imupt, gpspt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
-    if k >= 0:
+    if filter_init:
         nav_data_dict = store_data(nav_data_dict, insgps)
         nav_mag_data_dict = store_data(nav_mag_data_dict, insgps_mag)
         # haveGPS_store.append(mission.haveGPS)
