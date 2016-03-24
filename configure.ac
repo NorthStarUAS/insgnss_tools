@@ -52,6 +52,7 @@ AC_CONFIG_FILES([ \
         src/navigation/Makefile \
         src/magnav/Makefile \
         src/utils/Makefile \
+        src/MadgwickAHRS/Makefile \
 ])
 AC_OUTPUT
 

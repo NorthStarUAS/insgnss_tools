@@ -2,4 +2,5 @@ SUBDIRS = \
 	include \
 	utils \
 	magnav \
-	navigation
+	navigation \
+	MadgwickAHRS
