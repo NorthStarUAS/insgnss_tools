@@ -54,13 +54,15 @@ r2d = np.rad2deg
 # filter interfaces
 import navigation
 import magnav
-nav1 = navigation.filter()
-nav2 = magnav.filter()
+import MadgwickAHRS
+filter1 = navigation.filter()
+#filter2 = magnav.filter()
+filter2 = MadgwickAHRS.filter()
 
 import pydefs
-insgps = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
+insgps1 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                        np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
-insgps_mag = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
+insgps2 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                            np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
 class dict2struct():
@@ -71,8 +73,8 @@ class dict2struct():
 # and cdefs.py to allow for pulling them out and saving. These
 # python variables need to be initialized to work properly in the
 # while loop.
-nav_data_dict = {}
-nav_mag_data_dict = {}
+data_dict1 = {}
+data_dict2 = {}
 haveGPS_store = []
 t_store = []
 
@@ -162,7 +164,54 @@ elif args.mat_flight:
 else:
     print "no input file / dir specifed"
     quit()
-    
+
+if False:
+    # quick hack estimate gyro biases
+    p_sum = 0.0
+    q_sum = 0.0
+    r_sum = 0.0
+    for imu in imu_data:
+        p_sum += imu.p
+        q_sum += imu.q
+        r_sum += imu.r
+    p_bias = p_sum / len(imu_data)
+    q_bias = q_sum / len(imu_data)
+    r_bias = r_sum / len(imu_data)
+    print "bias:", p_bias, q_bias, r_bias
+    for imu in imu_data:
+        imu.p -= p_bias
+        imu.q -= q_bias
+        imu.r -= r_bias
+
+if False:
+    # quick rough hack at a magnetometer calibration
+    x_min = 1000000.0
+    y_min = 1000000.0
+    z_min = 1000000.0
+    x_max = -1000000.0
+    y_max = -1000000.0
+    z_max = -1000000.0
+    for imu in imu_data:
+        if imu.hx < x_min: x_min = imu.hx
+        if imu.hy < y_min: y_min = imu.hy
+        if imu.hz < z_min: z_min = imu.hz
+        if imu.hx > x_max: x_max = imu.hx
+        if imu.hy > y_max: y_max = imu.hy
+        if imu.hz > z_max: z_max = imu.hz
+    print "x:", x_min, x_max
+    print "y:", y_min, y_max
+    print "z:", z_min, z_max
+    dx = x_max - x_min
+    dy = y_max - y_min
+    dz = z_max - z_min
+    cx = (x_min + x_max) * 0.5
+    cy = (y_min + y_max) * 0.5
+    cz = (z_min + z_max) * 0.5
+    for imu in imu_data:
+        imu.hx = ((imu.hx - x_min) / dx) * 2.0 - 1.0
+        imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
+        imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
+        
 # rearrange flight data for plotting
 t_gps = []
 lat_gps = []
@@ -211,18 +260,18 @@ for k, imupt in enumerate(imu_data):
     # If k is at the initialization time init_nav else get_nav
     if not filter_init and gps_index > 0:
         print "init:", imupt.time, gpspt.time
-        insgps = nav1.init(imupt, gpspt)
-        insgps_mag = nav2.init(imupt, gpspt)
+        insgps1 = filter1.init(imupt, gpspt)
+        insgps2 = filter2.init(imupt, gpspt)
         filter_init = True
     elif filter_init:
-        insgps = nav1.update(imupt, gpspt)
-        insgps_mag = nav2.update(imupt, gpspt)
+        insgps1 = filter1.update(imupt, gpspt)
+        insgps2 = filter2.update(imupt, gpspt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
     if filter_init:
-        nav_data_dict = store_data(nav_data_dict, insgps)
-        nav_mag_data_dict = store_data(nav_mag_data_dict, insgps_mag)
+        data_dict1 = store_data(data_dict1, insgps1)
+        data_dict2 = store_data(data_dict2, insgps2)
         # haveGPS_store.append(mission.haveGPS)
         t_store.append(imupt.time)
 
@@ -230,16 +279,16 @@ for k, imupt in enumerate(imu_data):
     k += 1
 
 # proper cleanup
-nav1.close()
-nav2.close()
+filter1.close()
+filter2.close()
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1)
 
     # Yaw Plot
-    psi_nav = nav_data_dict['psi_store']
-    psi_nav_mag = nav_mag_data_dict['psi_store']
+    psi_nav = data_dict1['psi_store']
+    psi_nav_mag = data_dict2['psi_store']
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('YAW (DEGREES)', weight='bold')
     ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
@@ -249,8 +298,8 @@ if FLAG_PLOT_ATTITUDE:
     ax1.legend(loc=0)
 
     # Pitch PLot
-    the_nav = nav_data_dict['the_store']
-    the_nav_mag = nav_mag_data_dict['the_store']  
+    the_nav = data_dict1['the_store']
+    the_nav_mag = data_dict2['the_store']  
     ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
     ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
     ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
@@ -258,8 +307,8 @@ if FLAG_PLOT_ATTITUDE:
     ax2.grid()
 
     # Roll PLot
-    phi_nav = nav_data_dict['phi_store']
-    phi_nav_mag = nav_mag_data_dict['phi_store']   
+    phi_nav = data_dict1['phi_store']
+    phi_nav_mag = data_dict2['phi_store']   
     ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
     ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
     ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
@@ -269,8 +318,8 @@ if FLAG_PLOT_ATTITUDE:
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-    navalt = nav_data_dict['navalt_store']
-    nav_magalt = nav_mag_data_dict['navalt_store']
+    navalt = data_dict1['navalt_store']
+    nav_magalt = data_dict2['navalt_store']
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
@@ -283,9 +332,9 @@ if FLAG_PLOT_ALTITUDE:
 
 # Wind Plot
 #if FLAG_PLOT_WIND:
-#    wn = nav_mag_data_dict['wn_store']
-#    we = nav_mag_data_dict['we_store']
-#    wd = nav_mag_data_dict['wd_store']
+#    wn = data_dict2['wn_store']
+#    we = data_dict2['we_store']
+#    wd = data_dict2['wd_store']
 #    plt.figure()
 #    plt.title('WIND ESTIMATES - Only from nav_mag')
 #    plt.plot(t_store, wn, label='North',c='gray', lw=2)
@@ -297,10 +346,10 @@ if FLAG_PLOT_ALTITUDE:
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-    navlat = nav_data_dict['navlat_store']
-    navlon = nav_data_dict['navlon_store']
-    nav_maglat = nav_mag_data_dict['navlat_store']
-    nav_maglon = nav_mag_data_dict['navlon_store']
+    navlat = data_dict1['navlat_store']
+    navlon = data_dict1['navlon_store']
+    nav_maglat = data_dict2['navlat_store']
+    nav_maglon = data_dict2['navlon_store']
     plt.figure()
     plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
@@ -315,7 +364,7 @@ if FLAG_PLOT_GROUNDTRACK:
 # if FLAG_PLOT_SIGNALS:
 #     plt.figure()
 #     plt.title('SIGNAL PLOTS - Only from nav_mag')
-#     signal_store = nav_mag_data_dict['signal_store']
+#     signal_store = data_dict2['signal_store']
 #     signal_store = np.array(signal_store)
 #     for sig in SIGNAL_LIST:
 #         plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
@@ -348,29 +397,29 @@ if FLAG_WRITE2CSV:
         csv_writer.writerow(hdr_list)
         for k in range(len(t_store)):
             # Convert eps_NED to eps_YPR
-            yaw_rad   = nav_data_dict['psi_store'][k]
-            pitch_rad = nav_data_dict['the_store'][k]
-            roll_rad  = nav_data_dict['phi_store'][k]
+            yaw_rad   = data_dict1['psi_store'][k]
+            pitch_rad = data_dict1['the_store'][k]
+            roll_rad  = data_dict1['phi_store'][k]
 
             # Note, as part of transformation we are
             # ignoring uncertinty in the mapping.
-            epsNED_std_deg = [r2d(nav_data_dict['epsN_std'][k]),
-                              r2d(nav_data_dict['epsE_std'][k]),
-                              r2d(nav_data_dict['epsD_std'][k])]
+            epsNED_std_deg = [r2d(data_dict1['epsN_std'][k]),
+                              r2d(data_dict1['epsE_std'][k]),
+                              r2d(data_dict1['epsD_std'][k])]
             yaw_std_deg = epsNED_std_deg[2]
             pitch_std_deg = navpy.angle2dcm(yaw_rad, 0, 0, input_unit='rad').dot(epsNED_std_deg)[1]
             roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
 
             row = [int(t_store[k]*1e6), 
-                   int(r2d(nav_data_dict['navlat_store'][k])*1e7),
-                   int(r2d(nav_data_dict['navlon_store'][k])*1e7),
-                   nav_data_dict['navalt_store'][k],
+                   int(r2d(data_dict1['navlat_store'][k])*1e7),
+                   int(r2d(data_dict1['navlon_store'][k])*1e7),
+                   data_dict1['navalt_store'][k],
                    int(roll_rad*1e4),
                    int(pitch_rad*1e4),
                    int(yaw_rad*1e4),
-                   nav_data_dict['NS_std'][k],
-                   nav_data_dict['WE_std'][k],
-                   nav_data_dict['alt_std'][k],
+                   data_dict1['NS_std'][k],
+                   data_dict1['WE_std'][k],
+                   data_dict1['alt_std'][k],
                    yaw_std_deg,
                    pitch_std_deg,
                    roll_std_deg]
