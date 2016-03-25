@@ -14,7 +14,7 @@ byref   = ctypes.byref
 class filter():
     def __init__(self):
         # Load compilied `.so` file.
-        self.sharedobj = ctypes.CDLL(os.path.abspath('../build/src/magnav/.libs/libnavigation_mag.so'))
+        self.sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_mag/.libs/libnav_mag.so'))
         
         # Declare inputs to the init_nav function
         self.sharedobj.init_nav.argtypes = [POINTER(cdefs.IMU),

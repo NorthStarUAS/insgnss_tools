@@ -1,6 +1,7 @@
 SUBDIRS = \
 	include \
 	utils \
-	magnav \
-	navigation \
+	nav_orig \
+	nav_polarity \
+	nav_mag \
 	MadgwickAHRS
