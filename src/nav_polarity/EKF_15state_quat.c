@@ -212,24 +212,34 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	// This compute the navigation state at the DAQ's Time Stamp
 	tnow = imuData_ptr->time;
 	imu_dt = tnow - tprev;
-	tprev = tnow;		
+	tprev = tnow;
+
+	int debug = 0;
+	if (debug) {
+	    printf("get_nav(polarity): tnow = %.3f\n", tnow);
+	}
 	
 	// ==================  Time Update  ===================
 	// Temporary storage in Matrix form
-	quat[0] = navData_ptr->quat[0];
-	quat[1] = navData_ptr->quat[1];
-	quat[2] = navData_ptr->quat[2];
-	quat[3] = navData_ptr->quat[3];
+	qcopy(quat, navData_ptr->quat); // quat = navData_ptr->quat
 	
 	a_temp31[0][0] = navData_ptr->vn; a_temp31[1][0] = navData_ptr->ve;
 	a_temp31[2][0] = navData_ptr->vd;
 	
 	b_temp31[0][0] = navData_ptr->lat; b_temp31[1][0] = navData_ptr->lon;
 	b_temp31[2][0] = navData_ptr->alt;
-	
+
 	// AHRS Transformations
 	C_N2B = quat2dcm(quat, C_N2B);
 	C_B2N = mat_tran(C_N2B, C_B2N);
+	
+	if (debug) {
+	    printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+	    printf("C_N2B:\n");
+	    mat_dump(C_N2B);
+	    printf("C_B2N:\n");
+	    mat_dump(C_B2N);
+	}
 	
 	// Attitude Update
 	// ... Calculate Navigation Rate
@@ -240,25 +250,31 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	dq[2] = 0.5*om_ib[1][0]*imu_dt;
 	dq[3] = 0.5*om_ib[2][0]*imu_dt;
 	
+	if (debug) {
+	    printf("dq (gyro): %.4f %.4f %.4f %.4f\n", dq[0], dq[1], dq[2], dq[3]);
+	}
+
 	qmult(quat,dq,quat_new);
+	if (debug) {
+	    printf("quat (pre normalized): %.4f %.4f %.4f %.4f\n", quat_new[0], quat_new[1], quat_new[2], quat_new[3]);
+	}
+
+	qnorm(quat_new);
+	qcopy(quat, quat_new);	// quat = quat_new
 	
-	quat[0] = quat_new[0]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[3] = quat_new[3]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	
-    if(quat[0] < 0) {
-        // Avoid quaternion flips sign
-        quat[0] = -quat[0];
-        quat[1] = -quat[1];
-        quat[2] = -quat[2];
-        quat[3] = -quat[3];
-    }
+	if(quat[0] < 0) {
+	    // Avoid quaternion flips sign
+	    quat[0] = -quat[0];
+	    quat[1] = -quat[1];
+	    quat[2] = -quat[2];
+	    quat[3] = -quat[3];
+	}
     
-	navData_ptr->quat[0] = quat[0];
-	navData_ptr->quat[1] = quat[1];
-	navData_ptr->quat[2] = quat[2];
-	navData_ptr->quat[3] = quat[3];
+	if (debug) {
+	    printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+	}
+
+	qcopy(navData_ptr->quat, quat); // navData_ptr->quat = quat
 	
 	quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
 	
@@ -359,7 +375,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	//fprintf(stderr,"Time Update Done\n");
 	// ==================  DONE TU  ===================
 	if(gpsData_ptr->newData){
-	
+	    if (debug) {
+		printf("new gps data\n");
+	    }
+
 		// ==================  GPS Update  ===================
 		gpsData_ptr->newData = 0; // Reset the flag
 		
@@ -437,11 +456,8 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		navData_ptr->vn = navData_ptr->vn + x[3][0];
 		navData_ptr->ve = navData_ptr->ve + x[4][0];
 		navData_ptr->vd = navData_ptr->vd + x[5][0];
-		
-		quat[0] = navData_ptr->quat[0];
-		quat[1] = navData_ptr->quat[1];
-		quat[2] = navData_ptr->quat[2];
-		quat[3] = navData_ptr->quat[3];
+
+		qcopy(quat, navData_ptr->quat); // quat = navData_ptr->quat
 		
 		// Attitude correction
 		dq[0] = 1.0;
@@ -449,17 +465,20 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		dq[2] = x[7][0];
 		dq[3] = x[8][0];
 		
+		if (debug) {
+		    printf("x[6-8] = %.4f %.4f %.4f\n", x[6][0], x[7][0], x[8][0]);
+		    printf("dq (update): %.4f %.4f %.4f %.4f\n", dq[0], dq[1], dq[2], dq[3]);
+		}
+		
 		qmult(quat,dq,quat_new);
+		qnorm(quat_new);
+		qcopy(quat, quat_new); // quat = quat_new
 		
-		quat[0] = quat_new[0]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-		quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-		quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-		quat[3] = quat_new[3]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-		
-		navData_ptr->quat[0] = quat[0];
-		navData_ptr->quat[1] = quat[1];
-		navData_ptr->quat[2] = quat[2];
-		navData_ptr->quat[3] = quat[3];
+		if (debug) {
+		    printf("quat (update): %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+		}
+
+		qcopy(navData_ptr->quat, quat); // navData_ptr->quat = quat
 		
 		quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
 		
@@ -492,8 +511,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	om_ib[0][0] = imuData_ptr->p;
 	om_ib[1][0] = imuData_ptr->q;
 	om_ib[2][0] = imuData_ptr->r;
-
-
 }
 
 void close_nav(void){

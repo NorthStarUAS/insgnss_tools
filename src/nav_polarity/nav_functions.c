@@ -406,6 +406,25 @@ void qmult(double *p, double *q, double *r)
 	r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
 }
 
+/* normalize a quat (in place) */
+void qnorm(double *p)
+{
+    double mag = sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2] + p[3]*p[3]);
+    p[0] /= mag;
+    p[1] /= mag;
+    p[2] /= mag;
+    p[3] /= mag;
+}
+
+/* copy quaternions: p = q */
+void qcopy(double *p, double *q) {
+    p[0] = q[0];
+    p[1] = q[1];
+    p[2] = q[2];
+    p[3] = q[3];
+}
+
+// converts nav to body quaternion to euler angles
 void quat2eul(double *q, double *phi, double *the, double *psi) {
 	// Quaternion to Euler Angle
 	double q0, q1, q2, q3;
@@ -427,6 +446,7 @@ void quat2eul(double *q, double *phi, double *the, double *psi) {
 	*phi = atan2(m23,m33);
 }
 
+// generates nav to body quaternion
 void eul2quat(double *q, double phi, double the, double psi) {
 	phi = phi/2.0;
 	the = the/2.0;
@@ -437,6 +457,59 @@ void eul2quat(double *q, double phi, double the, double psi) {
 	q[2] = cos(psi)*sin(the)*cos(phi) + sin(psi)*cos(the)*sin(phi);  
 	q[3] = sin(psi)*cos(the)*cos(phi) - cos(psi)*sin(the)*sin(phi);
 }
+
+// ===========================================================
+//              function Cxy = qxyCxy(q_xy)                   
+//                                                            
+//    This functions generates the direction cosine matrix    
+//    which transforms vectors from the x-frame to the        
+//    y-frame.  The input is the x-to-y frame attitude        
+//    quaternion given as a 4 x 1 vector (first element is    
+//    the scalar component of the quaternion).  Cxy is a      
+//    3 x 3 matrix.                                           
+//                                                            
+//    Programmer:     Demoz Gebre-Egziabher                   
+//    Created:        July 6, 2010                            
+//    Last Modified:  March 17, 2016                          
+//                                                            
+//      Copywrite 2009 Demoz Gebre-Egziabher                  
+//      License: BSD, see bsd.txt for details
+//
+// also:
+// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+// ===========================================================
+MATRIX qxy2Cxy(double *q_xy, MATRIX Cxy) {
+    double q_0, q_1, q_2, q_3;
+    q_0 = q_xy[0];
+    q_1 = q_xy[1];
+    q_2 = q_xy[2];
+    q_3 = q_xy[3];
+
+    if (MatRow(Cxy) != 3 || MatCol(Cxy) != 3) {
+	printf("quat2dcm error: incompatible matrix size\n");
+	return(Cxy);
+    }
+    
+    // Form the diagonal elements of Cxy
+
+    Cxy[0][0] = q_0*q_0 + q_1*q_1 - q_2*q_2 - q_3*q_3;
+    Cxy[1][1] = q_0*q_0 - q_1*q_1 + q_2*q_2 - q_3*q_3;
+    Cxy[2][2] = q_0*q_0 - q_1*q_1 - q_2*q_2 + q_3*q_3;
+
+    // Form the off-diagonal elements of Cxy
+
+    Cxy[1][0] = 2*(q_1*q_2 + q_3*q_0);
+    Cxy[2][0] = 2*(q_1*q_3 - q_2*q_0);
+
+    Cxy[0][1] = 2*(q_1*q_2 - q_3*q_0);
+    Cxy[2][1] = 2*(q_2*q_3 + q_1*q_0);
+
+    Cxy[0][2] = 2*(q_1*q_3 + q_2*q_0);
+    Cxy[1][2] = 2*(q_2*q_3 - q_1*q_0);
+    
+    return(Cxy);
+}
+
 
 MATRIX quat2dcm(double *q, MATRIX C_N2B) {
 	// Quaternion to C_N2B

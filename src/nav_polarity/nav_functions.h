@@ -77,6 +77,7 @@ void quat2eul(double *q, double *phi, double *the, double *psi);
 
 void eul2quat(double *q, double phi, double the, double psi);
 
+MATRIX qxy2Cxy(double *q_xy, MATRIX Cxy);
 MATRIX quat2dcm(double *q, MATRIX C_N2B);
 /*=====================================================================*/
 /*=====================================================================*/
