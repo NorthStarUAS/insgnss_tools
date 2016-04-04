@@ -31,30 +31,30 @@ using std::endl;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#define		SIG_W_AX	1		//1 m/s^2
-#define		SIG_W_AY	1
-#define		SIG_W_AZ	1
-#define		SIG_W_GX	0.00524		//0.3 deg/s
-#define		SIG_W_GY	0.00524
-#define		SIG_W_GZ	0.00524
-#define		SIG_A_D		0.1	    	//5e-2*g
-#define		TAU_A		100
-#define		SIG_G_D		0.00873		//0.1 deg/s
-#define		TAU_G		50
+const double SIG_W_AX = 1.0;	 // 1 m/s^2
+const double SIG_W_AY = 1.0;
+const double SIG_W_AZ = 1.0;
+const double SIG_W_GX = 0.00524; // 0.3 deg/s
+const double SIG_W_GY = 0.00524;
+const double SIG_W_GZ = 0.00524;
+const double SIG_A_D  = 0.1;	 // 5e-2*g
+const double TAU_A    = 100.0;
+const double SIG_G_D  = 0.00873; // 0.1 deg/s
+const double TAU_G    = 50.0;
 
-#define		SIG_GPS_P_NE 3
-#define		SIG_GPS_P_D  5
-#define		SIG_GPS_V	 0.5
+const double SIG_GPS_P_NE = 3.0;
+const double SIG_GPS_P_D  = 5.0;
+const double SIG_GPS_V    = 0.5;
 
-#define		P_P_INIT	10.0
-#define		P_V_INIT	1.0
-#define		P_A_INIT	0.34906		// 20 deg
-#define		P_HDG_INIT	3.14159		//180 deg
-#define		P_AB_INIT	0.9810		//0.5*g
-#define		P_GB_INIT	0.01745		//5 deg/s
+const double P_P_INIT = 10.0;
+const double P_V_INIT = 1.0;
+const double P_A_INIT = 0.34906;   // 20 deg
+const double P_HDG_INIT = 3.14159; // 180 deg
+const double P_AB_INIT = 0.9810;   // 0.5*g
+const double P_GB_INIT = 0.01745;  //5 deg/s
 
-#define     Rew     	6.359058719353925e+006      //earth radius
-#define     Rns     	6.386034030458164e+006      //earth radius
+const double Rew = 6.359058719353925e+006; // earth radius
+const double Rns = 6.386034030458164e+006; // earth radius
 
 
 Eigen::Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, temp1515;
