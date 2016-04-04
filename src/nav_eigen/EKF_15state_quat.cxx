@@ -204,10 +204,8 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     // ==================  Time Update  ===================
     // Temporary storage in Matrix form
-    quat.w() = navData_ptr->quat[0];
-    quat.x() = navData_ptr->quat[1];
-    quat.y() = navData_ptr->quat[2];
-    quat.z() = navData_ptr->quat[3];
+    quat = Quaterniond(navData_ptr->quat[0], navData_ptr->quat[1],
+		       navData_ptr->quat[2], navData_ptr->quat[3]);
     //cout << "quat(eigen): " << quat.w() << " " << quat.vec() << endl;
     //cout << "quat(eigen): " << quat.w() << " " << quat.x() << " " << quat.y() << " " << quat.z() << endl;
     
@@ -239,10 +237,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     if (quat.w() < 0) {
         // Avoid quaternion flips sign
-        quat.w() = -quat.w();
-        quat.x() = -quat.x();
-        quat.y() = -quat.y();
-        quat.z() = -quat.z();
+        quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
     navData_ptr->quat[0] = quat.w();
@@ -427,16 +422,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	navData_ptr->ve = navData_ptr->ve + x(4);
 	navData_ptr->vd = navData_ptr->vd + x(5);
 		
-	quat.w() = navData_ptr->quat[0];
-	quat.x() = navData_ptr->quat[1];
-	quat.y() = navData_ptr->quat[2];
-	quat.z() = navData_ptr->quat[3];
+	quat = Quaterniond(navData_ptr->quat[0], navData_ptr->quat[1],
+			   navData_ptr->quat[2], navData_ptr->quat[3]);
 		
 	// Attitude correction
-	dq.w() = 1.0;
-	dq.x() = x(6);
-	dq.y() = x(7);
-	dq.z() = x(8);
+	dq = Quaterniond(1.0, x(6), x(7), x(8));
 		
 	quat_new = quat * dq;
 	quat = quat_new.normalized();
