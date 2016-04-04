@@ -17,6 +17,7 @@
 
 #include <math.h>
 #include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
@@ -75,7 +76,7 @@ Matrix<double,3,3> I3; // Identity
 /* fixme: vector: nr not actually used? */
 
 
-static double quat[4];
+static Quaterniond quat;
 static double denom, Re, Rn;
 static double tprev;
 
@@ -193,7 +194,7 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 // Main get_nav filter function
 void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr){
     double tnow, imu_dt;
-    double dq[4], quat_new[4];
+    Quaterniond dq, quat_new;
 
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
@@ -203,11 +204,13 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     // ==================  Time Update  ===================
     // Temporary storage in Matrix form
-    quat[0] = navData_ptr->quat[0];
-    quat[1] = navData_ptr->quat[1];
-    quat[2] = navData_ptr->quat[2];
-    quat[3] = navData_ptr->quat[3];
-	
+    quat.w() = navData_ptr->quat[0];
+    quat.x() = navData_ptr->quat[1];
+    quat.y() = navData_ptr->quat[2];
+    quat.z() = navData_ptr->quat[3];
+    //cout << "quat(eigen): " << quat.w() << " " << quat.vec() << endl;
+    //cout << "quat(eigen): " << quat.w() << " " << quat.x() << " " << quat.y() << " " << quat.z() << endl;
+    
     a_temp31(0) = navData_ptr->vn;
     a_temp31(1) = navData_ptr->ve;
     a_temp31(2) = navData_ptr->vd;
@@ -217,7 +220,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     b_temp31(2) = navData_ptr->alt;
 	
     // AHRS Transformations
-    // printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
     C_N2B = quat2dcm(quat);
     C_B2N = C_N2B.transpose();
     // cout << "C_N2B:" << endl << C_N2B << endl;
@@ -227,32 +229,26 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     // ... Calculate Navigation Rate
     nr = navrate(a_temp31,b_temp31);
 	
-    dq[0] = 1;
-    dq[1] = 0.5*om_ib(0)*imu_dt;
-    dq[2] = 0.5*om_ib(1)*imu_dt;
-    dq[3] = 0.5*om_ib(2)*imu_dt;
+    dq.w() = 1;
+    dq.x() = 0.5*om_ib(0)*imu_dt;
+    dq.y() = 0.5*om_ib(1)*imu_dt;
+    dq.z() = 0.5*om_ib(2)*imu_dt;
 	
-    qmult(quat,dq,quat_new);
+    quat_new = quat * dq;
+    quat = quat_new.normalized();
 	
-    quat[0] = quat_new[0]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-    quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-    quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-    quat[3] = quat_new[3]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	
-    if(quat[0] < 0) {
+    if (quat.w() < 0) {
         // Avoid quaternion flips sign
-        quat[0] = -quat[0];
-        quat[1] = -quat[1];
-        quat[2] = -quat[2];
-        quat[3] = -quat[3];
+        quat.w() = -quat.w();
+        quat.x() = -quat.x();
+        quat.y() = -quat.y();
+        quat.z() = -quat.z();
     }
     
-    // printf("quat1: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
-
-    navData_ptr->quat[0] = quat[0];
-    navData_ptr->quat[1] = quat[1];
-    navData_ptr->quat[2] = quat[2];
-    navData_ptr->quat[3] = quat[3];
+    navData_ptr->quat[0] = quat.w();
+    navData_ptr->quat[1] = quat.x();
+    navData_ptr->quat[2] = quat.y();
+    navData_ptr->quat[3] = quat.z();
 	
     quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
 	
@@ -431,28 +427,24 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	navData_ptr->ve = navData_ptr->ve + x(4);
 	navData_ptr->vd = navData_ptr->vd + x(5);
 		
-	quat[0] = navData_ptr->quat[0];
-	quat[1] = navData_ptr->quat[1];
-	quat[2] = navData_ptr->quat[2];
-	quat[3] = navData_ptr->quat[3];
+	quat.w() = navData_ptr->quat[0];
+	quat.x() = navData_ptr->quat[1];
+	quat.y() = navData_ptr->quat[2];
+	quat.z() = navData_ptr->quat[3];
 		
 	// Attitude correction
-	dq[0] = 1.0;
-	dq[1] = x(6);
-	dq[2] = x(7);
-	dq[3] = x(8);
+	dq.w() = 1.0;
+	dq.x() = x(6);
+	dq.y() = x(7);
+	dq.z() = x(8);
 		
-	qmult(quat,dq,quat_new);
+	quat_new = quat * dq;
+	quat = quat_new.normalized();
 		
-	quat[0] = quat_new[0]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-	quat[3] = quat_new[3]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
-		
-	navData_ptr->quat[0] = quat[0];
-	navData_ptr->quat[1] = quat[1];
-	navData_ptr->quat[2] = quat[2];
-	navData_ptr->quat[3] = quat[3];
+	navData_ptr->quat[0] = quat.w();
+	navData_ptr->quat[1] = quat.x();
+	navData_ptr->quat[2] = quat.y();
+	navData_ptr->quat[3] = quat.z();
 		
 	quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
 		

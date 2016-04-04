@@ -27,16 +27,19 @@
 
 #include <math.h>
 #include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
+using namespace Eigen;
+
 #include "nav_functions.hxx"
 
-Eigen::Matrix<double,3,1> llarate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<double,3,1> lla) {
+Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
 	/* This function calculates the rate of change of latitude, longitude,
 	 * and altitude.
 	 * Using WGS-84.
 	 */
 
 	double lat, h, Rew, Rns, denom;
-	Eigen::Matrix<double,3,1> lla_dot;
+	Matrix<double,3,1> lla_dot;
 	
 	lat = lla(0,0); h = lla(2,0);
 	
@@ -53,14 +56,14 @@ Eigen::Matrix<double,3,1> llarate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<dou
 	return lla_dot;
 }
 
-Eigen::Matrix<double,3,1> navrate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<double,3,1> lla) {
+Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
 	/* This function calculates the angular velocity of the NED frame, 
 	 * also known as the navigation rate.
 	 * Using WGS-84.
 	 */
 
 	double lat, h, Rew, Rns, denom;
-	Eigen::Matrix<double,3,1> nr;
+	Matrix<double,3,1> nr;
 	
 	lat = lla(0,0); h = lla(2,0);
 	
@@ -77,14 +80,14 @@ Eigen::Matrix<double,3,1> navrate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<dou
 	return nr;
 }
 
-Eigen::Matrix<double,3,1> lla2ecef(Eigen::Matrix<double,3,1> lla) {  
+Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {  
 	/* This function calculates the ECEF Coordinate given the Latitude,
 	 * Longitude and Altitude.
 	 */
 	
 	double Rew, alt, denom;
 	double sinlat, coslat, coslon, sinlon;
-	Eigen::Matrix<double,3,1> ecef;
+	Matrix<double,3,1> ecef;
 
 	sinlat = sin(lla(0,0));
 	coslat = cos(lla(0,0));
@@ -104,14 +107,14 @@ Eigen::Matrix<double,3,1> lla2ecef(Eigen::Matrix<double,3,1> lla) {
 	return ecef;
 }
 
-Eigen::Matrix<double,3,1> ecef2ned(Eigen::Matrix<double,3,1> ecef, Eigen::Matrix<double,3,1> pos_ref) {
+Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref) {
 	/* This function converts a vector in ecef to ned coordinate centered
 	 * at ecef_ref.
 	 */
 	//MATRIX lla_ref = mat_creat(3,3,ZERO_MATRIX);
 
 	double lat, lon;
-	Eigen::Matrix<double,3,1> ned;
+	Matrix<double,3,1> ned;
 	
 	//lla_ref = ecef2lla(ecef_ref, lla_ref);
 	//lat = lla_ref[0][0];
@@ -129,11 +132,11 @@ Eigen::Matrix<double,3,1> ecef2ned(Eigen::Matrix<double,3,1> ecef, Eigen::Matrix
 	return ned;
 }
 
-Eigen::Matrix<double,3,3> sk(Eigen::Matrix<double,3,1> w) {
+Matrix<double,3,3> sk(Matrix<double,3,1> w) {
 	/* This function gives a skew symmetric matrix from a given vector w
 	 */
 
-	Eigen::Matrix<double,3,3> C;
+	Matrix<double,3,3> C;
 
 	C(0,0) = 0.0;			C(0,1) = -w(2,0);		C(0,2) = w(1,0);
 	C(1,0) = w(2,0);		C(1,1) = 0.0;			C(1,2) = -w(0,0);
@@ -189,26 +192,27 @@ void eul2quat(double *q, double phi, double the, double psi) {
 	q[3] = sin(psi)*cos(the)*cos(phi) - cos(psi)*sin(the)*sin(phi);
 }
 
-Eigen::Matrix<double,3,3> quat2dcm(double *q) {
-	// Quaternion to C_N2B
+// fixme: clean up math operations
+Matrix<double,3,3> quat2dcm(Quaterniond q) {
+    // Quaternion to C_N2B
 
-	double q0, q1, q2, q3;
-	Eigen::Matrix<double,3,3> C_N2B;
+    double q0, q1, q2, q3;
+    Matrix<double,3,3> C_N2B;
 
-	q0 = q[0]; q1 = q[1]; q2 = q[2]; q3 = q[3];
+    q0 = q.w(); q1 = q.x(); q2 = q.y(); q3 = q.z();
 
-	C_N2B(0,0) = 2*q0*q0 - 1 + 2*q1*q1;
-	C_N2B(1,1) = 2*q0*q0 - 1 + 2*q2*q2;
-	C_N2B(2,2) = 2*q0*q0 - 1 + 2*q3*q3;
+    C_N2B(0,0) = 2*q0*q0 - 1 + 2*q1*q1;
+    C_N2B(1,1) = 2*q0*q0 - 1 + 2*q2*q2;
+    C_N2B(2,2) = 2*q0*q0 - 1 + 2*q3*q3;
 	
-	C_N2B(0,1) = 2*q1*q2 + 2*q0*q3;
-	C_N2B(0,2) = 2*q1*q3 - 2*q0*q2;
+    C_N2B(0,1) = 2*q1*q2 + 2*q0*q3;
+    C_N2B(0,2) = 2*q1*q3 - 2*q0*q2;
 	
-	C_N2B(1,0) = 2*q1*q2 - 2*q0*q3;
-	C_N2B(1,2) = 2*q2*q3 + 2*q0*q1;
+    C_N2B(1,0) = 2*q1*q2 - 2*q0*q3;
+    C_N2B(1,2) = 2*q2*q3 + 2*q0*q1;
 	
-	C_N2B(2,0) = 2*q1*q3 + 2*q0*q2;
-	C_N2B(2,1) = 2*q2*q3 - 2*q0*q1;
+    C_N2B(2,0) = 2*q1*q3 + 2*q0*q2;
+    C_N2B(2,1) = 2*q2*q3 - 2*q0*q1;
 	
-	return C_N2B;
+    return C_N2B;
 }

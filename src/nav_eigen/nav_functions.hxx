@@ -24,6 +24,10 @@
 #ifndef NAV_FUNCTIONS_H_
 #define NAV_FUNCTIONS_H_
 
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
+using namespace Eigen;
+
 /*     Define Constants   */
 
 #define EARTH_RATE   0.00007292115   		/* rotation rate of earth (rad/sec) */
@@ -43,15 +47,15 @@
 
 /*---------------     Define Structures and Enumerated Types -------------*/
 
-Eigen::Matrix<double,3,1> llarate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<double,3,1> lla);
+Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla);
 
-Eigen::Matrix<double,3,1> navrate(Eigen::Matrix<double,3,1> V, Eigen::Matrix<double,3,1> lla);
+Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla);
 
-Eigen::Matrix<double,3,1> ecef2ned(Eigen::Matrix<double,3,1> ecef, Eigen::Matrix<double,3,1> pos_ref);
+Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref);
 
-Eigen::Matrix<double,3,1> lla2ecef(Eigen::Matrix<double,3,1> lla);
+Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla);
 
-Eigen::Matrix<double,3,3> sk(Eigen::Matrix<double,3,1> w);
+Matrix<double,3,3> sk(Matrix<double,3,1> w);
 
 void qmult(double *p, double *q, double *r);
 
@@ -59,6 +63,6 @@ void quat2eul(double *q, double *phi, double *the, double *psi);
 
 void eul2quat(double *q, double phi, double the, double psi);
 
-Eigen::Matrix<double,3,3> quat2dcm(double *q);
+Matrix<double,3,3> quat2dcm(Quaterniond q);
 
 #endif
