@@ -98,29 +98,29 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw(0,0) = SIG_W_AX*SIG_W_AX;		Rw(1,1) = SIG_W_AY*SIG_W_AY;			Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
-    Rw(3,3) = SIG_W_GX*SIG_W_GX;		Rw(4,4) = SIG_W_GY*SIG_W_GY;			Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
-    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;		Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
+    Rw(0,0) = SIG_W_AX*SIG_W_AX;	Rw(1,1) = SIG_W_AY*SIG_W_AY;		Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
+    Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;		Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
+    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
     Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
 	
     // ... P (initial)
-    P(0,0) = P_P_INIT*P_P_INIT; 		P(1,1) = P_P_INIT*P_P_INIT; 		P(2,2) = P_P_INIT*P_P_INIT;
-    P(3,3) = P_V_INIT*P_V_INIT; 		P(4,4) = P_V_INIT*P_V_INIT; 		P(5,5) = P_V_INIT*P_V_INIT;
-    P(6,6) = P_A_INIT*P_A_INIT; 		P(7,7) = P_A_INIT*P_A_INIT; 		P(8,8) = P_HDG_INIT*P_HDG_INIT;
-    P(9,9) = P_AB_INIT*P_AB_INIT; 		P(10,10) = P_AB_INIT*P_AB_INIT; 	P(11,11) = P_AB_INIT*P_AB_INIT;
+    P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 		P(2,2) = P_P_INIT*P_P_INIT;
+    P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 		P(5,5) = P_V_INIT*P_V_INIT;
+    P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 		P(8,8) = P_HDG_INIT*P_HDG_INIT;
+    P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT; 	P(11,11) = P_AB_INIT*P_AB_INIT;
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT; 	P(14,14) = P_GB_INIT*P_GB_INIT;
 	
     // ... update P in get_nav
-    navData_ptr->Pp[0] = P(0,0);	navData_ptr->Pp[1] = P(1,1);	navData_ptr->Pp[2] = P(2,2);
-    navData_ptr->Pv[0] = P(3,3);	navData_ptr->Pv[1] = P(4,4);	navData_ptr->Pv[2] = P(5,5);
-    navData_ptr->Pa[0] = P(6,6);	navData_ptr->Pa[1] = P(7,7);	navData_ptr->Pa[2] = P(8,8);
+    navData_ptr->Pp[0] = P(0,0);	navData_ptr->Pp[1] = P(1,1);	        navData_ptr->Pp[2] = P(2,2);
+    navData_ptr->Pv[0] = P(3,3);	navData_ptr->Pv[1] = P(4,4);	        navData_ptr->Pv[2] = P(5,5);
+    navData_ptr->Pa[0] = P(6,6);	navData_ptr->Pa[1] = P(7,7);	        navData_ptr->Pa[2] = P(8,8);
 	
-    navData_ptr->Pab[0] = P(9,9);	navData_ptr->Pab[1] = P(10,10);	navData_ptr->Pab[2] = P(11,11);
-    navData_ptr->Pgb[0] = P(12,12);	navData_ptr->Pgb[1] = P(13,13);	navData_ptr->Pgb[2] = P(14,14);
+    navData_ptr->Pab[0] = P(9,9);	navData_ptr->Pab[1] = P(10,10);	        navData_ptr->Pab[2] = P(11,11);
+    navData_ptr->Pgb[0] = P(12,12);	navData_ptr->Pgb[1] = P(13,13);	        navData_ptr->Pgb[2] = P(14,14);
 	
     // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V*SIG_GPS_V;		R(4,4) = SIG_GPS_V*SIG_GPS_V;		R(5,5) = SIG_GPS_V*SIG_GPS_V;
+    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
+    R(3,3) = SIG_GPS_V*SIG_GPS_V;	 R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
 	
     // .. then initialize states with GPS Data
     navData_ptr->lat = gpsData_ptr->lat*D2R;
@@ -290,24 +290,24 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     F(8,14) = -0.5;
 	
     // ... Accel Markov Bias
-    F(9,9) = -1.0/TAU_A;   F(10,10) = -1.0/TAU_A;	F(11,11) = -1.0/TAU_A;
-    F(12,12) = -1.0/TAU_G; F(13,13) = -1.0/TAU_G;	F(14,14) = -1.0/TAU_G;
+    F(9,9) = -1.0/TAU_A;    F(10,10) = -1.0/TAU_A;  F(11,11) = -1.0/TAU_A;
+    F(12,12) = -1.0/TAU_G;  F(13,13) = -1.0/TAU_G;  F(14,14) = -1.0/TAU_G;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
     PHI = I15 + F*imu_dt;
 	
     // Process Noise
     G.setZero();
-    G(3,0) = -C_B2N(0,0);	G(3,1) = -C_B2N(0,1); G(3,2) = -C_B2N(0,2);
-    G(4,0) = -C_B2N(1,0);	G(4,1) = -C_B2N(1,1); G(4,2) = -C_B2N(1,2);
-    G(5,0) = -C_B2N(2,0);	G(5,1) = -C_B2N(2,1); G(5,2) = -C_B2N(2,2);
+    G(3,0) = -C_B2N(0,0);   G(3,1) = -C_B2N(0,1);   G(3,2) = -C_B2N(0,2);
+    G(4,0) = -C_B2N(1,0);   G(4,1) = -C_B2N(1,1);   G(4,2) = -C_B2N(1,2);
+    G(5,0) = -C_B2N(2,0);   G(5,1) = -C_B2N(2,1);   G(5,2) = -C_B2N(2,2);
 	
     G(6,3) = -0.5;
     G(7,4) = -0.5;
     G(8,5) = -0.5;
 	
-    G(9,6) = 1.0; 		G(10,7) = 1.0; 		G(11,8) = 1.0;
-    G(12,9) = 1.0; 		G(13,10) = 1.0; 	G(14,11) = 1.0;
+    G(9,6) = 1.0; 	    G(10,7) = 1.0; 	    G(11,8) = 1.0;
+    G(12,9) = 1.0; 	    G(13,10) = 1.0; 	    G(14,11) = 1.0;
 
     // Discrete Process Noise
     Qw = G*Rw*G.transpose()*imu_dt;			// Qw = dt*G*Rw*G'
@@ -318,11 +318,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     P = PHI*P*PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
     P = (P + P.transpose())*0.5;			// P = 0.5*(P+P')
 	
-    navData_ptr->Pp[0] = P(0,0); 	navData_ptr->Pp[1] = P(1,1); 	navData_ptr->Pp[2] = P(2,2);
-    navData_ptr->Pv[0] = P(3,3); 	navData_ptr->Pv[1] = P(4,4); 	navData_ptr->Pv[2] = P(5,5);
-    navData_ptr->Pa[0] = P(6,6); 	navData_ptr->Pa[1] = P(7,7); 	navData_ptr->Pa[2] = P(8,8);
-    navData_ptr->Pab[0] = P(9,9); 	navData_ptr->Pab[1] = P(10,10); navData_ptr->Pab[2] = P(11,11);
-    navData_ptr->Pgb[0] = P(12,12); navData_ptr->Pgb[1] = P(13,13); navData_ptr->Pgb[2] = P(14,14);
+    navData_ptr->Pp[0] = P(0,0);     navData_ptr->Pp[1] = P(1,1);     navData_ptr->Pp[2] = P(2,2);
+    navData_ptr->Pv[0] = P(3,3);     navData_ptr->Pv[1] = P(4,4);     navData_ptr->Pv[2] = P(5,5);
+    navData_ptr->Pa[0] = P(6,6);     navData_ptr->Pa[1] = P(7,7);     navData_ptr->Pa[2] = P(8,8);
+    navData_ptr->Pab[0] = P(9,9);    navData_ptr->Pab[1] = P(10,10);  navData_ptr->Pab[2] = P(11,11);
+    navData_ptr->Pgb[0] = P(12,12);  navData_ptr->Pgb[1] = P(13,13);  navData_ptr->Pgb[2] = P(14,14);
 
     // ==================  DONE TU  ===================
 	
