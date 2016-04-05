@@ -60,21 +60,18 @@ const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
 
-Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, temp1515;
-Matrix<double,15,12> G, temp1512;
-Matrix<double,15,6> K, temp156;
+Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt;
+Matrix<double,15,12> G;
+Matrix<double,15,6> K;
 Matrix<double,15,1> x;
 Matrix<double,12,12> Rw;
-Matrix<double,6,15> H, temp615;
-Matrix<double,6,6> R, temp66, atemp66;
+Matrix<double,6,15> H;
+Matrix<double,6,6> R;
 Matrix<double,6,1> y;
-Matrix<double,3,3> Rbodtonav, C_N2B, C_B2N, temp33, atemp33;
+Matrix<double,3,3> Rbodtonav, C_N2B, C_B2N, temp33;
 Matrix<double,3,1> /*eul,*/ grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31;
 Matrix<double,15,15> I15; // Identity
 Matrix<double,3,3> I3; // Identity
-
-/* fixme: vector: nr not actually used? */
-
 
 static Quaterniond quat;
 static double denom, Re, Rn;
@@ -225,11 +222,12 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     // Attitude Update
     // ... Calculate Navigation Rate
     nr = navrate(a_temp31,b_temp31);
+    /* fixme: vector: nr not actually used */
 	
-    dq.w() = 1;
-    dq.x() = 0.5*om_ib(0)*imu_dt;
-    dq.y() = 0.5*om_ib(1)*imu_dt;
-    dq.z() = 0.5*om_ib(2)*imu_dt;
+    dq = Quaterniond(1.0,
+		     0.5*om_ib(0)*imu_dt,
+		     0.5*om_ib(1)*imu_dt,
+		     0.5*om_ib(2)*imu_dt);
 	
     quat_new = quat * dq;
     quat = quat_new.normalized();
@@ -270,15 +268,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     F(5,2) = -2*g/EARTH_RADIUS;
 	
     // ... gs2att
-    // cout << "f_b:" << endl << f_b << endl;
-    temp33 = sk(f_b);
-    // cout << "temp33:" << endl << temp33 << endl;
-    atemp33 = C_B2N*temp33;
-    // cout << "atemp33:" << endl << atemp33 << endl;
+    temp33 = C_B2N*sk(f_b);
 	
-    F(3,6) = -2.0*atemp33(0,0); F(3,7) = -2.0*atemp33(0,1); F(3,8) = -2.0*atemp33(0,2);
-    F(4,6) = -2.0*atemp33(1,0); F(4,7) = -2.0*atemp33(1,1); F(4,8) = -2.0*atemp33(1,2);
-    F(5,6) = -2.0*atemp33(2,0); F(5,7) = -2.0*atemp33(2,1); F(5,8) = -2.0*atemp33(2,2);
+    F(3,6) = -2.0*temp33(0,0); F(3,7) = -2.0*temp33(0,1); F(3,8) = -2.0*temp33(0,2);
+    F(4,6) = -2.0*temp33(1,0); F(4,7) = -2.0*temp33(1,1); F(4,8) = -2.0*temp33(1,2);
+    F(5,6) = -2.0*temp33(2,0); F(5,7) = -2.0*temp33(2,1); F(5,8) = -2.0*temp33(2,2);
 	
     // ... gs2acc
     F(3,9) = -C_B2N(0,0); F(3,10) = -C_B2N(0,1); F(3,11) = -C_B2N(0,2);
@@ -301,8 +295,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     F(12,12) = -1.0/TAU_G; F(13,13) = -1.0/TAU_G;	F(14,14) = -1.0/TAU_G;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
-    temp1515 = F*imu_dt;
-    PHI = I15 + temp1515;
+    PHI = I15 + F*imu_dt;
 	
     // Process Noise
     G.setZero();
@@ -318,23 +311,13 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     G(12,9) = 1.0; 		G(13,10) = 1.0; 	G(14,11) = 1.0;
 
     // Discrete Process Noise
-    temp1512 = G*Rw;
-    temp1515 = temp1512*G.transpose();	// Qw = G*Rw*G'
-    Qw = temp1515*imu_dt;			// Qw = dt*G*Rw*G'
+    Qw = G*Rw*G.transpose()*imu_dt;			// Qw = dt*G*Rw*G'
     Q = PHI*Qw;						// Q = (I+F*dt)*Qw
-	
-    temp1515 = Q.transpose();
-    Q = Q + temp1515;
-    Q = Q*0.5;				// Q = 0.5*(Q+Q')
-
+    Q = (Q + Q.transpose())*0.5;			// Q = 0.5*(Q+Q')
 	
     // Covariance Time Update
-    temp1515 = PHI*P;
-    P = temp1515*PHI.transpose(); 		// P = PHI*P*PHI'
-    P = P + Q;						// P = PHI*P*PHI' + Q
-    temp1515 = P.transpose();
-    P += temp1515;
-    P = P*0.5;				// P = 0.5*(P+P')
+    P = PHI*P*PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
+    P = (P + P.transpose())*0.5;			// P = 0.5*(P+P')
 	
     navData_ptr->Pp[0] = P(0,0); 	navData_ptr->Pp[1] = P(1,1); 	navData_ptr->Pp[2] = P(2,2);
     navData_ptr->Pv[0] = P(3,3); 	navData_ptr->Pv[1] = P(4,4); 	navData_ptr->Pv[2] = P(5,5);
@@ -380,25 +363,15 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	// cout << "y:" << endl << y << endl;
 		
 	// Kalman Gain
-	temp615 = H*P;
-	temp66 = temp615*H.transpose();
-	atemp66 = temp66 + R;
-	temp66 = atemp66.inverse(); // temp66 = inv(H*P*H'+R)
-		
-	temp156 = P*H.transpose(); // P*H'
-	K = temp156*temp66;	   // K = P*H'*inv(H*P*H'+R)
+	// K = P*H'*inv(H*P*H'+R)
+	K = P*H.transpose()*(H*P*H.transpose() + R).inverse();
 		
 	// Covariance Update
-	temp1515 = K*H;
-	ImKH = I15 - temp1515;	// ImKH = I - K*H
+	ImKH = I15 - K*H;	                // ImKH = I - K*H
 		
-	temp615 = R*K.transpose();
-	KRKt = K*temp615;		// KRKt = K*R*K'
+	KRKt = K*R*K.transpose();		// KRKt = K*R*K'
 		
-	temp1515 = P*ImKH.transpose();
-	P = ImKH*temp1515;		// ImKH*P*ImKH'
-	temp1515 = P + KRKt;
-	P = temp1515;			// P = ImKH*P*ImKH' + KRKt
+	P = ImKH*P*ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
 		
 	navData_ptr->Pp[0] = P(0,0); 	navData_ptr->Pp[1] = P(1,1); 	navData_ptr->Pp[2] = P(2,2);
 	navData_ptr->Pv[0] = P(3,3); 	navData_ptr->Pv[1] = P(4,4); 	navData_ptr->Pv[2] = P(5,5);
