@@ -126,7 +126,6 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
     R(3,3) = SIG_GPS_V*SIG_GPS_V;		R(4,4) = SIG_GPS_V*SIG_GPS_V;		R(5,5) = SIG_GPS_V*SIG_GPS_V;
 	
-
     // .. then initialize states with GPS Data
     navData_ptr->lat = gpsData_ptr->lat*D2R;
     navData_ptr->lon = gpsData_ptr->lon*D2R;
@@ -245,7 +244,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     navData_ptr->quat[2] = quat.y();
     navData_ptr->quat[3] = quat.z();
 	
-    quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
+    quat2eul(quat, &(navData_ptr->phi), &(navData_ptr->the), &(navData_ptr->psi));
 	
     // Velocity Update
     dx = C_B2N*f_b;
@@ -427,7 +426,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
-		
 	quat_new = quat * dq;
 	quat = quat_new.normalized();
 		
@@ -436,7 +434,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	navData_ptr->quat[2] = quat.y();
 	navData_ptr->quat[3] = quat.z();
 		
-	quat2eul(navData_ptr->quat,&(navData_ptr->phi),&(navData_ptr->the),&(navData_ptr->psi));
+	quat2eul(quat, &(navData_ptr->phi), &(navData_ptr->the), &(navData_ptr->psi));
 		
 	navData_ptr->ab[0] = navData_ptr->ab[0] + x(9);
 	navData_ptr->ab[1] = navData_ptr->ab[1] + x(10);

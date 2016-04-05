@@ -145,39 +145,40 @@ Matrix<double,3,3> sk(Matrix<double,3,1> w) {
 	return C;
 }
 
+// depricated
 void qmult(double *p, double *q, double *r) {
-	/* Quaternion Multiplication: r = p x q
-	 */
-	int i;
+    /* Quaternion Multiplication: r = p x q
+     */
+    int i;
 	
-	for(i=0;i<3;i++) r[i] = 0.0;
+    for(i=0;i<3;i++) r[i] = 0.0;
 	
-	r[0] = p[0]*q[0] - (p[1]*q[1] + p[2]*q[2] + p[3]*q[3]);
-	r[1] = p[0]*q[1] + q[0]*p[1] + p[2]*q[3] - p[3]*q[2];
-	r[2] = p[0]*q[2] + q[0]*p[2] + p[3]*q[1] - p[1]*q[3];
-	r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
+    r[0] = p[0]*q[0] - (p[1]*q[1] + p[2]*q[2] + p[3]*q[3]);
+    r[1] = p[0]*q[1] + q[0]*p[1] + p[2]*q[3] - p[3]*q[2];
+    r[2] = p[0]*q[2] + q[0]*p[2] + p[3]*q[1] - p[1]*q[3];
+    r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
 }
 
-void quat2eul(double *q, double *phi, double *the, double *psi) {
-	// Quaternion to Euler Angle
+void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
+    // Quaternion to Euler Angle
 
-	double q0, q1, q2, q3;
-	double m11, m12, m13, m23, m33;
+    double q0, q1, q2, q3;
+    double m11, m12, m13, m23, m33;
 	
-	q0 = q[0];
-	q1 = q[1];
-	q2 = q[2];
-	q3 = q[3];
+    q0 = q.w();
+    q1 = q.x();
+    q2 = q.y();
+    q3 = q.z();
 
-	m11 = 2*q0*q0 +2*q1*q1 -1;
-	m12 = 2*q1*q2 + 2*q0*q3;
-	m13 = 2*q1*q3 - 2*q0*q2;
-	m23 = 2*q2*q3 + 2*q0*q1;
-	m33 = 2*q0*q0 + 2*q3*q3 - 1;
+    m11 = 2*q0*q0 +2*q1*q1 -1;
+    m12 = 2*q1*q2 + 2*q0*q3;
+    m13 = 2*q1*q3 - 2*q0*q2;
+    m23 = 2*q2*q3 + 2*q0*q1;
+    m33 = 2*q0*q0 + 2*q3*q3 - 1;
 	
-	*psi = atan2(m12,m11);
-	*the = asin(-m13);
-	*phi = atan2(m23,m33);
+    *psi = atan2(m12,m11);
+    *the = asin(-m13);
+    *phi = atan2(m23,m33);
 }
 
 void eul2quat(double *q, double phi, double the, double psi) {
