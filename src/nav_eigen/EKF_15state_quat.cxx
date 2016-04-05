@@ -59,7 +59,6 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-
 Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt;
 Matrix<double,15,12> G;
 Matrix<double,15,6> K;
