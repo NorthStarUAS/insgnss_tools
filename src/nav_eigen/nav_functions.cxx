@@ -33,9 +33,8 @@ using namespace Eigen;
 #include "nav_functions.hxx"
 
 Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
-    /* This function calculates the rate of change of latitude, longitude,
-     * and altitude.
-     * Using WGS-84.
+    /* This function calculates the rate of change of latitude,
+     * longitude, and altitude using WGS-84.
      */
 
     double lat, h, Rew, Rns, denom;
@@ -57,9 +56,8 @@ Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
 }
 
 Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
-    /* This function calculates the angular velocity of the NED frame, 
-     * also known as the navigation rate.
-     * Using WGS-84.
+    /* This function calculates the angular velocity of the NED frame,
+     * also known as the navigation rate using WGS-84.
      */
 
     double lat, h, Rew, Rns, denom;
@@ -81,8 +79,8 @@ Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
 }
 
 Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {  
-    /* This function calculates the ECEF Coordinate given the Latitude,
-     * Longitude and Altitude.
+    /* This function calculates the ECEF Coordinate given the
+     * Latitude, Longitude and Altitude.
      */
 	
     double Rew, alt, denom;
@@ -108,8 +106,8 @@ Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {
 }
 
 Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref) {
-    /* This function converts a vector in ecef to ned coordinate centered
-     * at ecef_ref.
+    /* This function converts a vector in ecef to ned coordinate
+     * centered at ecef_ref.
      */
     //MATRIX lla_ref = mat_creat(3,3,ZERO_MATRIX);
 
@@ -133,8 +131,7 @@ Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref)
 }
 
 Matrix<double,3,3> sk(Matrix<double,3,1> w) {
-    /* This function gives a skew symmetric matrix from a given vector w
-     */
+    /* This function gives a skew symmetric matrix from a given vector w */
 
     Matrix<double,3,3> C;
 
@@ -147,8 +144,7 @@ Matrix<double,3,3> sk(Matrix<double,3,1> w) {
 
 // depricated
 void qmult(double *p, double *q, double *r) {
-    /* Quaternion Multiplication: r = p x q
-     */
+    /* Quaternion Multiplication: r = p x q */
     int i;
 	
     for(i=0;i<3;i++) r[i] = 0.0;
@@ -160,7 +156,7 @@ void qmult(double *p, double *q, double *r) {
 }
 
 void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
-    // Quaternion to Euler Angle
+    /* Quaternion to euler angle */
 
     double q0, q1, q2, q3;
     double m11, m12, m13, m23, m33;
@@ -194,7 +190,7 @@ void eul2quat(double *q, double phi, double the, double psi) {
 
 // fixme: clean up math operations
 Matrix<double,3,3> quat2dcm(Quaterniond q) {
-    // Quaternion to C_N2B
+    /* Quaternion to C_N2B */
 
     double q0, q1, q2, q3;
     Matrix<double,3,3> C_N2B;
