@@ -37,17 +37,16 @@ Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
      * longitude, and altitude using WGS-84.
      */
 
-    double lat, h, Rew, Rns, denom;
+    double lat = lla(0,0);
+    double h = lla(2,0);
+	
+    double denom = fabs(1.0 - (ECC2 * sin(lat) * sin(lat)));
+    double sqrt_denom = sqrt(denom);
+    
+    double Rew = EARTH_RADIUS / sqrt_denom;
+    double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
+	
     Matrix<double,3,1> lla_dot;
-	
-    lat = lla(0,0); h = lla(2,0);
-	
-    denom = (1.0 - (ECC2 * sin(lat) * sin(lat)));
-    denom = sqrt(denom*denom);
-
-    Rew = EARTH_RADIUS / sqrt(denom);
-    Rns = EARTH_RADIUS*(1-ECC2) / denom*sqrt(denom);
-	
     lla_dot(0,0) = V(0,0)/(Rns + h);
     lla_dot(1,0) = V(1,0)/((Rew + h)*cos(lat));
     lla_dot(2,0) = -V(2,0);
@@ -60,17 +59,16 @@ Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
      * also known as the navigation rate using WGS-84.
      */
 
-    double lat, h, Rew, Rns, denom;
+    double lat = lla(0,0);
+    double h = lla(2,0);
+	
+    double denom = fabs(1.0 - (ECC2 * sin(lat) * sin(lat)));
+    double sqrt_denom = sqrt(denom);
+    
+    double Rew = EARTH_RADIUS / sqrt_denom;
+    double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
+	
     Matrix<double,3,1> nr;
-	
-    lat = lla(0,0); h = lla(2,0);
-	
-    denom = (1.0 - (ECC2 * sin(lat) * sin(lat)));
-    denom = sqrt(denom*denom);
-
-    Rew = EARTH_RADIUS / sqrt(denom);
-    Rns = EARTH_RADIUS*(1-ECC2) / denom*sqrt(denom);
-	
     nr(0,0) = V(1,0)/(Rew + h);
     nr(1,0) = -V(0,0)/(Rns + h);
     nr(2,0) = -V(1,0)*tan(lat)/(Rew + h);
@@ -83,21 +81,18 @@ Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {
      * Latitude, Longitude and Altitude.
      */
 	
-    double Rew, alt, denom;
-    double sinlat, coslat, coslon, sinlon;
-    Matrix<double,3,1> ecef;
 
-    sinlat = sin(lla(0,0));
-    coslat = cos(lla(0,0));
-    coslon = cos(lla(1,0));
-    sinlon = sin(lla(1,0));
-    alt = lla(2,0);
+    double sinlat = sin(lla(0,0));
+    double coslat = cos(lla(0,0));
+    double coslon = cos(lla(1,0));
+    double sinlon = sin(lla(1,0));
+    double alt = lla(2,0);
 
-    denom = (1.0 - (ECC2 * sinlat * sinlat));
-    denom = sqrt(denom*denom);
+    double denom = fabs(1.0 - (ECC2 * sinlat * sinlat));
 
-    Rew = EARTH_RADIUS / sqrt(denom);
+    double Rew = EARTH_RADIUS / sqrt(denom);
   
+    Matrix<double,3,1> ecef;
     ecef(0,0) = (Rew + alt) * coslat * coslon;
     ecef(1,0) = (Rew + alt) * coslat * sinlon;
     ecef(2,0) = (Rew * (1.0 - ECC2) + alt) * sinlat;
@@ -109,23 +104,18 @@ Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref)
     /* This function converts a vector in ecef to ned coordinate
      * centered at ecef_ref.
      */
-    //MATRIX lla_ref = mat_creat(3,3,ZERO_MATRIX);
-
-    double lat, lon;
+	
+    double lat = pos_ref(0,0);
+    double lon = pos_ref(1,0);
+    double sin_lat = sin(lat);
+    double sin_lon = sin(lon);
+    double cos_lat = cos(lat);
+    double cos_lon = cos(lon);
+    
     Matrix<double,3,1> ned;
-	
-    //lla_ref = ecef2lla(ecef_ref, lla_ref);
-    //lat = lla_ref[0][0];
-    //lon = lla_ref[1][0];
-	
-    lat = pos_ref(0,0);
-    lon = pos_ref(1,0);
-	
-    ned(2,0)=-cos(lat)*cos(lon)*ecef(0,0)-cos(lat)*sin(lon)*ecef(1,0)-sin(lat)*ecef(2,0);
-    ned(1,0)=-sin(lon)*ecef(0,0) + cos(lon)*ecef(1,0);
-    ned(0,0)=-sin(lat)*cos(lon)*ecef(0,0)-sin(lat)*sin(lon)*ecef(1,0)+cos(lat)*ecef(2,0);
-	
-    //mat_free(lla_ref);
+    ned(2,0) = -cos_lat*cos_lon*ecef(0,0) - cos_lat*sin_lon*ecef(1,0) - sin_lat*ecef(2,0);
+    ned(1,0) = -sin_lon*ecef(0,0) + cos_lon*ecef(1,0);
+    ned(0,0) = -sin_lat*cos_lon*ecef(0,0) - sin_lat*sin_lon*ecef(1,0) + cos_lat*ecef(2,0);
 	
     return ned;
 }
@@ -166,11 +156,11 @@ void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
     q2 = q.y();
     q3 = q.z();
 
-    m11 = 2*q0*q0 +2*q1*q1 -1;
-    m12 = 2*q1*q2 + 2*q0*q3;
-    m13 = 2*q1*q3 - 2*q0*q2;
-    m23 = 2*q2*q3 + 2*q0*q1;
-    m33 = 2*q0*q0 + 2*q3*q3 - 1;
+    m11 = 2*(q0*q0 + q1*q1) - 1;
+    m12 = 2*(q1*q2 + q0*q3);
+    m13 = 2*(q1*q3 - q0*q2);
+    m23 = 2*(q2*q3 + q0*q1);
+    m33 = 2*(q0*q0 + q3*q3) - 1;
 	
     *psi = atan2(m12,m11);
     *the = asin(-m13);
@@ -178,14 +168,17 @@ void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
 }
 
 void eul2quat(double *q, double phi, double the, double psi) {
-    phi = phi/2.0;
-    the = the/2.0;
-    psi = psi/2.0;
-	
-    q[0] = cos(psi)*cos(the)*cos(phi) + sin(psi)*sin(the)*sin(phi);  
-    q[1] = cos(psi)*cos(the)*sin(phi) - sin(psi)*sin(the)*cos(phi);
-    q[2] = cos(psi)*sin(the)*cos(phi) + sin(psi)*cos(the)*sin(phi);  
-    q[3] = sin(psi)*cos(the)*cos(phi) - cos(psi)*sin(the)*sin(phi);
+    double sin_psi = sin(psi*0.5);
+    double cos_psi = cos(psi*0.5);
+    double sin_the = sin(the*0.5);
+    double cos_the = cos(the*0.5);
+    double sin_phi = sin(phi*0.5);
+    double cos_phi = cos(phi*0.5);
+
+    q[0] = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;  
+    q[1] = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
+    q[2] = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;  
+    q[3] = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
 }
 
 // fixme: clean up math operations
@@ -197,18 +190,18 @@ Matrix<double,3,3> quat2dcm(Quaterniond q) {
 
     q0 = q.w(); q1 = q.x(); q2 = q.y(); q3 = q.z();
 
-    C_N2B(0,0) = 2*q0*q0 - 1 + 2*q1*q1;
-    C_N2B(1,1) = 2*q0*q0 - 1 + 2*q2*q2;
-    C_N2B(2,2) = 2*q0*q0 - 1 + 2*q3*q3;
+    C_N2B(0,0) = 2*(q0*q0 + q1*q1) - 1;
+    C_N2B(1,1) = 2*(q0*q0 + q2*q2) - 1;
+    C_N2B(2,2) = 2*(q0*q0 + q3*q3) - 1;
 	
-    C_N2B(0,1) = 2*q1*q2 + 2*q0*q3;
-    C_N2B(0,2) = 2*q1*q3 - 2*q0*q2;
+    C_N2B(0,1) = 2*(q1*q2 + q0*q3);
+    C_N2B(0,2) = 2*(q1*q3 - q0*q2);
 	
-    C_N2B(1,0) = 2*q1*q2 - 2*q0*q3;
-    C_N2B(1,2) = 2*q2*q3 + 2*q0*q1;
+    C_N2B(1,0) = 2*(q1*q2 - q0*q3);
+    C_N2B(1,2) = 2*(q2*q3 + q0*q1);
 	
-    C_N2B(2,0) = 2*q1*q3 + 2*q0*q2;
-    C_N2B(2,1) = 2*q2*q3 - 2*q0*q1;
+    C_N2B(2,0) = 2*(q1*q3 + q0*q2);
+    C_N2B(2,1) = 2*(q2*q3 - q0*q1);
 	
     return C_N2B;
 }
