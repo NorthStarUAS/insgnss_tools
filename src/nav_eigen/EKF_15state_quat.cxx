@@ -189,7 +189,7 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 // Main get_nav filter function
 void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr){
     double tnow, imu_dt;
-    Quaterniond dq, quat_new;
+    Quaterniond dq;
 
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
@@ -227,10 +227,8 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		     0.5*om_ib(0)*imu_dt,
 		     0.5*om_ib(1)*imu_dt,
 		     0.5*om_ib(2)*imu_dt);
-	
-    quat_new = quat * dq;
-    quat = quat_new.normalized();
-	
+    quat = (quat * dq).normalized();
+
     if (quat.w() < 0) {
         // Avoid quaternion flips sign
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
@@ -398,8 +396,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
-	quat_new = quat * dq;
-	quat = quat_new.normalized();
+	quat = (quat * dq).normalized();
 		
 	navData_ptr->quat[0] = quat.w();
 	navData_ptr->quat[1] = quat.x();
