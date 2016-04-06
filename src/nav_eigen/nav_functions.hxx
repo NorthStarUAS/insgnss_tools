@@ -33,7 +33,7 @@ using namespace Eigen;
 #define EARTH_RATE   0.00007292115   		/* rotation rate of earth (rad/sec) */
 #define EARTH_RADIUS 6378137         		/* earth semi-major axis radius (m) */
 #define ECCENTRICITY 0.0818191908426 		/* major eccentricity of earth ellipsoid */
-#define ECC2		 0.0066943799901 		/* major eccentricity squared */
+#define ECC2	     0.0066943799901 		/* major eccentricity squared */
 #define FLATTENING   0.0033528106650 		/* flattening of the ellipsoid */
 #define GRAVITY_0    9.7803730       		/* zeroth coefficient for gravity model */
 #define GRAVITY_1    0.0052891       		/* first coefficient for the gravity model */ 
