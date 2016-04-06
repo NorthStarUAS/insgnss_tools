@@ -201,8 +201,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		       navData_ptr->quat[1],
 		       navData_ptr->quat[2],
 		       navData_ptr->quat[3]);
-    //cout << "quat(eigen): " << quat.w() << " " << quat.vec() << endl;
-    //cout << "quat(eigen): " << quat.w() << " " << quat.x() << " " << quat.y() << " " << quat.z() << endl;
     
     a_temp31(0) = navData_ptr->vn;
     a_temp31(1) = navData_ptr->ve;
@@ -215,8 +213,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
     C_B2N = C_N2B.transpose();
-    // cout << "C_N2B:" << endl << C_N2B << endl;
-    // cout << "C_B2N:" << endl << C_B2N << endl;
 	
     // Attitude Update
     // ... Calculate Navigation Rate
