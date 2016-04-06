@@ -59,7 +59,7 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt;
+Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
 Matrix<double,15,12> G;
 Matrix<double,15,6> K;
 Matrix<double,15,1> x;
@@ -67,10 +67,8 @@ Matrix<double,12,12> Rw;
 Matrix<double,6,15> H;
 Matrix<double,6,6> R;
 Matrix<double,6,1> y;
-Matrix<double,3,3> Rbodtonav, C_N2B, C_B2N, temp33;
+Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
 Matrix<double,3,1> /*eul,*/ grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31;
-Matrix<double,15,15> I15; // Identity
-Matrix<double,3,3> I3; // Identity
 
 static Quaterniond quat;
 static double denom, Re, Rn;
@@ -98,25 +96,25 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw(0,0) = SIG_W_AX*SIG_W_AX;	Rw(1,1) = SIG_W_AY*SIG_W_AY;		Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
-    Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;		Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
-    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
-    Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
+    Rw(0,0) = SIG_W_AX*SIG_W_AX;	Rw(1,1) = SIG_W_AY*SIG_W_AY;	      Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
+    Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;	      Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
+    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;    Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
+    Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;  Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
 	
     // ... P (initial)
-    P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 		P(2,2) = P_P_INIT*P_P_INIT;
-    P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 		P(5,5) = P_V_INIT*P_V_INIT;
-    P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 		P(8,8) = P_HDG_INIT*P_HDG_INIT;
-    P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT; 	P(11,11) = P_AB_INIT*P_AB_INIT;
-    P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT; 	P(14,14) = P_GB_INIT*P_GB_INIT;
+    P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
+    P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 	      P(5,5) = P_V_INIT*P_V_INIT;
+    P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 	      P(8,8) = P_HDG_INIT*P_HDG_INIT;
+    P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT;       P(11,11) = P_AB_INIT*P_AB_INIT;
+    P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
     // ... update P in get_nav
-    navData_ptr->Pp[0] = P(0,0);	navData_ptr->Pp[1] = P(1,1);	        navData_ptr->Pp[2] = P(2,2);
-    navData_ptr->Pv[0] = P(3,3);	navData_ptr->Pv[1] = P(4,4);	        navData_ptr->Pv[2] = P(5,5);
-    navData_ptr->Pa[0] = P(6,6);	navData_ptr->Pa[1] = P(7,7);	        navData_ptr->Pa[2] = P(8,8);
+    navData_ptr->Pp[0] = P(0,0);	navData_ptr->Pp[1] = P(1,1);	      navData_ptr->Pp[2] = P(2,2);
+    navData_ptr->Pv[0] = P(3,3);	navData_ptr->Pv[1] = P(4,4);	      navData_ptr->Pv[2] = P(5,5);
+    navData_ptr->Pa[0] = P(6,6);	navData_ptr->Pa[1] = P(7,7);	      navData_ptr->Pa[2] = P(8,8);
 	
-    navData_ptr->Pab[0] = P(9,9);	navData_ptr->Pab[1] = P(10,10);	        navData_ptr->Pab[2] = P(11,11);
-    navData_ptr->Pgb[0] = P(12,12);	navData_ptr->Pgb[1] = P(13,13);	        navData_ptr->Pgb[2] = P(14,14);
+    navData_ptr->Pab[0] = P(9,9);	navData_ptr->Pab[1] = P(10,10);	      navData_ptr->Pab[2] = P(11,11);
+    navData_ptr->Pgb[0] = P(12,12);	navData_ptr->Pgb[1] = P(13,13);	      navData_ptr->Pgb[2] = P(14,14);
 	
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
@@ -199,8 +197,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     // ==================  Time Update  ===================
     // Temporary storage in Matrix form
-    quat = Quaterniond(navData_ptr->quat[0], navData_ptr->quat[1],
-		       navData_ptr->quat[2], navData_ptr->quat[3]);
+    quat = Quaterniond(navData_ptr->quat[0],
+		       navData_ptr->quat[1],
+		       navData_ptr->quat[2],
+		       navData_ptr->quat[3]);
     //cout << "quat(eigen): " << quat.w() << " " << quat.vec() << endl;
     //cout << "quat(eigen): " << quat.w() << " " << quat.x() << " " << quat.y() << " " << quat.z() << endl;
     
@@ -220,8 +220,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    nr = navrate(a_temp31,b_temp31);
-    /* fixme: vector: nr not actually used */
+    nr = navrate(a_temp31,b_temp31);  /* fixme: unused, llarate used instead */
 	
     dq = Quaterniond(1.0,
 		     0.5*om_ib(0)*imu_dt,
@@ -242,9 +241,8 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     quat2eul(quat, &(navData_ptr->phi), &(navData_ptr->the), &(navData_ptr->psi));
 	
     // Velocity Update
-    dx = C_B2N*f_b;
+    dx = C_B2N * f_b;
     dx += grav;
-    // cout << "dx (vel): " << endl << dx << endl;
 	
     navData_ptr->vn += imu_dt*dx(0);
     navData_ptr->ve += imu_dt*dx(1);
@@ -252,7 +250,6 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
     // Position Update
     dx = llarate(a_temp31,b_temp31);
-    // cout << "dx (pos): " << endl << dx << endl;
     navData_ptr->lat += imu_dt*dx(0);
     navData_ptr->lon += imu_dt*dx(1);
     navData_ptr->alt += imu_dt*dx(2);
@@ -262,25 +259,25 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     // ... pos2gs
     F(0,3) = 1.0; 	F(1,4) = 1.0; 	F(2,5) = 1.0;
     // ... gs2pos
-    F(5,2) = -2*g/EARTH_RADIUS;
+    F(5,2) = -2 * g / EARTH_RADIUS;
 	
     // ... gs2att
-    temp33 = C_B2N*sk(f_b);
+    temp33 = C_B2N * sk(f_b);
 	
-    F(3,6) = -2.0*temp33(0,0); F(3,7) = -2.0*temp33(0,1); F(3,8) = -2.0*temp33(0,2);
-    F(4,6) = -2.0*temp33(1,0); F(4,7) = -2.0*temp33(1,1); F(4,8) = -2.0*temp33(1,2);
-    F(5,6) = -2.0*temp33(2,0); F(5,7) = -2.0*temp33(2,1); F(5,8) = -2.0*temp33(2,2);
+    F(3,6) = -2.0*temp33(0,0);  F(3,7) = -2.0*temp33(0,1);  F(3,8) = -2.0*temp33(0,2);
+    F(4,6) = -2.0*temp33(1,0);  F(4,7) = -2.0*temp33(1,1);  F(4,8) = -2.0*temp33(1,2);
+    F(5,6) = -2.0*temp33(2,0);  F(5,7) = -2.0*temp33(2,1);  F(5,8) = -2.0*temp33(2,2);
 	
     // ... gs2acc
-    F(3,9) = -C_B2N(0,0); F(3,10) = -C_B2N(0,1); F(3,11) = -C_B2N(0,2);
-    F(4,9) = -C_B2N(1,0); F(4,10) = -C_B2N(1,1); F(4,11) = -C_B2N(1,2);
-    F(5,9) = -C_B2N(2,0); F(5,10) = -C_B2N(2,1); F(5,11) = -C_B2N(2,2);
+    F(3,9) = -C_B2N(0,0);  F(3,10) = -C_B2N(0,1);  F(3,11) = -C_B2N(0,2);
+    F(4,9) = -C_B2N(1,0);  F(4,10) = -C_B2N(1,1);  F(4,11) = -C_B2N(1,2);
+    F(5,9) = -C_B2N(2,0);  F(5,10) = -C_B2N(2,1);  F(5,11) = -C_B2N(2,2);
 	
     // ... att2att
     temp33 = sk(om_ib);
-    F(6,6) = -temp33(0,0); F(6,7) = -temp33(0,1); F(6,8) = -temp33(0,2);
-    F(7,6) = -temp33(1,0); F(7,7) = -temp33(1,1); F(7,8) = -temp33(1,2);
-    F(8,6) = -temp33(2,0); F(8,7) = -temp33(2,1); F(8,8) = -temp33(2,2);
+    F(6,6) = -temp33(0,0);  F(6,7) = -temp33(0,1);  F(6,8) = -temp33(0,2);
+    F(7,6) = -temp33(1,0);  F(7,7) = -temp33(1,1);  F(7,8) = -temp33(1,2);
+    F(8,6) = -temp33(2,0);  F(8,7) = -temp33(2,1);  F(8,8) = -temp33(2,2);
 	
     // ... att2gyr
     F(6,12) = -0.5;
@@ -292,7 +289,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     F(12,12) = -1.0/TAU_G;  F(13,13) = -1.0/TAU_G;  F(14,14) = -1.0/TAU_G;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
-    PHI = I15 + F*imu_dt;
+    PHI = I15 + F * imu_dt;
 	
     // Process Noise
     G.setZero();
@@ -308,13 +305,13 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     G(12,9) = 1.0; 	    G(13,10) = 1.0; 	    G(14,11) = 1.0;
 
     // Discrete Process Noise
-    Qw = G*Rw*G.transpose()*imu_dt;			// Qw = dt*G*Rw*G'
-    Q = PHI*Qw;						// Q = (I+F*dt)*Qw
-    Q = (Q + Q.transpose())*0.5;			// Q = 0.5*(Q+Q')
+    Qw = G * Rw * G.transpose() * imu_dt;		// Qw = dt*G*Rw*G'
+    Q = PHI * Qw;					// Q = (I+F*dt)*Qw
+    Q = (Q + Q.transpose()) * 0.5;			// Q = 0.5*(Q+Q')
 	
     // Covariance Time Update
-    P = PHI*P*PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
-    P = (P + P.transpose())*0.5;			// P = 0.5*(P+P')
+    P = PHI * P * PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
+    P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
 	
     navData_ptr->Pp[0] = P(0,0);     navData_ptr->Pp[1] = P(1,1);     navData_ptr->Pp[2] = P(2,2);
     navData_ptr->Pv[0] = P(3,3);     navData_ptr->Pv[1] = P(4,4);     navData_ptr->Pv[2] = P(5,5);
@@ -324,8 +321,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 
     // ==================  DONE TU  ===================
 	
-    if(gpsData_ptr->newData){
-	
+    if ( gpsData_ptr->newData ) {
 	// ==================  GPS Update  ===================
 	gpsData_ptr->newData = 0; // Reset the flag
 		
@@ -334,12 +330,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	a_temp31(1) = navData_ptr->lon;
 	a_temp31(2) = navData_ptr->alt;
 	pos_ins_ecef = lla2ecef(a_temp31);
-	// cout << "pos_ins_ecef:" << endl << pos_ins_ecef << endl;
 
 	a_temp31(2) = 0.0;
 	//pos_ref = lla2ecef(a_temp31,pos_ref);
 	pos_ref = a_temp31;
-	pos_ins_ned = ecef2ned(pos_ins_ecef,pos_ref);
+	pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
 		
 	pos_gps(0) = gpsData_ptr->lat*D2R;
 	pos_gps(1) = gpsData_ptr->lon*D2R;
@@ -347,7 +342,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		
 	pos_gps_ecef = lla2ecef(pos_gps);
 		
-	pos_gps_ned = ecef2ned(pos_gps_ecef,pos_ref);
+	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
 		
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
@@ -357,18 +352,17 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	y(3) = gpsData_ptr->vn - navData_ptr->vn;
 	y(4) = gpsData_ptr->ve - navData_ptr->ve;
 	y(5) = gpsData_ptr->vd - navData_ptr->vd;
-	// cout << "y:" << endl << y << endl;
 		
 	// Kalman Gain
 	// K = P*H'*inv(H*P*H'+R)
-	K = P*H.transpose()*(H*P*H.transpose() + R).inverse();
+	K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
 		
 	// Covariance Update
-	ImKH = I15 - K*H;	                // ImKH = I - K*H
+	ImKH = I15 - K * H;	                // ImKH = I - K*H
 		
-	KRKt = K*R*K.transpose();		// KRKt = K*R*K'
+	KRKt = K * R * K.transpose();		// KRKt = K*R*K'
 		
-	P = ImKH*P*ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
+	P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
 		
 	navData_ptr->Pp[0] = P(0,0); 	navData_ptr->Pp[1] = P(1,1); 	navData_ptr->Pp[2] = P(2,2);
 	navData_ptr->Pv[0] = P(3,3); 	navData_ptr->Pv[1] = P(4,4); 	navData_ptr->Pv[2] = P(5,5);
@@ -377,12 +371,12 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	navData_ptr->Pgb[0] = P(12,12); navData_ptr->Pgb[1] = P(13,13); navData_ptr->Pgb[2] = P(14,14);
 		
 	// State Update
-	x = K*y;
+	x = K * y;
 	denom = (1.0 - (ECC2 * sin(navData_ptr->lat) * sin(navData_ptr->lat)));
 	denom = sqrt(denom*denom);
 
 	Re = EARTH_RADIUS / sqrt(denom);
-	Rn = EARTH_RADIUS*(1-ECC2) / denom*sqrt(denom);
+	Rn = EARTH_RADIUS * (1-ECC2) / denom*sqrt(denom);
 	navData_ptr->alt = navData_ptr->alt - x(2);
 	navData_ptr->lat = navData_ptr->lat + x(0)/(Re + navData_ptr->alt);
 	navData_ptr->lon = navData_ptr->lon + x(1)/(Rn + navData_ptr->alt)/cos(navData_ptr->lat);
@@ -391,8 +385,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	navData_ptr->ve = navData_ptr->ve + x(4);
 	navData_ptr->vd = navData_ptr->vd + x(5);
 		
-	quat = Quaterniond(navData_ptr->quat[0], navData_ptr->quat[1],
-			   navData_ptr->quat[2], navData_ptr->quat[3]);
+	quat = Quaterniond(navData_ptr->quat[0],
+			   navData_ptr->quat[1],
+			   navData_ptr->quat[2],
+			   navData_ptr->quat[3]);
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
