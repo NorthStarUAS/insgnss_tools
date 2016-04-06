@@ -15,15 +15,15 @@
 #define NAV_INTERFACE_H_
 
 /// Standard function to initialize the navigation filter.
-void init_nav(struct imu *imuData_ptr,	///< pointer to imuData structure
-		struct gps *gpsData_ptr,		///< pointer to gpsData structure
-		struct nav *navData_ptr			///< pointer to navData structure
-		);
+void init_nav(struct imu *imuData_ptr,	// pointer to imuData structure
+	      struct gps *gpsData_ptr,	// pointer to gpsData structure
+	      struct nav *navData_ptr	// pointer to navData structure
+	      );
 
 /// Standard function to call the navigation filter.
-void get_nav(struct imu *imuData_ptr,	///< pointer to imuData structure
-		struct gps *gpsData_ptr,		///< pointer to gpsData structure
-		struct nav *navData_ptr			///< pointer to navData structure
-		);
+void get_nav(struct imu *imuData_ptr,	// pointer to imuData structure
+	     struct gps *gpsData_ptr,	// pointer to gpsData structure
+	     struct nav *navData_ptr	// pointer to navData structure
+	     );
 
 #endif
