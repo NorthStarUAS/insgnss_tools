@@ -30,6 +30,7 @@ using std::endl;
 #include "nav_interface.hxx"
 
 #include "../include/globaldefs.h"
+#include "../utils/coremag.h"
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
@@ -49,6 +50,8 @@ const double SIG_GPS_P_NE = 3.0;
 const double SIG_GPS_P_D  = 5.0;
 const double SIG_GPS_V    = 0.5;
 
+const double SIG_MAG      = 4.0;
+
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
 const double P_A_INIT = 0.34906;   // 20 deg
@@ -61,14 +64,14 @@ const double Rns = 6.386034030458164e+006; // earth radius
 
 Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
 Matrix<double,15,12> G;
-Matrix<double,15,6> K;
+Matrix<double,15,9> K;
 Matrix<double,15,1> x;
 Matrix<double,12,12> Rw;
-Matrix<double,6,15> H;
-Matrix<double,6,6> R;
-Matrix<double,6,1> y;
+Matrix<double,9,15> H;
+Matrix<double,9,9> R;
+Matrix<double,9,1> y;
 Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-Matrix<double,3,1> /*eul,*/ grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31;
+Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31, mag_ned, mag_ekf, mag_sense;
 
 static Quaterniond quat;
 static double denom, Re, Rn;
@@ -90,7 +93,10 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 	
     // ... H
     H.topLeftCorner(6,6).setIdentity();
-	
+    H(6,0) = 0.0;
+    H(7,1) = 0.0;
+    H(8,2) = 0.0;
+    
     // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
     // Rw small - trust time update, Rw more - lean on measurement update
@@ -119,7 +125,8 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
     R(3,3) = SIG_GPS_V*SIG_GPS_V;	 R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
-	
+    R(6,6) = SIG_MAG;                    R(7,7) = SIG_MAG;                    R(8,8) = SIG_MAG;
+    
     // .. then initialize states with GPS Data
     navData_ptr->lat = gpsData_ptr->lat*D2R;
     navData_ptr->lon = gpsData_ptr->lon*D2R;
@@ -129,6 +136,23 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     navData_ptr->ve = gpsData_ptr->ve;
     navData_ptr->vd = gpsData_ptr->vd;
 	
+    // ideal magnetic vector
+    long int jd = now_to_julian_days();
+    double field[6];
+    calc_magvar( navData_ptr->lat, navData_ptr->lon,
+		 navData_ptr->alt / 1000.0, jd, field );
+    mag_ned(0) = field[3];
+    mag_ned(1) = field[4];
+    mag_ned(2) = field[5];
+    mag_ned.normalize();
+    cout << "Ideal mag vector (ned): " << mag_ned << endl;
+    
+    // // initial heading
+    // double init_psi_rad = 90.0*D2R;
+    // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
+    // 	init_psi_rad = atan2(mag_ned[0][1], mag_ned[0][0]);
+    // }
+
     // ... and initialize states with IMU Data
     // theta from Ax, aircraft at rest
     navData_ptr->the = asin(imuData_ptr->ax/g); 
@@ -340,6 +364,21 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
 		
+	// ideal mag vector in body frame (then normalized)
+	mag_ekf = C_N2B * mag_ned;
+	mag_ekf.normalize();
+	
+	// measured mag vector
+	mag_sense(0) = imuData_ptr->hx;
+	mag_sense(1) = imuData_ptr->hy;
+	mag_sense(2) = imuData_ptr->hz;
+	mag_sense.normalize();
+
+	// difference between measured and expected mag vector
+	Matrix<double,3,1> mag_error = mag_sense - mag_ekf;
+	
+	/*printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", mag_ekf(0), mag_ekf(1), mag_ekf(2), mag_sense(0), mag_sense(1), mag_sense(2));*/
+	
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);
@@ -349,6 +388,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	y(4) = gpsData_ptr->ve - navData_ptr->ve;
 	y(5) = gpsData_ptr->vd - navData_ptr->vd;
 		
+	y(6) = mag_error(0);
+	y(7) = mag_error(1);
+	y(8) = mag_error(2);
+	
 	// Kalman Gain
 	// K = P*H'*inv(H*P*H'+R)
 	K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
