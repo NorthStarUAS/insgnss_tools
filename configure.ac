@@ -59,9 +59,9 @@ AC_CONFIG_FILES([ \
         src/Makefile \
         src/include/Makefile \
         src/nav_orig/Makefile \
-        src/nav_polarity/Makefile \
         src/nav_mag/Makefile \
-        src/nav_eigen/Makefile \
+	src/nav_eigen/Makefile \
+        src/nav_eigen_mag/Makefile \
         src/utils/Makefile \
         src/MadgwickAHRS/Makefile \
 ])
