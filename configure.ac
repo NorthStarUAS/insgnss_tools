@@ -41,6 +41,15 @@ dnl AC_SEARCH_LIBS(clock_gettime, [rt])
 dnl AC_SEARCH_LIBS(cos, [m])
 dnl AC_SEARCH_LIBS(gzopen, [z])
 
+AC_LANG_SAVE
+AC_LANG_CPLUSPLUS
+AC_CHECK_HEADERS([eigen3/Eigen/Core])
+AC_LANG_RESTORE
+if test "x$ac_cv_header_eigen3_Eigen_Core" != xyes; then
+   echo "configure error: eigen3 matrix libraries are required"
+   exit
+fi
+
 AM_CONFIG_HEADER(src/include/nav_config.h)
 
 dnl code configuration selections
