@@ -5,4 +5,4 @@ lib_LTLIBRARIES = libMadgwickAHRS.la
 libMadgwickAHRS_la_SOURCES = \
         MadgwickAHRS.c MadgwickAHRS.h 
 
-libnavigation_la_LDFLAGS = -module -avoid-version -shared
+libMadgwickAHRS_la_LDFLAGS = -module -avoid-version -shared
