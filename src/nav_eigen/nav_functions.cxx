@@ -145,9 +145,8 @@ void qmult(double *p, double *q, double *r) {
     r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
 }
 
-void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
-    /* Quaternion to euler angle */
-
+// Quaternion to euler angle: returns phi, the, psi as a vector
+Matrix<double,3,1> quat2eul(Quaterniond q) {
     double q0, q1, q2, q3;
     double m11, m12, m13, m23, m33;
 	
@@ -161,10 +160,13 @@ void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
     m13 = 2*(q1*q3 - q0*q2);
     m23 = 2*(q2*q3 + q0*q1);
     m33 = 2*(q0*q0 + q3*q3) - 1;
-	
-    *psi = atan2(m12,m11);
-    *the = asin(-m13);
-    *phi = atan2(m23,m33);
+    
+    Matrix<double,3,1> result;
+    result(2) = atan2(m12,m11);
+    result(1) = asin(-m13);
+    result(0) = atan2(m23,m33);
+
+    return result;
 }
 
 void eul2quat(double *q, double phi, double the, double psi) {

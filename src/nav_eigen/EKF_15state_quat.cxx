@@ -68,7 +68,7 @@ Matrix<double,6,15> H;
 Matrix<double,6,6> R;
 Matrix<double,6,1> y;
 Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-Matrix<double,3,1> /*eul,*/ grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31;
+Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, b_temp31;
 
 static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
@@ -111,16 +111,16 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
     // ... update P in get_nav
-    nav.Pp[0] = P(0,0);	nav.Pp[1] = P(1,1);	      nav.Pp[2] = P(2,2);
-    nav.Pv[0] = P(3,3);	nav.Pv[1] = P(4,4);	      nav.Pv[2] = P(5,5);
-    nav.Pa[0] = P(6,6);	nav.Pa[1] = P(7,7);	      nav.Pa[2] = P(8,8);
+    nav.Pp[0] = P(0,0);	                nav.Pp[1] = P(1,1);	              nav.Pp[2] = P(2,2);
+    nav.Pv[0] = P(3,3);	                nav.Pv[1] = P(4,4);	              nav.Pv[2] = P(5,5);
+    nav.Pa[0] = P(6,6);	                nav.Pa[1] = P(7,7);	              nav.Pa[2] = P(8,8);
 	
-    nav.Pab[0] = P(9,9);	nav.Pab[1] = P(10,10);	      nav.Pab[2] = P(11,11);
-    nav.Pgb[0] = P(12,12);	nav.Pgb[1] = P(13,13);	      nav.Pgb[2] = P(14,14);
+    nav.Pab[0] = P(9,9);	        nav.Pab[1] = P(10,10);	              nav.Pab[2] = P(11,11);
+    nav.Pgb[0] = P(12,12);	        nav.Pgb[1] = P(13,13);	              nav.Pgb[2] = P(14,14);
 	
     // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V*SIG_GPS_V;	 R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
+    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;   R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
+    R(3,3) = SIG_GPS_V*SIG_GPS_V;	R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
 	
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
@@ -201,15 +201,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	
     // ==================  Time Update  ===================
     // Temporary storage in Matrix form
-    quat = Quaterniond(nav.quat[0],
-		       nav.quat[1],
-		       nav.quat[2],
-		       nav.quat[3]);
-    
-    a_temp31(0) = nav.vn;
-    a_temp31(1) = nav.ve;
-    a_temp31(2) = nav.vd;
-	
+    quat = Quaterniond(nav.quat[0], nav.quat[1], nav.quat[2], nav.quat[3]);
+
+    Matrix<double,3,1> pos_vec(nav.vn, nav.ve, nav.vd);
+
     b_temp31(0) = nav.lat;
     b_temp31(1) = nav.lon;
     b_temp31(2) = nav.alt;
@@ -220,7 +215,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    nr = navrate(a_temp31,b_temp31);  /* fixme: unused, llarate used instead */
+    nr = navrate(pos_vec,b_temp31);  /* fixme: unused, llarate used instead */
 	
     dq = Quaterniond(1.0,
 		     0.5*om_ib(0)*imu_dt,
@@ -238,7 +233,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     nav.quat[2] = quat.y();
     nav.quat[3] = quat.z();
 	
-    quat2eul(quat, &(nav.phi), &(nav.the), &(nav.psi));
+    Matrix<double,3,1> att = quat2eul(quat);
+    nav.phi = att(0);
+    nav.the = att(1);
+    nav.psi = att(2);
 	
     // Velocity Update
     dx = C_B2N * f_b;
@@ -249,7 +247,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(a_temp31,b_temp31);
+    dx = llarate(pos_vec,b_temp31);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
@@ -326,14 +324,11 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	gps.newData = 0; // Reset the flag
 		
 	// Position, converted to NED
-	a_temp31(0) = nav.lat;
-	a_temp31(1) = nav.lon;
-	a_temp31(2) = nav.alt;
-	pos_ins_ecef = lla2ecef(a_temp31);
+	Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
+	pos_ins_ecef = lla2ecef(pos_vec);
 
-	a_temp31(2) = 0.0;
-	//pos_ref = lla2ecef(a_temp31,pos_ref);
-	pos_ref = a_temp31;
+	Matrix<double,3,1> pos_ref = pos_vec;
+	pos_ref(2) = 0.0;
 	pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
 		
 	pos_gps(0) = gps.lat*D2R;
@@ -399,15 +394,18 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.quat[2] = quat.y();
 	nav.quat[3] = quat.z();
 		
-	quat2eul(quat, &(nav.phi), &(nav.the), &(nav.psi));
+	Matrix<double,3,1> att = quat2eul(quat);
+	nav.phi = att(0);
+	nav.the = att(1);
+	nav.psi = att(2);
+	
+	nav.ab[0] += x(9);
+	nav.ab[1] += x(10);
+	nav.ab[2] += x(11);
 		
-	nav.ab[0] = nav.ab[0] + x(9);
-	nav.ab[1] = nav.ab[1] + x(10);
-	nav.ab[2] = nav.ab[2] + x(11);
-		
-	nav.gb[0] = nav.gb[0] + x(12);
-	nav.gb[1] = nav.gb[1] + x(13);
-	nav.gb[2] = nav.gb[2] + x(14);
+	nav.gb[0] += x(12);
+	nav.gb[1] += x(13);
+	nav.gb[2] += x(14);
     }
 	
     // Remove current estimated biases from rate gyro and accels

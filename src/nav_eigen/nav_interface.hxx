@@ -53,7 +53,7 @@ struct NAVdata {
     double phi;		// [rad], Euler roll angle estimate
     double the;		// [rad], Euler pitch angle estimate
     double psi;		// [rad], Euler yaw angle estimate
-    double quat[4];	// Quaternions estimate
+    double quat[4];	// Quaternion estimate
     double ab[3];	// [m/sec^2], accelerometer bias estimate
     double gb[3];	// [rad/sec], rate gyro bias estimate
     double asf[3];	// [m/sec^2], accelerometer scale factor estimate
