@@ -68,14 +68,13 @@ Matrix<double,6,15> H;
 Matrix<double,6,6> R;
 Matrix<double,6,1> y;
 Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, b_temp31;
+Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
 
 static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
 static double tprev;
 
 static NAVdata nav;
-
 
 ////////// BRT I think there are some several identity and sparse matrices, so probably some optimization still left there
 ////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
@@ -203,11 +202,8 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     // Temporary storage in Matrix form
     quat = Quaterniond(nav.quat[0], nav.quat[1], nav.quat[2], nav.quat[3]);
 
-    Matrix<double,3,1> pos_vec(nav.vn, nav.ve, nav.vd);
-
-    b_temp31(0) = nav.lat;
-    b_temp31(1) = nav.lon;
-    b_temp31(2) = nav.alt;
+    Matrix<double,3,1> vel_vec(nav.vn, nav.ve, nav.vd);
+    Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
 	
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
@@ -215,7 +211,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    nr = navrate(pos_vec,b_temp31);  /* fixme: unused, llarate used instead */
+    nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
     dq = Quaterniond(1.0,
 		     0.5*om_ib(0)*imu_dt,
@@ -247,7 +243,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(pos_vec,b_temp31);
+    dx = llarate(vel_vec, pos_vec);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
@@ -380,10 +376,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.ve = nav.ve + x(4);
 	nav.vd = nav.vd + x(5);
 		
-	quat = Quaterniond(nav.quat[0],
-			   nav.quat[1],
-			   nav.quat[2],
-			   nav.quat[3]);
+	quat = Quaterniond(nav.quat[0], nav.quat[1], nav.quat[2], nav.quat[3]);
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
