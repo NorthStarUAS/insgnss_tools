@@ -377,6 +377,13 @@ else:
     filter2_sec = end_time - start_time
     print "filter1 time = %.4f" % filter1_sec
     print "filter2 time = %.4f" % filter2_sec
+    diff_sec = filter1_sec - filter2_sec
+    perc = diff_sec / filter1_sec
+    if perc >= 0.0:
+        print "filter2 is %.1f%% faster" % (perc * 100.0)
+    else:
+        print "filter2 is %.1f%% slower" % (-perc * 100.0)
+        
        
 # Plotting
 if FLAG_PLOT_ATTITUDE:
