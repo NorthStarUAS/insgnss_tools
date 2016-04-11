@@ -15,22 +15,23 @@ byref   = ctypes.byref
 class filter():
     def __init__(self):
         # Load compilied `.so` file.
-        self.sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen/.libs/libnav_eigen.so'))
+        sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen/.libs/libnav_eigen.so'))
+
+        self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
+        self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata
         
         # Declare inputs to the init_nav function
-        self.sharedobj._Z8init_navP3imuP3gpsP3nav.argtypes = [POINTER(cdefs.IMU),
-                                            POINTER(cdefs.GPS),
-                                            POINTER(cdefs.NAV)]
-
+        self.init_func.argtypes = [cdefs.newIMU,
+                                   cdefs.newGPS]
+        self.init_func.restype = cdefs.newNAV
+        
         # Declare inputs to the get_nav function
-        self.sharedobj._Z7get_navP3imuP3gpsP3nav.argtypes = [POINTER(cdefs.IMU),
-                                           POINTER(cdefs.GPS),
-                                           POINTER(cdefs.NAV)]
-
-        self.cnav = cdefs.NAV()
+        self.update_func.argtypes = [cdefs.newIMU,
+                                     cdefs.newGPS]
+        self.update_func.restype = cdefs.newNAV
 
     def python2c(self, imu, gps):
-        cimu = cdefs.IMU()
+        cimu = cdefs.newIMU()
         cimu.time = imu.time
         cimu.p = imu.p
         cimu.q = imu.q
@@ -42,7 +43,7 @@ class filter():
         cimu.hy = imu.hy
         cimu.hz = imu.hz
         
-        cgps = cdefs.GPS()
+        cgps = cdefs.newGPS()
         cgps.time = gps.time
         cgps.tow = gps.tow
         cgps.newData = gps.newData
@@ -55,35 +56,33 @@ class filter():
 
         return cimu, cgps
 
-    def c2python(self):
-        P = np.diag([self.cnav.Pp[0], self.cnav.Pp[1], self.cnav.Pp[2],
-                     self.cnav.Pv[0], self.cnav.Pv[1], self.cnav.Pv[2],
-                     self.cnav.Pa[0], self.cnav.Pa[1], self.cnav.Pa[2],
-                     self.cnav.Pab[0], self.cnav.Pab[1], self.cnav.Pab[2],
-                     self.cnav.Pgb[0], self.cnav.Pgb[1], self.cnav.Pgb[2]])
+    def c2python(self, cnav):
+        P = np.diag([cnav.Pp[0], cnav.Pp[1], cnav.Pp[2],
+                     cnav.Pv[0], cnav.Pv[1], cnav.Pv[2],
+                     cnav.Pa[0], cnav.Pa[1], cnav.Pa[2],
+                     cnav.Pab[0], cnav.Pab[1], cnav.Pab[2],
+                     cnav.Pgb[0], cnav.Pgb[1], cnav.Pgb[2]])
         stateInnov = np.nan*np.ones(6)
         insgps = pydefs.INSGPS(1, # fixme: valid/init
-                               self.cnav.time,
-                               [self.cnav.lat, self.cnav.lon, self.cnav.alt],
-                               [self.cnav.vn, self.cnav.ve, self.cnav.vd],
-                               [self.cnav.psi, self.cnav.the, self.cnav.phi],
-                               self.cnav.ab,
-                               self.cnav.gb,
+                               cnav.time,
+                               [cnav.lat, cnav.lon, cnav.alt],
+                               [cnav.vn, cnav.ve, cnav.vd],
+                               [cnav.psi, cnav.the, cnav.phi],
+                               cnav.ab,
+                               cnav.gb,
                                P,
                                stateInnov)
         return insgps
     
     def init(self, imu, gps):
         cimu, cgps = self.python2c(imu, gps)
-        self.sharedobj._Z8init_navP3imuP3gpsP3nav(cimu, cgps, self.cnav)
-        nav = self.c2python()
-        return nav
+        cnav = self.init_func(cimu, cgps)
+        return self.c2python(cnav)
 
     def update(self, imu, gps):
         cimu, cgps = self.python2c(imu, gps)
-        self.sharedobj._Z7get_navP3imuP3gpsP3nav(cimu, cgps, self.cnav)
-        nav = self.c2python()
-        return nav
+        cnav = self.update_func(cimu, cgps)
+        return self.c2python(cnav)
 
     def close(self):
         pass

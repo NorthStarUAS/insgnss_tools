@@ -438,6 +438,7 @@ void eul2quat(double *q, double phi, double the, double psi) {
 	q[3] = sin(psi)*cos(the)*cos(phi) - cos(psi)*sin(the)*sin(phi);
 }
 
+/* assumes input is a N2B quaternion */
 MATRIX quat2dcm(double *q, MATRIX C_N2B) {
 	// Quaternion to C_N2B
 	double q0, q1, q2, q3;

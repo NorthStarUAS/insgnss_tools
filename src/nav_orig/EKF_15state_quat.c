@@ -139,7 +139,6 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 	Rw[6][6] = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw[7][7] = 2*SIG_A_D*SIG_A_D/TAU_A;		Rw[8][8] = 2*SIG_A_D*SIG_A_D/TAU_A;
 	Rw[9][9] = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw[10][10] = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw[11][11] = 2*SIG_G_D*SIG_G_D/TAU_G;
 	
-	
 	// ... P (initial)
 	P[0][0] = P_P_INIT*P_P_INIT; 		P[1][1] = P_P_INIT*P_P_INIT; 		P[2][2] = P_P_INIT*P_P_INIT;
 	P[3][3] = P_V_INIT*P_V_INIT; 		P[4][4] = P_V_INIT*P_V_INIT; 		P[5][5] = P_V_INIT*P_V_INIT;
@@ -212,7 +211,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	// This compute the navigation state at the DAQ's Time Stamp
 	tnow = imuData_ptr->time;
 	imu_dt = tnow - tprev;
-	tprev = tnow;		
+	tprev = tnow;	
+
+	int debug = 0;
+	if (debug) { printf("get_nav(): tnow = %.3f\n", tnow); }
 	
 	// ==================  Time Update  ===================
 	// Temporary storage in Matrix form
@@ -220,6 +222,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	quat[1] = navData_ptr->quat[1];
 	quat[2] = navData_ptr->quat[2];
 	quat[3] = navData_ptr->quat[3];
+	// printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
 	
 	a_temp31[0][0] = navData_ptr->vn; a_temp31[1][0] = navData_ptr->ve;
 	a_temp31[2][0] = navData_ptr->vd;
@@ -228,8 +231,19 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	b_temp31[2][0] = navData_ptr->alt;
 	
 	// AHRS Transformations
+	// printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
 	C_N2B = quat2dcm(quat, C_N2B);
 	C_B2N = mat_tran(C_N2B, C_B2N);
+	// mat_dump(C_N2B);
+	// mat_dump(C_B2N);
+
+	if (debug) {
+	    printf("quat: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+	    printf("C_N2B:\n");
+	    mat_dump(C_N2B);
+	    printf("C_B2N:\n");
+	    mat_dump(C_B2N);
+	}
 	
 	// Attitude Update
 	// ... Calculate Navigation Rate
@@ -239,9 +253,16 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	dq[1] = 0.5*om_ib[0][0]*imu_dt;
 	dq[2] = 0.5*om_ib[1][0]*imu_dt;
 	dq[3] = 0.5*om_ib[2][0]*imu_dt;
-	
+
+	if (debug) {
+	    printf("dq (gyro): %.4f %.4f %.4f %.4f\n", dq[0], dq[1], dq[2], dq[3]);
+	}
+	       
 	qmult(quat,dq,quat_new);
-	
+	if (debug) {
+	    printf("quat (pre normalized): %.4f %.4f %.4f %.4f\n", quat_new[0], quat_new[1], quat_new[2], quat_new[3]);
+	}
+
 	quat[0] = quat_new[0]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
 	quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
 	quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
@@ -254,7 +275,9 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
         quat[2] = -quat[2];
         quat[3] = -quat[3];
     }
-    
+
+    // printf("quat1: %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+
 	navData_ptr->quat[0] = quat[0];
 	navData_ptr->quat[1] = quat[1];
 	navData_ptr->quat[2] = quat[2];
@@ -265,12 +288,15 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	// Velocity Update
 	dx = mat_mul(C_B2N,f_b,dx);
 	dx = mat_add(dx,grav,dx);
+	// printf("dx (vel):\n"); mat_dump(dx);
+	
 	navData_ptr->vn += imu_dt*dx[0][0];
 	navData_ptr->ve += imu_dt*dx[1][0];
 	navData_ptr->vd += imu_dt*dx[2][0];
 	
 	// Position Update
 	dx = llarate(a_temp31,b_temp31,dx);
+	// printf("dx (pos):\n"); mat_dump(dx);
 	navData_ptr->lat += imu_dt*dx[0][0];
 	navData_ptr->lon += imu_dt*dx[1][0];
 	navData_ptr->alt += imu_dt*dx[2][0];
@@ -283,8 +309,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	F[5][2] = -2*g/EARTH_RADIUS;
 	
 	// ... gs2att
+	// printf("f_b:\n"); mat_dump(f_b);
 	temp33 = sk(f_b,temp33);
+	//printf("temp33:\n"); mat_dump(temp33);
 	atemp33 = mat_mul(C_B2N,temp33,atemp33);
+	//printf("atemp33:\n"); mat_dump(atemp33);
 	
 	F[3][6] = -2.0*atemp33[0][0]; F[3][7] = -2.0*atemp33[0][1]; F[3][8] = -2.0*atemp33[0][2];
 	F[4][6] = -2.0*atemp33[1][0]; F[4][7] = -2.0*atemp33[1][1]; F[4][8] = -2.0*atemp33[1][2];
@@ -328,6 +357,7 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	
 	G[9][6] = 1.0; 			G[10][7] = 1.0; 		G[11][8] = 1.0;
 	G[12][9] = 1.0; 		G[13][10] = 1.0; 		G[14][11] = 1.0;
+
 	//fprintf(stderr,"Process Noise Matrix G is created\n");
 	// Discrete Process Noise
 	temp1512 = mat_mul(G,Rw,temp1512);
@@ -359,15 +389,18 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 	//fprintf(stderr,"Time Update Done\n");
 	// ==================  DONE TU  ===================
 	if(gpsData_ptr->newData){
-	
+	    if (debug) { printf("new gps data\n"); }
+	    
 		// ==================  GPS Update  ===================
 		gpsData_ptr->newData = 0; // Reset the flag
 		
 		// Position, converted to NED
 		a_temp31[0][0] = navData_ptr->lat;
-		a_temp31[1][0] = navData_ptr->lon; a_temp31[2][0] = navData_ptr->alt;
+		a_temp31[1][0] = navData_ptr->lon;
+		a_temp31[2][0] = navData_ptr->alt;
 		pos_ins_ecef = lla2ecef(a_temp31,pos_ins_ecef);
-		
+		// printf("pos_ins_ecef:\n"); mat_dump(pos_ins_ecef);
+
 		a_temp31[2][0] = 0.0;
 		//pos_ref = lla2ecef(a_temp31,pos_ref);
 		pos_ref = mat_copy(a_temp31,pos_ref);
@@ -389,7 +422,8 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		y[3][0] = gpsData_ptr->vn - navData_ptr->vn;
 		y[4][0] = gpsData_ptr->ve - navData_ptr->ve;
 		y[5][0] = gpsData_ptr->vd - navData_ptr->vd;
-		
+		// printf("y:\n"); mat_dump(y);
+	
 		//fprintf(stderr,"Measurement Matrix, y, created\n");
 		
 		// Kalman Gain
@@ -448,6 +482,11 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		dq[1] = x[6][0];
 		dq[2] = x[7][0];
 		dq[3] = x[8][0];
+
+		if (debug) {
+		    printf("x[6-8] = %.4f %.4f %.4f\n", x[6][0], x[7][0], x[8][0]);
+		    printf("dq (update): %.4f %.4f %.4f %.4f\n", dq[0], dq[1], dq[2], dq[3]);
+		}
 		
 		qmult(quat,dq,quat_new);
 		
@@ -455,6 +494,10 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		quat[1] = quat_new[1]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
 		quat[2] = quat_new[2]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
 		quat[3] = quat_new[3]/sqrt(quat_new[0]*quat_new[0] + quat_new[1]*quat_new[1] + quat_new[2]*quat_new[2] + quat_new[3]*quat_new[3]);
+
+		if (debug) {
+		    printf("quat (update): %.4f %.4f %.4f %.4f\n", quat[0], quat[1], quat[2], quat[3]);
+		}
 		
 		navData_ptr->quat[0] = quat[0];
 		navData_ptr->quat[1] = quat[1];

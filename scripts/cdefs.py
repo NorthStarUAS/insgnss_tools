@@ -36,6 +36,21 @@ class IMU(Structure):
         ('time', c_double)  # [sec], timestamp of IMU data
     ]
 
+# IMU Data Structure
+class newIMU(Structure):
+    _fields_ = [
+        ('time', c_double),  # [sec], timestamp of IMU data
+        (  'p',	c_double), # [rad/sec], body X axis angular rate (roll)
+        (  'q',	c_double), # [rad/sec], body Y axis angular rate (pitch)
+        (  'r',	c_double), # [rad/sec], body Z axis angular rate (yaw)
+        ( 'ax',	c_double), # [m/sec^2], body X axis acceleration
+        ( 'ay',	c_double), # [m/sec^2], body Y axis acceleration
+        ( 'az',	c_double), # [m/sec^2], body Z axis acceleration
+        ( 'hx',	c_double), # [Gauss], body X axis magnetic field
+        ( 'hy',	c_double), # [Gauss], body Y axis magnetic field
+        ( 'hz',	c_double) # [Gauss], body Z axis magnetic field
+    ]
+
 # GPS Data Structure
 class GPS(Structure):
     _fields_ = [
@@ -73,6 +88,20 @@ class GPS(Structure):
         ( 'bytesInLocalBuffer', c_int), # number of bytes in the local buffer
         (          'readState', c_int), # current state of serial data reader function
         (         'read_calls', c_int) # number of times the read_gps function has been called
+    ]
+
+
+# GPS Data Structure
+class newGPS(Structure):
+    _fields_ = [
+        (   'time', c_double), # [sec], timestamp of GPS data
+        (    'lat', c_double), # [deg], Geodetic latitude
+        (    'lon', c_double), # [deg], Geodetic longitude
+        (    'alt', c_double), # [m], altitude relative to WGS84
+        (     'vn', c_double), # [m/sec], North velocity
+        (     've', c_double), # [m/sec], East velocity
+        (     'vd', c_double), # [m/sec], Down velocity
+        ('newData', c_ushort)  # [bool], flag set when GPS data has been updated
     ]
 
 
@@ -237,6 +266,34 @@ class NAV(Structure):
         (  'signal_7', c_double), # //< user defined dummy variable
         (  'signal_8', c_double), # //< user defined dummy variable
         (  'signal_9', c_double)  # //< user defined dummy variable    
+    ]
+
+# Navigation Filter Data Structure
+class newNAV(Structure):
+    _fields_ = [
+        (  'time', c_double), # [sec], timestamp of NAV filter
+        (   'lat', c_double), # [rad], geodetic latitude estimate
+        (   'lon', c_double), # [rad], geodetic longitude estimate
+        (   'alt', c_double), # [m], altitude relative to WGS84 estimate
+        (    'vn', c_double), # [m/sec], north velocity estimate
+        (    've', c_double), # [m/sec], east velocity estimate
+        (    'vd', c_double), # [m/sec], down velocity estimate
+        (   'phi', c_double), # [rad], Euler roll angle estimate
+        (   'the', c_double), # [rad], Euler pitch angle estimate
+        (   'psi', c_double), # [rad], Euler yaw angle estimate
+        (  'quat', c_double*4), # Quaternions estimate
+        (    'ab', c_double*3), # [m/sec^2], accelerometer bias estimate
+        (    'gb', c_double*3), # [rad/sec], rate gyro bias estimate
+        (   'asf', c_double*3), # [m/sec^2], accelerometer scale factor estimate
+        (   'gsf', c_double*3), # [rad/sec], rate gyro scale factor estimate
+        (    'Pp', c_double*3), # [rad], covariance estimate for position
+        (    'Pv', c_double*3), # [rad], covariance estimate for velocity
+        (    'Pa', c_double*3), # [rad], covariance estimate for angles
+        (   'Pab', c_double*3), # [rad], covariance estimate for accelerometer bias
+        (   'Pgb', c_double*3), # [rad], covariance estimate for rate gyro bias
+        (  'Pasf', c_double*3), # [rad], covariance estimate for accelerometer scale factor
+        (  'Pgsf', c_double*3), # [rad], covariance estimate for rate gyro scale factor
+        ('err_type', c_int)     # NAV filter status
     ]
 
 # Research Navigation Filter Data Structure
