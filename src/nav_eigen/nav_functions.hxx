@@ -61,7 +61,7 @@ void qmult(double *p, double *q, double *r);
 
 Matrix<double,3,1> quat2eul(Quaterniond q);
 
-void eul2quat(double *q, double phi, double the, double psi);
+Quaterniond eul2quat(double phi, double the, double psi);
 
 Matrix<double,3,3> quat2dcm(Quaterniond q);
 

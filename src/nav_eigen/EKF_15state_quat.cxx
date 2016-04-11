@@ -159,7 +159,11 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
       }
       }*/
 	
-    eul2quat(nav.quat,(nav.phi),(nav.the),(nav.psi));
+    quat = eul2quat(nav.phi, nav.the, nav.psi);
+    nav.quat[0] = quat.w();
+    nav.quat[1] = quat.x();
+    nav.quat[2] = quat.y();
+    nav.quat[3] = quat.z();
 	
     nav.ab[0] = 0.0;
     nav.ab[1] = 0.0; 
@@ -199,18 +203,16 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     tprev = tnow;		
 	
     // ==================  Time Update  ===================
-    // Temporary storage in Matrix form
-    quat = Quaterniond(nav.quat[0], nav.quat[1], nav.quat[2], nav.quat[3]);
 
-    Matrix<double,3,1> vel_vec(nav.vn, nav.ve, nav.vd);
-    Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
-	
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
     C_B2N = C_N2B.transpose();
 	
     // Attitude Update
     // ... Calculate Navigation Rate
+    Matrix<double,3,1> vel_vec(nav.vn, nav.ve, nav.vd);
+    Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
+	
     nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
     dq = Quaterniond(1.0,
@@ -224,11 +226,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    nav.quat[0] = quat.w();
-    nav.quat[1] = quat.x();
-    nav.quat[2] = quat.y();
-    nav.quat[3] = quat.z();
-	
     Matrix<double,3,1> att = quat2eul(quat);
     nav.phi = att(0);
     nav.the = att(1);
@@ -382,11 +379,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	nav.quat[0] = quat.w();
-	nav.quat[1] = quat.x();
-	nav.quat[2] = quat.y();
-	nav.quat[3] = quat.z();
-		
 	Matrix<double,3,1> att = quat2eul(quat);
 	nav.phi = att(0);
 	nav.the = att(1);
@@ -395,11 +387,16 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.ab[0] += x(9);
 	nav.ab[1] += x(10);
 	nav.ab[2] += x(11);
-		
+
 	nav.gb[0] += x(12);
 	nav.gb[1] += x(13);
 	nav.gb[2] += x(14);
     }
+	
+    nav.quat[0] = quat.w();
+    nav.quat[1] = quat.x();
+    nav.quat[2] = quat.y();
+    nav.quat[3] = quat.z();
 	
     // Remove current estimated biases from rate gyro and accels
     imu.p -= nav.gb[0];

@@ -169,7 +169,7 @@ Matrix<double,3,1> quat2eul(Quaterniond q) {
     return result;
 }
 
-void eul2quat(double *q, double phi, double the, double psi) {
+Quaterniond eul2quat(double phi, double the, double psi) {
     double sin_psi = sin(psi*0.5);
     double cos_psi = cos(psi*0.5);
     double sin_the = sin(the*0.5);
@@ -177,10 +177,13 @@ void eul2quat(double *q, double phi, double the, double psi) {
     double sin_phi = sin(phi*0.5);
     double cos_phi = cos(phi*0.5);
 
-    q[0] = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;  
-    q[1] = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
-    q[2] = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;  
-    q[3] = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
+    Quaterniond q;
+    q.w() = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;  
+    q.x() = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
+    q.y() = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;  
+    q.z() = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
+
+    return q;
 }
 
 // fixme: clean up math operations
