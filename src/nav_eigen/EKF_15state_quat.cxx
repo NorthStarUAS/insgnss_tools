@@ -57,16 +57,16 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
-Matrix<double,15,12> G;
-Matrix<double,15,6> K;
-Matrix<double,15,1> x;
-Matrix<double,12,12> Rw;
-Matrix<double,6,15> H;
-Matrix<double,6,6> R;
-Matrix<double,6,1> y;
-Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
+static Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
+static Matrix<double,15,12> G;
+static Matrix<double,15,6> K;
+static Matrix<double,15,1> x;
+static Matrix<double,12,12> Rw;
+static Matrix<double,6,15> H;
+static Matrix<double,6,6> R;
+static Matrix<double,6,1> y;
+static Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
+static Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
 
 static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
@@ -365,8 +365,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.vn = nav.vn + x(3);
 	nav.ve = nav.ve + x(4);
 	nav.vd = nav.vd + x(5);
-		
-	quat = Quaterniond(nav.quat[0], nav.quat[1], nav.quat[2], nav.quat[3]);
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
