@@ -29,8 +29,6 @@ using std::endl;
 #include "nav_functions.hxx"
 #include "nav_interface.hxx"
 
-//#include "../include/globaldefs.h"
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -213,10 +211,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
     Quaterniond dq;
-    dq = Quaterniond(1.0,
-		     0.5*om_ib(0)*imu_dt,
-		     0.5*om_ib(1)*imu_dt,
-		     0.5*om_ib(2)*imu_dt);
+    dq = Quaterniond(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
