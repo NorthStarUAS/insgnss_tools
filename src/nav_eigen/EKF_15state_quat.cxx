@@ -193,13 +193,10 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 
 // Main get_nav filter function
 NAVdata get_nav(IMUdata imu, GPSdata gps) {
-    double tnow, imu_dt;
-    Quaterniond dq;
-
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
-    tnow = imu.time;
-    imu_dt = tnow - tprev;
+    double tnow = imu.time;
+    double imu_dt = tnow - tprev;
     tprev = tnow;		
 	
     // ==================  Time Update  ===================
@@ -215,6 +212,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	
     nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
+    Quaterniond dq;
     dq = Quaterniond(1.0,
 		     0.5*om_ib(0)*imu_dt,
 		     0.5*om_ib(1)*imu_dt,
@@ -226,10 +224,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    Matrix<double,3,1> att = quat2eul(quat);
-    nav.phi = att(0);
-    nav.the = att(1);
-    nav.psi = att(2);
+    Matrix<double,3,1> att_vec = quat2eul(quat);
+    nav.phi = att_vec(0);
+    nav.the = att_vec(1);
+    nav.psi = att_vec(2);
 	
     // Velocity Update
     dx = C_B2N * f_b;
@@ -355,8 +353,8 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.Pp[0] = P(0,0); 	nav.Pp[1] = P(1,1); 	nav.Pp[2] = P(2,2);
 	nav.Pv[0] = P(3,3); 	nav.Pv[1] = P(4,4); 	nav.Pv[2] = P(5,5);
 	nav.Pa[0] = P(6,6); 	nav.Pa[1] = P(7,7); 	nav.Pa[2] = P(8,8);
-	nav.Pab[0] = P(9,9); 	nav.Pab[1] = P(10,10); nav.Pab[2] = P(11,11);
-	nav.Pgb[0] = P(12,12); nav.Pgb[1] = P(13,13); nav.Pgb[2] = P(14,14);
+	nav.Pab[0] = P(9,9); 	nav.Pab[1] = P(10,10);  nav.Pab[2] = P(11,11);
+	nav.Pgb[0] = P(12,12);  nav.Pgb[1] = P(13,13);  nav.Pgb[2] = P(14,14);
 		
 	// State Update
 	x = K * y;
@@ -379,10 +377,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	Matrix<double,3,1> att = quat2eul(quat);
-	nav.phi = att(0);
-	nav.the = att(1);
-	nav.psi = att(2);
+	Matrix<double,3,1> att_vec = quat2eul(quat);
+	nav.phi = att_vec(0);
+	nav.the = att_vec(1);
+	nav.psi = att_vec(2);
 	
 	nav.ab[0] += x(9);
 	nav.ab[1] += x(10);
