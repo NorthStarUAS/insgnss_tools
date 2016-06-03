@@ -36,6 +36,7 @@ args = parser.parse_args()
 T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
                         # To always keep GPS, set to: -1
 FLAG_PLOT_ATTITUDE = True
+FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND     = True
@@ -96,6 +97,9 @@ def store_data(data_dict, insgps):
         data_dict['navlat_store'] = []
         data_dict['navlon_store'] = []
         data_dict['navalt_store'] = []
+        data_dict['nav_vn_store'] = []
+        data_dict['nav_ve_store'] = []
+        data_dict['nav_vd_store'] = []
         data_dict['navStatus_store'] = []
         data_dict['wn_store'] = []
         data_dict['we_store'] = []
@@ -126,6 +130,9 @@ def store_data(data_dict, insgps):
     data_dict['navlat_store'].append(insgps.estPOS[0])
     data_dict['navlon_store'].append(insgps.estPOS[1])
     data_dict['navalt_store'].append(insgps.estPOS[2])
+    data_dict['nav_vn_store'].append(insgps.estVEL[0])
+    data_dict['nav_ve_store'].append(insgps.estVEL[1])
+    data_dict['nav_vd_store'].append(insgps.estVEL[2])
     data_dict['navStatus_store'].append(insgps.valid) #fixme: was err_type
     #data_dict['wn_store'].append(insgps.wn)
     #data_dict['we_store'].append(insgps.we)
@@ -234,6 +241,9 @@ phi_flight = []
 navlat_flight = []
 navlon_flight = []
 navalt_flight = []
+vn_flight = []
+ve_flight = []
+vd_flight = []
 for f in filter_data:
     t_flight.append(f.time)
     psi_flight.append(f.psi)
@@ -242,6 +252,9 @@ for f in filter_data:
     navlat_flight.append(f.lat)
     navlon_flight.append(f.lon)
     navalt_flight.append(f.alt)
+    vn_flight.append(f.vn)
+    ve_flight.append(f.ve)
+    vd_flight.append(f.vd)
 
 concurrent_run = False
 if concurrent_run:
@@ -416,6 +429,39 @@ if FLAG_PLOT_ATTITUDE:
     ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
     ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
     ax3.plot(t_flight, r2d(phi_flight), label='On-Board', c='green', lw=2, alpha=.5)
+    ax3.set_xlabel('TIME (SECONDS)', weight='bold')
+    ax3.grid()
+
+if FLAG_PLOT_VELOCITIES:
+    fig, [ax1, ax2, ax3] = plt.subplots(3,1)
+
+    # vn Plot
+    vn_nav = data_dict1['nav_vn_store']
+    vn_nav_mag = data_dict2['nav_vn_store']
+    ax1.set_title(plotname, fontsize=10)
+    ax1.set_ylabel('vn (mps)', weight='bold')
+    ax1.plot(t_store, vn_nav, label='nav', c='k', lw=3, alpha=.5)
+    ax1.plot(t_store, vn_nav_mag, label='nav_mag',c='blue', lw=2)
+    ax1.plot(t_flight, vn_flight, label='On-Board', c='green', lw=2, alpha=.5)
+    ax1.grid()
+    ax1.legend(loc=0)
+
+    # ve PLot
+    ve_nav = data_dict1['nav_ve_store']
+    ve_nav_mag = data_dict2['nav_ve_store']  
+    ax2.set_ylabel('ve (mps)', weight='bold')
+    ax2.plot(t_store, ve_nav, label='nav', c='k', lw=3, alpha=.5)
+    ax2.plot(t_store, ve_nav_mag, label='nav_mag',c='blue', lw=2)
+    ax2.plot(t_flight, ve_flight, label='On-Board', c='green', lw=2, alpha=.5)
+    ax2.grid()
+
+    # vd PLot
+    vd_nav = data_dict1['nav_vd_store']
+    vd_nav_mag = data_dict2['nav_vd_store']   
+    ax3.set_ylabel('vd (mps)', weight='bold')
+    ax3.plot(t_store, vd_nav, label='nav', c='k', lw=3, alpha=.5)
+    ax3.plot(t_store, vd_nav_mag, label='nav_mag', c='blue',lw=2)
+    ax3.plot(t_flight, vd_flight, label='On-Board', c='green', lw=2, alpha=.5)
     ax3.set_xlabel('TIME (SECONDS)', weight='bold')
     ax3.grid()
 
