@@ -58,11 +58,15 @@ import nav_orig
 import nav_polarity
 import nav_mag
 import nav_eigen
+import nav_eigen_mag
 import MadgwickAHRS
-filter1 = nav_orig.filter()
-#filter2 = nav_polarity.filter()
+
+#filter1 = nav_orig.filter()
+#filter2 = nav_eigen.filter()
+
+filter1 = nav_eigen.filter()
+filter2 = nav_eigen_mag.filter()
 #filter2 = MadgwickAHRS.filter()
-filter2 = nav_eigen.filter()
 
 import pydefs
 insgps1 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),

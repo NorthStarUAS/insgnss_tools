@@ -145,9 +145,8 @@ void qmult(double *p, double *q, double *r) {
     r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
 }
 
-void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
-    /* Quaternion to euler angle */
-
+// Quaternion to euler angle: returns phi, the, psi as a vector
+Matrix<double,3,1> quat2eul(Quaterniond q) {
     double q0, q1, q2, q3;
     double m11, m12, m13, m23, m33;
 	
@@ -161,13 +160,16 @@ void quat2eul(Quaterniond q, double *phi, double *the, double *psi) {
     m13 = 2*(q1*q3 - q0*q2);
     m23 = 2*(q2*q3 + q0*q1);
     m33 = 2*(q0*q0 + q3*q3) - 1;
-	
-    *psi = atan2(m12,m11);
-    *the = asin(-m13);
-    *phi = atan2(m23,m33);
+    
+    Matrix<double,3,1> result;
+    result(2) = atan2(m12,m11);
+    result(1) = asin(-m13);
+    result(0) = atan2(m23,m33);
+
+    return result;
 }
 
-void eul2quat(double *q, double phi, double the, double psi) {
+Quaterniond eul2quat(double phi, double the, double psi) {
     double sin_psi = sin(psi*0.5);
     double cos_psi = cos(psi*0.5);
     double sin_the = sin(the*0.5);
@@ -175,10 +177,13 @@ void eul2quat(double *q, double phi, double the, double psi) {
     double sin_phi = sin(phi*0.5);
     double cos_phi = cos(phi*0.5);
 
-    q[0] = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;  
-    q[1] = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
-    q[2] = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;  
-    q[3] = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
+    Quaterniond q;
+    q.w() = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;  
+    q.x() = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
+    q.y() = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;  
+    q.z() = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
+
+    return q;
 }
 
 // fixme: clean up math operations

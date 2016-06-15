@@ -29,7 +29,6 @@ using std::endl;
 #include "nav_functions.hxx"
 #include "nav_interface.hxx"
 
-#include "../include/globaldefs.h"
 #include "../utils/coremag.h"
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -71,19 +70,20 @@ Matrix<double,9,15> H;
 Matrix<double,9,9> R;
 Matrix<double,9,1> y;
 Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ref, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, a_temp31, b_temp31, mag_ned, mag_ekf, mag_sense;
+Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
 
-static Quaterniond quat;
+static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
 static double tprev;
+
+static NAVdata nav;
 
 ////////// BRT I think there are some several identity and sparse matrices, so probably some optimization still left there
 ////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
 ////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
 ////////// BRT A lot of these multi line equations with temp matrices can be compressed
 	
-void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr) {
-	
+NAVdata init_nav(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -93,9 +93,10 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 	
     // ... H
     H.topLeftCorner(6,6).setIdentity();
-    H(6,0) = 0.0;
-    H(7,1) = 0.0;
-    H(8,2) = 0.0;
+    // FIXME: Waiting for official derivation
+    H(6,0) = 1.0;
+    H(7,1) = 1.0;
+    H(8,2) = 1.0;
     
     // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
@@ -115,12 +116,12 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
     // ... update P in get_nav
-    navData_ptr->Pp[0] = P(0,0);	navData_ptr->Pp[1] = P(1,1);	      navData_ptr->Pp[2] = P(2,2);
-    navData_ptr->Pv[0] = P(3,3);	navData_ptr->Pv[1] = P(4,4);	      navData_ptr->Pv[2] = P(5,5);
-    navData_ptr->Pa[0] = P(6,6);	navData_ptr->Pa[1] = P(7,7);	      navData_ptr->Pa[2] = P(8,8);
+    nav.Pp[0] = P(0,0);	                nav.Pp[1] = P(1,1);	              nav.Pp[2] = P(2,2);
+    nav.Pv[0] = P(3,3);	                nav.Pv[1] = P(4,4);	              nav.Pv[2] = P(5,5);
+    nav.Pa[0] = P(6,6);	                nav.Pa[1] = P(7,7);	              nav.Pa[2] = P(8,8);
 	
-    navData_ptr->Pab[0] = P(9,9);	navData_ptr->Pab[1] = P(10,10);	      navData_ptr->Pab[2] = P(11,11);
-    navData_ptr->Pgb[0] = P(12,12);	navData_ptr->Pgb[1] = P(13,13);	      navData_ptr->Pgb[2] = P(14,14);
+    nav.Pab[0] = P(9,9);	        nav.Pab[1] = P(10,10);	              nav.Pab[2] = P(11,11);
+    nav.Pgb[0] = P(12,12);	        nav.Pgb[1] = P(13,13);	              nav.Pgb[2] = P(14,14);
 	
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
@@ -128,19 +129,19 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
     R(6,6) = SIG_MAG;                    R(7,7) = SIG_MAG;                    R(8,8) = SIG_MAG;
     
     // .. then initialize states with GPS Data
-    navData_ptr->lat = gpsData_ptr->lat*D2R;
-    navData_ptr->lon = gpsData_ptr->lon*D2R;
-    navData_ptr->alt = gpsData_ptr->alt;
+    nav.lat = gps.lat*D2R;
+    nav.lon = gps.lon*D2R;
+    nav.alt = gps.alt;
 	
-    navData_ptr->vn = gpsData_ptr->vn;
-    navData_ptr->ve = gpsData_ptr->ve;
-    navData_ptr->vd = gpsData_ptr->vd;
+    nav.vn = gps.vn;
+    nav.ve = gps.ve;
+    nav.vd = gps.vd;
 	
     // ideal magnetic vector
     long int jd = now_to_julian_days();
     double field[6];
-    calc_magvar( navData_ptr->lat, navData_ptr->lon,
-		 navData_ptr->alt / 1000.0, jd, field );
+    calc_magvar( nav.lat, nav.lon,
+		 nav.alt / 1000.0, jd, field );
     mag_ned(0) = field[3];
     mag_ned(1) = field[4];
     mag_ned(2) = field[5];
@@ -155,97 +156,88 @@ void init_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navD
 
     // ... and initialize states with IMU Data
     // theta from Ax, aircraft at rest
-    navData_ptr->the = asin(imuData_ptr->ax/g); 
+    nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
-    navData_ptr->phi = asin(imuData_ptr->ay/(g*cos(navData_ptr->the))); 
-    navData_ptr->psi = 0.0;
+    nav.phi = asin(imu.ay/(g*cos(nav.the))); 
+    nav.psi = 0.0;
 
     // fixme: for now match the reference implementation so we can
     // compare intermediate calculations.
-    navData_ptr->the = 8*D2R;
-    navData_ptr->phi = 0*D2R;
-    navData_ptr->psi = 90.0*D2R;
+    nav.the = 8*D2R;
+    nav.phi = 0*D2R;
+    nav.psi = 90.0*D2R;
 
     /*
-      if((imuData_ptr->hy) > 0){
-      navData_ptr->psi = 90*D2R - atan(imuData_ptr->hx / imuData_ptr->hy);
+      if((imu.hy) > 0){
+      nav.psi = 90*D2R - atan(imu.hx / imu.hy);
       }
-      else if((imuData_ptr->hy) < 0){
-      navData_ptr->psi = 270*D2R - atan(imuData_ptr->hx / imuData_ptr->hy) - 360*D2R;
+      else if((imu.hy) < 0){
+      nav.psi = 270*D2R - atan(imu.hx / imu.hy) - 360*D2R;
       }
-      else if((imuData_ptr->hy) == 0){
-      if((imuData_ptr->hx) < 0){
-      navData_ptr->psi = 180*D2R;
+      else if((imu.hy) == 0){
+      if((imu.hx) < 0){
+      nav.psi = 180*D2R;
       }
       else{
-      navData_ptr->psi = 0.0;
+      nav.psi = 0.0;
       }
       }*/
 	
-    eul2quat(navData_ptr->quat,(navData_ptr->phi),(navData_ptr->the),(navData_ptr->psi));
+    quat = eul2quat(nav.phi, nav.the, nav.psi);
+    nav.quat[0] = quat.w();
+    nav.quat[1] = quat.x();
+    nav.quat[2] = quat.y();
+    nav.quat[3] = quat.z();
 	
-    navData_ptr->ab[0] = 0.0;
-    navData_ptr->ab[1] = 0.0; 
-    navData_ptr->ab[2] = 0.0;
+    nav.ab[0] = 0.0;
+    nav.ab[1] = 0.0; 
+    nav.ab[2] = 0.0;
 	
-    navData_ptr->gb[0] = imuData_ptr->p;
-    navData_ptr->gb[1] = imuData_ptr->q;
-    navData_ptr->gb[2] = imuData_ptr->r;
+    nav.gb[0] = imu.p;
+    nav.gb[1] = imu.q;
+    nav.gb[2] = imu.r;
 	
     // Specific forces and Rotation Rate
-    f_b(0) = imuData_ptr->ax - navData_ptr->ab[0];
-    f_b(1) = imuData_ptr->ay - navData_ptr->ab[1];
-    f_b(2) = imuData_ptr->az - navData_ptr->ab[2];
+    f_b(0) = imu.ax - nav.ab[0];
+    f_b(1) = imu.ay - nav.ab[1];
+    f_b(2) = imu.az - nav.ab[2];
 	
-    om_ib(0) = imuData_ptr->p - navData_ptr->gb[0];
-    om_ib(1) = imuData_ptr->q - navData_ptr->gb[1];
-    om_ib(2) = imuData_ptr->r - navData_ptr->gb[2];
+    om_ib(0) = imu.p - nav.gb[0];
+    om_ib(1) = imu.q - nav.gb[1];
+    om_ib(2) = imu.r - nav.gb[2];
 	
     // Time during initialization
-    tprev = imuData_ptr->time;
+    tprev = imu.time;
 	
-    //navData_ptr->init = 1;
-    navData_ptr->err_type = data_valid;
+    //nav.init = 1;
+    nav.err_type = data_valid;
+
+    return nav;
 }
 
 // Main get_nav filter function
-void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navData_ptr){
-    double tnow, imu_dt;
-    Quaterniond dq;
-
+NAVdata get_nav(IMUdata imu, GPSdata gps) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
-    tnow = imuData_ptr->time;
-    imu_dt = tnow - tprev;
+    double tnow = imu.time;
+    double imu_dt = tnow - tprev;
     tprev = tnow;		
 	
     // ==================  Time Update  ===================
-    // Temporary storage in Matrix form
-    quat = Quaterniond(navData_ptr->quat[0],
-		       navData_ptr->quat[1],
-		       navData_ptr->quat[2],
-		       navData_ptr->quat[3]);
-    
-    a_temp31(0) = navData_ptr->vn;
-    a_temp31(1) = navData_ptr->ve;
-    a_temp31(2) = navData_ptr->vd;
-	
-    b_temp31(0) = navData_ptr->lat;
-    b_temp31(1) = navData_ptr->lon;
-    b_temp31(2) = navData_ptr->alt;
-	
+
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
     C_B2N = C_N2B.transpose();
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    nr = navrate(a_temp31,b_temp31);  /* fixme: unused, llarate used instead */
+    Matrix<double,3,1> vel_vec(nav.vn, nav.ve, nav.vd);
+    Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
 	
-    dq = Quaterniond(1.0,
-		     0.5*om_ib(0)*imu_dt,
-		     0.5*om_ib(1)*imu_dt,
-		     0.5*om_ib(2)*imu_dt);
+    nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
+	
+    Quaterniond dq;
+    dq = Quaterniond(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
@@ -253,26 +245,24 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    navData_ptr->quat[0] = quat.w();
-    navData_ptr->quat[1] = quat.x();
-    navData_ptr->quat[2] = quat.y();
-    navData_ptr->quat[3] = quat.z();
-	
-    quat2eul(quat, &(navData_ptr->phi), &(navData_ptr->the), &(navData_ptr->psi));
+    Matrix<double,3,1> att_vec = quat2eul(quat);
+    nav.phi = att_vec(0);
+    nav.the = att_vec(1);
+    nav.psi = att_vec(2);
 	
     // Velocity Update
     dx = C_B2N * f_b;
     dx += grav;
 	
-    navData_ptr->vn += imu_dt*dx(0);
-    navData_ptr->ve += imu_dt*dx(1);
-    navData_ptr->vd += imu_dt*dx(2);
+    nav.vn += imu_dt*dx(0);
+    nav.ve += imu_dt*dx(1);
+    nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(a_temp31,b_temp31);
-    navData_ptr->lat += imu_dt*dx(0);
-    navData_ptr->lon += imu_dt*dx(1);
-    navData_ptr->alt += imu_dt*dx(2);
+    dx = llarate(vel_vec, pos_vec);
+    nav.lat += imu_dt*dx(0);
+    nav.lon += imu_dt*dx(1);
+    nav.alt += imu_dt*dx(2);
 	
     // JACOBIAN
     F.setZero();
@@ -333,60 +323,67 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
     P = PHI * P * PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
     P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
 	
-    navData_ptr->Pp[0] = P(0,0);     navData_ptr->Pp[1] = P(1,1);     navData_ptr->Pp[2] = P(2,2);
-    navData_ptr->Pv[0] = P(3,3);     navData_ptr->Pv[1] = P(4,4);     navData_ptr->Pv[2] = P(5,5);
-    navData_ptr->Pa[0] = P(6,6);     navData_ptr->Pa[1] = P(7,7);     navData_ptr->Pa[2] = P(8,8);
-    navData_ptr->Pab[0] = P(9,9);    navData_ptr->Pab[1] = P(10,10);  navData_ptr->Pab[2] = P(11,11);
-    navData_ptr->Pgb[0] = P(12,12);  navData_ptr->Pgb[1] = P(13,13);  navData_ptr->Pgb[2] = P(14,14);
+    nav.Pp[0] = P(0,0);     nav.Pp[1] = P(1,1);     nav.Pp[2] = P(2,2);
+    nav.Pv[0] = P(3,3);     nav.Pv[1] = P(4,4);     nav.Pv[2] = P(5,5);
+    nav.Pa[0] = P(6,6);     nav.Pa[1] = P(7,7);     nav.Pa[2] = P(8,8);
+    nav.Pab[0] = P(9,9);    nav.Pab[1] = P(10,10);  nav.Pab[2] = P(11,11);
+    nav.Pgb[0] = P(12,12);  nav.Pgb[1] = P(13,13);  nav.Pgb[2] = P(14,14);
 
     // ==================  DONE TU  ===================
 	
-    if ( gpsData_ptr->newData ) {
+    if ( gps.newData ) {
 	// ==================  GPS Update  ===================
-	gpsData_ptr->newData = 0; // Reset the flag
+	gps.newData = 0; // Reset the flag
 		
 	// Position, converted to NED
-	a_temp31(0) = navData_ptr->lat;
-	a_temp31(1) = navData_ptr->lon;
-	a_temp31(2) = navData_ptr->alt;
-	pos_ins_ecef = lla2ecef(a_temp31);
+	Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
+	pos_ins_ecef = lla2ecef(pos_vec);
 
-	a_temp31(2) = 0.0;
-	//pos_ref = lla2ecef(a_temp31,pos_ref);
-	pos_ref = a_temp31;
+	Matrix<double,3,1> pos_ref = pos_vec;
+	pos_ref(2) = 0.0;
 	pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
 		
-	pos_gps(0) = gpsData_ptr->lat*D2R;
-	pos_gps(1) = gpsData_ptr->lon*D2R;
-	pos_gps(2) = gpsData_ptr->alt;
+	pos_gps(0) = gps.lat*D2R;
+	pos_gps(1) = gps.lon*D2R;
+	pos_gps(2) = gps.alt;
 		
 	pos_gps_ecef = lla2ecef(pos_gps);
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
-		
-	// ideal mag vector in body frame (then normalized)
-	mag_ekf = C_N2B * mag_ned;
-	mag_ekf.normalize();
-	
-	// measured mag vector
-	mag_sense(0) = imuData_ptr->hx;
-	mag_sense(1) = imuData_ptr->hy;
-	mag_sense(2) = imuData_ptr->hz;
-	mag_sense.normalize();
 
-	// difference between measured and expected mag vector
-	Matrix<double,3,1> mag_error = mag_sense - mag_ekf;
+	Matrix<double,3,1> mag_sense;
+	mag_sense(0) = imu.hx;
+	mag_sense(1) = imu.hy;
+	mag_sense(2) = imu.hz;
 	
-	/*printf("%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n", mag_ekf(0), mag_ekf(1), mag_ekf(2), mag_sense(0), mag_sense(1), mag_sense(2));*/
+	Matrix<double,3,1> mag_error; // magnetometer measurement error
+	bool mag_error_in_ned = true;
+	if ( mag_error_in_ned ) {
+	    // rotate measured mag vector into ned frame (then normalized)
+	    Matrix<double,3,1> mag_sense_ned = C_B2N * mag_sense;
+	    mag_sense_ned.normalize();
+	    mag_error = mag_sense_ned - mag_ned;
+	} else {
+	    // rotate ideal mag vector into body frame (then normalized)
+	    Matrix<double,3,1> mag_ideal = C_N2B * mag_ned;
+	    mag_ideal.normalize();
+	
+	    // measured mag vector (body frame)
+	    mag_sense(0) = imu.hx;
+	    mag_sense(1) = imu.hy;
+	    mag_sense(2) = imu.hz;
+	    mag_sense.normalize();
+	    mag_error = mag_sense - mag_ideal;
+	}
 	
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);
 	y(2) = pos_gps_ned(2) - pos_ins_ned(2);
 		
-	y(3) = gpsData_ptr->vn - navData_ptr->vn;
-	y(4) = gpsData_ptr->ve - navData_ptr->ve;
-	y(5) = gpsData_ptr->vd - navData_ptr->vd;
+	y(3) = gps.vn - nav.vn;
+	y(4) = gps.ve - nav.ve;
+	y(5) = gps.vd - nav.vd;
 		
 	y(6) = mag_error(0);
 	y(7) = mag_error(1);
@@ -403,67 +400,67 @@ void get_nav(struct imu *imuData_ptr, struct gps *gpsData_ptr, struct nav *navDa
 		
 	P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
 		
-	navData_ptr->Pp[0] = P(0,0); 	navData_ptr->Pp[1] = P(1,1); 	navData_ptr->Pp[2] = P(2,2);
-	navData_ptr->Pv[0] = P(3,3); 	navData_ptr->Pv[1] = P(4,4); 	navData_ptr->Pv[2] = P(5,5);
-	navData_ptr->Pa[0] = P(6,6); 	navData_ptr->Pa[1] = P(7,7); 	navData_ptr->Pa[2] = P(8,8);
-	navData_ptr->Pab[0] = P(9,9); 	navData_ptr->Pab[1] = P(10,10); navData_ptr->Pab[2] = P(11,11);
-	navData_ptr->Pgb[0] = P(12,12); navData_ptr->Pgb[1] = P(13,13); navData_ptr->Pgb[2] = P(14,14);
+	nav.Pp[0] = P(0,0); 	nav.Pp[1] = P(1,1); 	nav.Pp[2] = P(2,2);
+	nav.Pv[0] = P(3,3); 	nav.Pv[1] = P(4,4); 	nav.Pv[2] = P(5,5);
+	nav.Pa[0] = P(6,6); 	nav.Pa[1] = P(7,7); 	nav.Pa[2] = P(8,8);
+	nav.Pab[0] = P(9,9); 	nav.Pab[1] = P(10,10);  nav.Pab[2] = P(11,11);
+	nav.Pgb[0] = P(12,12);  nav.Pgb[1] = P(13,13);  nav.Pgb[2] = P(14,14);
 		
 	// State Update
 	x = K * y;
-	denom = (1.0 - (ECC2 * sin(navData_ptr->lat) * sin(navData_ptr->lat)));
+	denom = (1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
 	denom = sqrt(denom*denom);
 
 	Re = EARTH_RADIUS / sqrt(denom);
 	Rn = EARTH_RADIUS * (1-ECC2) / denom*sqrt(denom);
-	navData_ptr->alt = navData_ptr->alt - x(2);
-	navData_ptr->lat = navData_ptr->lat + x(0)/(Re + navData_ptr->alt);
-	navData_ptr->lon = navData_ptr->lon + x(1)/(Rn + navData_ptr->alt)/cos(navData_ptr->lat);
+	nav.alt = nav.alt - x(2);
+	nav.lat = nav.lat + x(0)/(Re + nav.alt);
+	nav.lon = nav.lon + x(1)/(Rn + nav.alt)/cos(nav.lat);
 		
-	navData_ptr->vn = navData_ptr->vn + x(3);
-	navData_ptr->ve = navData_ptr->ve + x(4);
-	navData_ptr->vd = navData_ptr->vd + x(5);
-		
-	quat = Quaterniond(navData_ptr->quat[0],
-			   navData_ptr->quat[1],
-			   navData_ptr->quat[2],
-			   navData_ptr->quat[3]);
+	nav.vn = nav.vn + x(3);
+	nav.ve = nav.ve + x(4);
+	nav.vd = nav.vd + x(5);
 		
 	// Attitude correction
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	navData_ptr->quat[0] = quat.w();
-	navData_ptr->quat[1] = quat.x();
-	navData_ptr->quat[2] = quat.y();
-	navData_ptr->quat[3] = quat.z();
-		
-	quat2eul(quat, &(navData_ptr->phi), &(navData_ptr->the), &(navData_ptr->psi));
-		
-	navData_ptr->ab[0] = navData_ptr->ab[0] + x(9);
-	navData_ptr->ab[1] = navData_ptr->ab[1] + x(10);
-	navData_ptr->ab[2] = navData_ptr->ab[2] + x(11);
-		
-	navData_ptr->gb[0] = navData_ptr->gb[0] + x(12);
-	navData_ptr->gb[1] = navData_ptr->gb[1] + x(13);
-	navData_ptr->gb[2] = navData_ptr->gb[2] + x(14);
+	Matrix<double,3,1> att_vec = quat2eul(quat);
+	nav.phi = att_vec(0);
+	nav.the = att_vec(1);
+	nav.psi = att_vec(2);
+	
+	nav.ab[0] += x(9);
+	nav.ab[1] += x(10);
+	nav.ab[2] += x(11);
+
+	nav.gb[0] += x(12);
+	nav.gb[1] += x(13);
+	nav.gb[2] += x(14);
     }
 	
+    nav.quat[0] = quat.w();
+    nav.quat[1] = quat.x();
+    nav.quat[2] = quat.y();
+    nav.quat[3] = quat.z();
+	
     // Remove current estimated biases from rate gyro and accels
-    imuData_ptr->p -= navData_ptr->gb[0];
-    imuData_ptr->q -= navData_ptr->gb[1];
-    imuData_ptr->r -= navData_ptr->gb[2];
-    imuData_ptr->ax -= navData_ptr->ab[0];
-    imuData_ptr->ay -= navData_ptr->ab[1];
-    imuData_ptr->az -= navData_ptr->ab[2];
+    imu.p -= nav.gb[0];
+    imu.q -= nav.gb[1];
+    imu.r -= nav.gb[2];
+    imu.ax -= nav.ab[0];
+    imu.ay -= nav.ab[1];
+    imu.az -= nav.ab[2];
 
     // Get the new Specific forces and Rotation Rate,
     // use in the next time update
-    f_b(0) = imuData_ptr->ax;
-    f_b(1) = imuData_ptr->ay;
-    f_b(2) = imuData_ptr->az;
+    f_b(0) = imu.ax;
+    f_b(1) = imu.ay;
+    f_b(2) = imu.az;
 
-    om_ib(0) = imuData_ptr->p;
-    om_ib(1) = imuData_ptr->q;
-    om_ib(2) = imuData_ptr->r;
+    om_ib(0) = imu.p;
+    om_ib(1) = imu.q;
+    om_ib(2) = imu.r;
+
+    return nav;
 }

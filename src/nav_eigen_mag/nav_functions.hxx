@@ -59,9 +59,9 @@ Matrix<double,3,3> sk(Matrix<double,3,1> w);
 
 void qmult(double *p, double *q, double *r);
 
-void quat2eul(Quaterniond q, double *phi, double *the, double *psi);
+Matrix<double,3,1> quat2eul(Quaterniond q);
 
-void eul2quat(double *q, double phi, double the, double psi);
+Quaterniond eul2quat(double phi, double the, double psi);
 
 Matrix<double,3,3> quat2dcm(Quaterniond q);
 
