@@ -49,7 +49,7 @@ const double SIG_GPS_P_NE = 3.0;
 const double SIG_GPS_P_D  = 5.0;
 const double SIG_GPS_V    = 0.5;
 
-const double SIG_MAG      = 4.0;
+const double SIG_MAG      = 0.05;
 
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
@@ -93,10 +93,6 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 	
     // ... H
     H.topLeftCorner(6,6).setIdentity();
-    // FIXME: Waiting for official derivation
-    H(6,0) = 1.0;
-    H(7,1) = 1.0;
-    H(8,2) = 1.0;
     
     // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
@@ -126,7 +122,7 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
     R(3,3) = SIG_GPS_V*SIG_GPS_V;	 R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
-    R(6,6) = SIG_MAG;                    R(7,7) = SIG_MAG;                    R(8,8) = SIG_MAG;
+    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
     
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
@@ -357,7 +353,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	mag_sense(2) = imu.hz;
 	
 	Matrix<double,3,1> mag_error; // magnetometer measurement error
-	bool mag_error_in_ned = true;
+	bool mag_error_in_ned = false;
 	if ( mag_error_in_ned ) {
 	    // rotate measured mag vector into ned frame (then normalized)
 	    Matrix<double,3,1> mag_sense_ned = C_B2N * mag_sense;
@@ -374,8 +370,16 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	    mag_sense(2) = imu.hz;
 	    mag_sense.normalize();
 	    mag_error = mag_sense - mag_ideal;
+	    cout << "mag_error:" << mag_error << endl;
+
+	    Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
+	    for ( int j = 0; j < 3; j++ ) {
+		for ( int i = 0; i < 3; i++ ) {
+		    H(6+i,6+j) = tmp1(i,j);
+		}
+	    }
 	}
-	
+
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);
