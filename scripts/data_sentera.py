@@ -36,6 +36,9 @@ def load(flight_dir):
             if len(tokens) == 11 and isFloat(tokens[10]):
                 #print '"' + tokens[10] + '"'
                 (time, p, q, r, ax, ay, az, hx, hy, hz, temp) = tokens
+                hx = float(hx) + 13
+                hy = float(hy) - 63
+                hz = float(hz) - 80
                 imu = pydefs.IMU( float(time)/1000000.0, 0,
                                   float(p), float(q), float(r),
                                   float(ax)*g, float(ay)*g, float(az)*g,
