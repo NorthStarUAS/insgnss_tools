@@ -370,9 +370,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	    mag_sense(2) = imu.hz;
 	    mag_sense.normalize();
 	    mag_error = mag_sense - mag_ideal;
-	    cout << "mag_error:" << mag_error << endl;
+	    // cout << "mag_error:" << mag_error << endl;
 
-	    Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
+	    // Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
+	    Matrix<double,3,3> tmp1 = sk(mag_sense) * 2.0;
 	    for ( int j = 0; j < 3; j++ ) {
 		for ( int i = 0; i < 3; i++ ) {
 		    H(6+i,6+j) = tmp1(i,j);
