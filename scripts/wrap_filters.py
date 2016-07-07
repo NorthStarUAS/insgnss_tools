@@ -39,9 +39,7 @@ FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
-FLAG_PLOT_WIND     = True
-# FLAG_PLOT_HAVEGPS  = True
-FLAG_PLOT_SIGNALS  = True
+FLAG_PLOT_BIASES = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
 # # # # # END INPUTS # # # # #
@@ -74,95 +72,65 @@ insgps1 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
 insgps2 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                            np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
-class dict2struct():
-    pass
+class data_store():
+    def __init__(self):
+        self.psi = []
+        self.the = []
+        self.phi = []
+        self.nav_lat = []
+        self.nav_lon = []
+        self.nav_alt = []
+        self.nav_vn = []
+        self.nav_ve = []
+        self.nav_vd = []
+        self.navStatus = []
+
+        self.ax_bias = []
+        self.ay_bias = [] 
+        self.az_bias = []
+        self.p_bias = []
+        self.q_bias = []
+        self.r_bias = []
+
+        self.Pp = []
+        self.Pvel = []
+        self.Patt = []
+        self.Pab = []
+        self.Pgb = []
+
+    def append(self, insgps):
+        self.psi.append(insgps.estATT[0])
+        self.the.append(insgps.estATT[1])
+        self.phi.append(insgps.estATT[2])
+        self.nav_lat.append(insgps.estPOS[0])
+        self.nav_lon.append(insgps.estPOS[1])
+        self.nav_alt.append(insgps.estPOS[2])
+        self.nav_vn.append(insgps.estVEL[0])
+        self.nav_ve.append(insgps.estVEL[1])
+        self.nav_vd.append(insgps.estVEL[2])
+        self.navStatus.append(insgps.valid) #fixme: was err_type
+
+        self.ax_bias.append(insgps.estAB[0])
+        self.ay_bias.append(insgps.estAB[1])
+        self.az_bias.append(insgps.estAB[2])
+        self.p_bias.append(insgps.estGB[0])
+        self.q_bias.append(insgps.estGB[1])
+        self.r_bias.append(insgps.estGB[2])
+        
+        self.Pp.append( np.diag(insgps.P[0:3,0:3]) )
+        self.Pvel.append( np.diag(insgps.P[3:6,3:6]) )
+        self.Patt.append( np.diag(insgps.P[6:9,6:9]) )
+        self.Pab.append( np.diag(insgps.P[9:12,9:12]) )
+        self.Pgb.append( np.diag(insgps.P[12:15,12:15]) )
 
 # Values (Calculated by compiled test navigation filter) need to be
 # stored in python variables and they need to be in the globaldefs.c
 # and cdefs.py to allow for pulling them out and saving. These
 # python variables need to be initialized to work properly in the
 # while loop.
-data_dict1 = {}
-data_dict2 = {}
-haveGPS_store = []
+data_dict1 = data_store()
+data_dict2 = data_store()
 t_store = []
-
-def store_data(data_dict, insgps):
-    """
-    Append current elements from `insgps` into
-    `data_dict`.  
-    """
-    # Initialize dictionary if needed (e.g.) first iteration.
-    if len(data_dict) == 0:
-        data_dict['psi_store'] = []
-        data_dict['psi_store'] = []
-        data_dict['the_store'] = []
-        data_dict['phi_store'] = []
-        data_dict['navlat_store'] = []
-        data_dict['navlon_store'] = []
-        data_dict['navalt_store'] = []
-        data_dict['nav_vn_store'] = []
-        data_dict['nav_ve_store'] = []
-        data_dict['nav_vd_store'] = []
-        data_dict['navStatus_store'] = []
-        data_dict['wn_store'] = []
-        data_dict['we_store'] = []
-        data_dict['wd_store'] = []
-        data_dict['signal_store'] = []
-
-        data_dict['ax_bias'] = []
-        data_dict['ay_bias'] = [] 
-        data_dict['az_bias'] = []
-        data_dict['p_bias'] = []
-        data_dict['q_bias'] = []
-        data_dict['r_bias'] = []
-
-        data_dict['NS_std'] = []
-        data_dict['WE_std'] = []
-        data_dict['alt_std'] = []
-
-        # Attitude errors (small angle errors about N-E-D)
-        # Note: epsN and epsE are in general different than roll, pitch uncertainty.  
-        data_dict['epsN_std'] = []
-        data_dict['epsE_std'] = []
-        data_dict['epsD_std'] = [] # yaw uncertainty [rad]
-
-    # Store data
-    data_dict['psi_store'].append(insgps.estATT[0])
-    data_dict['the_store'].append(insgps.estATT[1])
-    data_dict['phi_store'].append(insgps.estATT[2])
-    data_dict['navlat_store'].append(insgps.estPOS[0])
-    data_dict['navlon_store'].append(insgps.estPOS[1])
-    data_dict['navalt_store'].append(insgps.estPOS[2])
-    data_dict['nav_vn_store'].append(insgps.estVEL[0])
-    data_dict['nav_ve_store'].append(insgps.estVEL[1])
-    data_dict['nav_vd_store'].append(insgps.estVEL[2])
-    data_dict['navStatus_store'].append(insgps.valid) #fixme: was err_type
-    #data_dict['wn_store'].append(insgps.wn)
-    #data_dict['we_store'].append(insgps.we)
-    #data_dict['wd_store'].append(insgps.wd)
-    #data_dict['signal_store'].append([insgps.signal_0, insgps.signal_1,
-    #                                  insgps.signal_2, insgps.signal_3,
-    #                                  insgps.signal_4, insgps.signal_5, 
-    #                                  insgps.signal_6, insgps.signal_7,
-    #                                  insgps.signal_8, insgps.signal_9])
-
-    data_dict['ax_bias'].append(insgps.estAB[0])
-    data_dict['ay_bias'].append(insgps.estAB[1])
-    data_dict['az_bias'].append(insgps.estAB[2])
-    data_dict['p_bias'].append(insgps.estGB[0])
-    data_dict['q_bias'].append(insgps.estGB[1])
-    data_dict['r_bias'].append(insgps.estGB[2])
-
-    data_dict['NS_std'].append(np.sqrt(insgps.P[0]))
-    data_dict['WE_std'].append(np.sqrt(insgps.P[1]))
-    data_dict['alt_std'].append(np.sqrt(insgps.P[2]))
-
-    data_dict['epsN_std'].append(np.sqrt(insgps.P[6]))
-    data_dict['epsE_std'].append(np.sqrt(insgps.P[7]))
-    data_dict['epsD_std'].append(np.sqrt(insgps.P[8])) # yaw uncertainty [rad]
-
-    return data_dict
 
 import data_aura
 import data_sentera
@@ -294,9 +262,8 @@ if concurrent_run:
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict1 = store_data(data_dict1, insgps1)
-            data_dict2 = store_data(data_dict2, insgps2)
-            # haveGPS_store.append(mission.haveGPS)
+            data_dict1 = data_dict1.append(insgps1)
+            data_dict2 = data_dict2.append(insgps2)
             t_store.append(imupt.time)
 
         # Increment time up one step for the next iteration of the
@@ -338,8 +305,7 @@ else:
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict1 = store_data(data_dict1, insgps1)
-            # haveGPS_store.append(mission.haveGPS)
+            data_dict1.append(insgps1)
             t_store.append(imupt.time)
 
         # Increment time up one step for the next iteration of the
@@ -380,9 +346,7 @@ else:
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict2 = store_data(data_dict2, insgps2)
-            # haveGPS_store.append(mission.haveGPS)
-            # not on second run ... t_store.append(imupt.time)
+            data_dict2.append(insgps2)
 
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -401,47 +365,69 @@ else:
     else:
         print "filter2 is %.1f%% slower" % (-perc * 100.0)
         
-       
+if args.sentera_dir:
+    data_sentera.save_filter_post(args.sentera_dir, t_store, data_dict1)
+
+nsig = 3
+
 # Plotting
 if FLAG_PLOT_ATTITUDE:
-    fig, [ax1, ax2, ax3] = plt.subplots(3,1)
+    Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
+    Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
 
-    # Yaw Plot
-    psi_nav = data_dict1['psi_store']
-    psi_nav_mag = data_dict2['psi_store']
-    ax1.set_title(plotname, fontsize=10)
-    ax1.set_ylabel('YAW (DEGREES)', weight='bold')
-    ax1.plot(t_store, r2d(psi_nav), label='nav', c='k', lw=3, alpha=.5)
-    ax1.plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue', lw=2)
-    ax1.plot(t_flight, r2d(psi_flight), label='On-Board', c='green', lw=2, alpha=.5)
-    ax1.grid()
-    ax1.legend(loc=0)
-
-    # Pitch PLot
-    the_nav = data_dict1['the_store']
-    the_nav_mag = data_dict2['the_store']  
-    ax2.set_ylabel('PITCH (DEGREES)', weight='bold')
-    ax2.plot(t_store, r2d(the_nav), label='nav', c='k', lw=3, alpha=.5)
-    ax2.plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue', lw=2)
-    ax2.plot(t_flight, r2d(the_flight), label='On-Board', c='green', lw=2, alpha=.5)
-    ax2.grid()
+    att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll PLot
-    phi_nav = data_dict1['phi_store']
-    phi_nav_mag = data_dict2['phi_store']   
-    ax3.set_ylabel('ROLL (DEGREES)', weight='bold')
-    ax3.plot(t_store, r2d(phi_nav), label='nav', c='k', lw=3, alpha=.5)
-    ax3.plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue',lw=2)
-    ax3.plot(t_flight, r2d(phi_flight), label='On-Board', c='green', lw=2, alpha=.5)
-    ax3.set_xlabel('TIME (SECONDS)', weight='bold')
-    ax3.grid()
+    phi_nav = data_dict1.phi
+    phi_nav_mag = data_dict2.phi
+    att_ax[0,0].set_ylabel('ROLL (DEGREES)', weight='bold')
+    att_ax[0,0].plot(t_store, r2d(phi_nav), label='nav', c='red')
+    att_ax[0,0].plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue')
+    att_ax[0,0].plot(t_flight, r2d(phi_flight), label='On-Board', c='green', alpha=.5)
+    att_ax[0,0].set_xlabel('TIME (SECONDS)', weight='bold')
+    att_ax[0,0].grid()
+    
+    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
+    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
+    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
+    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
+
+    # Pitch PLot
+    the_nav = data_dict1.the
+    the_nav_mag = data_dict2.the
+    att_ax[1,0].set_ylabel('PITCH (DEGREES)', weight='bold')
+    att_ax[1,0].plot(t_store, r2d(the_nav), label='nav', c='red')
+    att_ax[1,0].plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue')
+    att_ax[1,0].plot(t_flight, r2d(the_flight), label='On-Board', c='green', alpha=.5)
+    att_ax[1,0].grid()
+
+    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='red')
+    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='red')
+    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
+    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
+
+    # Yaw Plot
+    psi_nav = data_dict1.psi
+    psi_nav_mag = data_dict2.psi
+    att_ax[2,0].set_title(plotname, fontsize=10)
+    att_ax[2,0].set_ylabel('YAW (DEGREES)', weight='bold')
+    att_ax[2,0].plot(t_store, r2d(psi_nav), label='nav', c='red')
+    att_ax[2,0].plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue')
+    att_ax[2,0].plot(t_flight, r2d(psi_flight), label='On-Board', c='green', alpha=.5)
+    att_ax[2,0].grid()
+    att_ax[2,0].legend(loc=0)
+    
+    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
+    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
+    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
+    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
 
 if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1)
 
     # vn Plot
-    vn_nav = data_dict1['nav_vn_store']
-    vn_nav_mag = data_dict2['nav_vn_store']
+    vn_nav = data_dict1.nav_vn
+    vn_nav_mag = data_dict2.nav_vn
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
     ax1.plot(t_store, vn_nav, label='nav', c='k', lw=3, alpha=.5)
@@ -450,18 +436,18 @@ if FLAG_PLOT_VELOCITIES:
     ax1.grid()
     ax1.legend(loc=0)
 
-    # ve PLot
-    ve_nav = data_dict1['nav_ve_store']
-    ve_nav_mag = data_dict2['nav_ve_store']  
+    # ve Plot
+    ve_nav = data_dict1.nav_ve
+    ve_nav_mag = data_dict2.nav_ve
     ax2.set_ylabel('ve (mps)', weight='bold')
     ax2.plot(t_store, ve_nav, label='nav', c='k', lw=3, alpha=.5)
     ax2.plot(t_store, ve_nav_mag, label='nav_mag',c='blue', lw=2)
     ax2.plot(t_flight, ve_flight, label='On-Board', c='green', lw=2, alpha=.5)
     ax2.grid()
 
-    # vd PLot
-    vd_nav = data_dict1['nav_vd_store']
-    vd_nav_mag = data_dict2['nav_vd_store']   
+    # vd Plot
+    vd_nav = data_dict1.nav_vd
+    vd_nav_mag = data_dict2.nav_vd
     ax3.set_ylabel('vd (mps)', weight='bold')
     ax3.plot(t_store, vd_nav, label='nav', c='k', lw=3, alpha=.5)
     ax3.plot(t_store, vd_nav_mag, label='nav_mag', c='blue',lw=2)
@@ -471,8 +457,8 @@ if FLAG_PLOT_VELOCITIES:
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-    navalt = data_dict1['navalt_store']
-    nav_magalt = data_dict2['navalt_store']
+    navalt = data_dict1.nav_alt
+    nav_magalt = data_dict2.nav_alt
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
@@ -483,26 +469,13 @@ if FLAG_PLOT_ALTITUDE:
     plt.legend(loc=0)
     plt.grid()
 
-# Wind Plot
-#if FLAG_PLOT_WIND:
-#    wn = data_dict2['wn_store']
-#    we = data_dict2['we_store']
-#    wd = data_dict2['wd_store']
-#    plt.figure()
-#    plt.title('WIND ESTIMATES - Only from nav_mag')
-#    plt.plot(t_store, wn, label='North',c='gray', lw=2)
-#    plt.plot(t_store, we, label='East',c='black', lw=2)
-#    plt.plot(t_store, wd, label='Down',c='blue', lw=2)
-#    plt.ylabel('WIND (METERS/SECOND)', weight='bold')
-#    plt.legend(loc=0)
-#    plt.grid()
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-    navlat = data_dict1['navlat_store']
-    navlon = data_dict1['navlon_store']
-    nav_maglat = data_dict2['navlat_store']
-    nav_maglon = data_dict2['navlon_store']
+    navlat = data_dict1.nav_lat
+    navlon = data_dict1.nav_lon
+    nav_maglat = data_dict2.nav_lat
+    nav_maglon = data_dict2.nav_lon
     plt.figure()
     plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
@@ -513,68 +486,46 @@ if FLAG_PLOT_GROUNDTRACK:
     plt.plot(r2d(nav_maglon), r2d(nav_maglat), label='nav_mag', c='blue', lw=2)
     plt.grid()
     plt.legend(loc=0)
+    
+if FLAG_PLOT_BIASES:
+    bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
-# if FLAG_PLOT_SIGNALS:
-#     plt.figure()
-#     plt.title('SIGNAL PLOTS - Only from nav_mag')
-#     signal_store = data_dict2['signal_store']
-#     signal_store = np.array(signal_store)
-#     for sig in SIGNAL_LIST:
-#         plt.plot(t_store, signal_store[:,sig], label=str(sig), lw=2, alpha=.5)
-#     plt.ylabel('SIGNAL UNITS', weight='bold')
-#     plt.legend(loc=0)
-#     plt.grid()
-
-# haveGPS Plot
-# if FLAG_PLOT_HAVEGPS:
-#   plt.figure()
-#   plt.title('MISSION HAVEGPS FLAG')
-#   plt.plot(t_store, haveGPS_store, c='black', lw=2)
-#   plt.ylim([-2,2])
-#   plt.grid()
+    # Gyro Biases
+    bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
+    bias_ax[0,0].plot(t_store, r2d(data_dict1.p_bias), label='nav', c='red')
+    bias_ax[0,0].plot(t_store, r2d(data_dict2.p_bias), label='nav_mag', c='blue')
+    bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[0,0].grid()
+    
+    bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
+    bias_ax[1,0].plot(t_store, r2d(data_dict1.q_bias), label='nav', c='red')
+    bias_ax[1,0].plot(t_store, r2d(data_dict2.q_bias), label='nav_mag', c='blue')
+    bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[1,0].grid()
+    
+    bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
+    bias_ax[2,0].plot(t_store, r2d(data_dict1.r_bias), label='nav', c='red')
+    bias_ax[2,0].plot(t_store, r2d(data_dict2.r_bias), label='nav_mag', c='blue')
+    bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,0].grid()
+    
+    # Accel Biases
+    bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
+    bias_ax[0,1].plot(t_store, data_dict1.ax_bias, label='nav', c='red')
+    bias_ax[0,1].plot(t_store, data_dict2.ax_bias, label='nav_mag', c='blue')
+    bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[0,1].grid()
+    
+    bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
+    bias_ax[1,1].plot(t_store, data_dict1.ay_bias, label='nav', c='red')
+    bias_ax[1,1].plot(t_store, data_dict2.ay_bias, label='nav_mag', c='blue')
+    bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[1,1].grid()
+    
+    bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
+    bias_ax[2,1].plot(t_store, data_dict1.az_bias, label='nav', c='red')
+    bias_ax[2,1].plot(t_store, data_dict2.az_bias, label='nav_mag', c='blue')
+    bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,1].grid()
 
 plt.show()
-
-
-# Save Results to CSV File
-if FLAG_WRITE2CSV:
-    OUTPUT_FILENAME = filepath + '_postprocess.csv'
-    hdr_list = ['OMAP Timestamp (microseconds since epoch)', 
-                'Lat (1e-7 deg)', 'Lon (1e-7 deg)', 'Alt (m)',
-                'Aircraft Roll (1e-4 rad)', 'Aircraft Pitch (1e-4 rad)', 'Aircraft Yaw (1e-4 rad)',
-                'North-South std (m)', 'West-East std (m)', 'Alt std (m)',
-                'Yaw std (deg)', 'Pitch std (deg)', 'Roll std (deg)']
-    with open(OUTPUT_FILENAME, 'w') as fobj:
-        # TODO: Print header
-        csv_writer = csv.writer(fobj)
-        csv_writer.writerow(hdr_list)
-        for k in range(len(t_store)):
-            # Convert eps_NED to eps_YPR
-            yaw_rad   = data_dict1['psi_store'][k]
-            pitch_rad = data_dict1['the_store'][k]
-            roll_rad  = data_dict1['phi_store'][k]
-
-            # Note, as part of transformation we are
-            # ignoring uncertinty in the mapping.
-            epsNED_std_deg = [r2d(data_dict1['epsN_std'][k]),
-                              r2d(data_dict1['epsE_std'][k]),
-                              r2d(data_dict1['epsD_std'][k])]
-            yaw_std_deg = epsNED_std_deg[2]
-            pitch_std_deg = navpy.angle2dcm(yaw_rad, 0, 0, input_unit='rad').dot(epsNED_std_deg)[1]
-            roll_std_deg = navpy.angle2dcm(yaw_rad, pitch_rad, 0, input_unit='rad').dot(epsNED_std_deg)[0]
-
-            row = [int(t_store[k]*1e6), 
-                   int(r2d(data_dict1['navlat_store'][k])*1e7),
-                   int(r2d(data_dict1['navlon_store'][k])*1e7),
-                   data_dict1['navalt_store'][k],
-                   int(roll_rad*1e4),
-                   int(pitch_rad*1e4),
-                   int(yaw_rad*1e4),
-                   data_dict1['NS_std'][k],
-                   data_dict1['WE_std'][k],
-                   data_dict1['alt_std'][k],
-                   yaw_std_deg,
-                   pitch_std_deg,
-                   roll_std_deg]
-            csv_writer.writerow(row)
-    print("Playback results written to: %s" % OUTPUT_FILENAME)
