@@ -35,11 +35,28 @@ def load(flight_dir):
     #hy_coeffs = np.array([ 1.0, -78.5], dtype=np.float64)
     #hz_coeffs = np.array([ 1.0, -156.5], dtype=np.float64)
     
-    # calibration based on first iteration magEKF output
-    hx_coeffs = np.array([ 0.01857768, -0.18006511], dtype=np.float64)
-    hy_coeffs = np.array([ 0.01856929, -1.20853805], dtype=np.float64)
-    hz_coeffs = np.array([ 0.01559641,  2.81011594], dtype=np.float64)
+    #~/Projects/PILLS/Phantom\ 3\ Flight\ Data/2016-03-22\ --\ imagery_0012\ -\ 400\ ft\ survey
+    #hx_coeffs = np.array([ 0.01857771, -0.18006661], dtype=np.float64)
+    #hy_coeffs = np.array([ 0.01856938, -1.20854406], dtype=np.float64)
+    #hz_coeffs = np.array([ 0.01559645,  2.81011976], dtype=np.float64)
+
+    # ~/Projects/PILLS/Phantom\ 3\ Flight\ Data/imagery_0009 - 0012
+    #hx_coeffs = np.array([ 0.01789447,  3.70605872], dtype=np.float64)
+    #hy_coeffs = np.array([ 0.017071,    0.7125617], dtype=np.float64)
+    #hz_coeffs = np.array([ 0.01447557, -6.54621951], dtype=np.float64)
+    
+    # ~/Projects/PILLS/2016-04-04\ --\ imagery_0002
+    # ~/Projects/PILLS/2016-04-14\ --\ imagery_0003
+    # ~/Projects/PILLS/2016-04-14\ --\ imagery_0004
+    #hx_coeffs = np.array([ 0.01658555, -0.07790598], dtype=np.float64)
+    #hy_coeffs = np.array([ 0.01880532, -1.26548151], dtype=np.float64)
+    #hz_coeffs = np.array([ 0.01339084,  2.61905809], dtype=np.float64)
    
+    # ~/Projects/PILLS/2016-05-12\ --\ imagery_0004
+    hx_coeffs = np.array([ 0.01925678,  0.01527908], dtype=np.float64)
+    hy_coeffs = np.array([ 0.01890112, -1.18040666], dtype=np.float64)
+    hz_coeffs = np.array([ 0.01645011,  2.87769626], dtype=np.float64)
+
     hx_func = np.poly1d(hx_coeffs)
     hy_func = np.poly1d(hy_coeffs)
     hz_func = np.poly1d(hz_coeffs)
@@ -63,9 +80,16 @@ def load(flight_dir):
                 hx = -float(hx)
                 hy =  float(hy)
                 hz = -float(hz)
-                hx_new = hx_func(float(hx))
-                hy_new = hy_func(float(hy))
-                hz_new = hz_func(float(hz))
+                mag_orienation = 'older'
+                if mag_orienation == 'older':
+                    hx_new = hx_func(float(hx))
+                    hy_new = hy_func(float(hy))
+                    hz_new = hz_func(float(hz))
+                elif mag_orientation = 'newer':
+                    # remap for 2016-05-12 (0004) data set
+                    hx_new = hx_func(float(-hy))
+                    hy_new = hy_func(float(-hx))
+                    hz_new = hz_func(float(-hz))
                 norm = np.linalg.norm([hx_new, hy_new, hz_new])
                 hx_new /= norm
                 hy_new /= norm
@@ -81,8 +105,14 @@ def load(flight_dir):
             #print line
             tokens = line.split(',')
             #print len(tokens)
-            (time, itow, ecefx, ecefy, ecefz, ecefvx, ecefvy, ecefvz, fixtype,
-             posacc, spdacc, posdop, numsvs, flags) = tokens
+            if len(tokens) == 14:
+                (time, itow, ecefx, ecefy, ecefz, ecefvx, ecefvy, ecefvz,
+                 fixtype, posacc, spdacc, posdop, numsvs, flags) = tokens
+            elif len(tokens) == 19:
+                (time, itow, lat, lon, alt, ecefx, ecefy, ecefz,
+                 ecefvx, ecefvy, ecefvz,
+                 fixtype, posacc, spdacc, posdop, numsvs, flags,
+                 diff_status, carrier_status) = tokens
             llh = navpy.ecef2lla([float(ecefx)/100.0,
                                   float(ecefy)/100.0,
                                   float(ecefz)/100.0], "deg")
@@ -91,6 +121,7 @@ def load(flight_dir):
                                   float(ecefvz)/100.0],
                                  llh[0], llh[1], llh[2])
             if int(numsvs) >= 4:
+                
                 gps = pydefs.GPS( float(time)/1000000.0, int(0), float(time)/1000000.0,
                                   llh[0], llh[1], llh[2],
                                   ned[0], ned[1], ned[2])

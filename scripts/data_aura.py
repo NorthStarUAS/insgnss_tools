@@ -20,9 +20,15 @@ def load(flight_dir):
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
-    hx_coeffs = np.array([ 0.00269528, -0.21279657], dtype=np.float64)
-    hy_coeffs = np.array([ 0.00263963,  0.01225428], dtype=np.float64)
-    hz_coeffs = np.array([ 0.00300658, -0.11184107], dtype=np.float64)
+    # vireo_01: [ 1.55788695  0.14601611] [ 1.69562172 -0.10841082] [ 1.60536532 -0.09527724]
+    hx_coeffs = np.array([ 1.55788695,  0.14601611], dtype=np.float64)
+    hy_coeffs = np.array([ 1.69562172, -0.10841082], dtype=np.float64)
+    hz_coeffs = np.array([ 1.60536532, -0.09527724], dtype=np.float64)
+
+    # telemaster?
+    #hx_coeffs = np.array([ 0.00269528, -0.21279657], dtype=np.float64)
+    #hy_coeffs = np.array([ 0.00263963,  0.01225428], dtype=np.float64)
+    #hz_coeffs = np.array([ 0.00300658, -0.11184107], dtype=np.float64)
     print hx_coeffs
     hx_func = np.poly1d(hx_coeffs)
     hy_func = np.poly1d(hy_coeffs)

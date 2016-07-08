@@ -366,7 +366,7 @@ else:
         print "filter2 is %.1f%% slower" % (-perc * 100.0)
         
 if args.sentera_dir:
-    data_sentera.save_filter_post(args.sentera_dir, t_store, data_dict1)
+    data_sentera.save_filter_post(args.sentera_dir, t_store, data_dict2)
 
 nsig = 3
 
