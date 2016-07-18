@@ -380,22 +380,22 @@ if FLAG_PLOT_ATTITUDE:
     # Roll PLot
     phi_nav = data_dict1.phi
     phi_nav_mag = data_dict2.phi
-    att_ax[0,0].set_ylabel('ROLL (DEGREES)', weight='bold')
+    att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
     att_ax[0,0].plot(t_store, r2d(phi_nav), label='nav', c='red')
     att_ax[0,0].plot(t_store, r2d(phi_nav_mag), label='nav_mag', c='blue')
     att_ax[0,0].plot(t_flight, r2d(phi_flight), label='On-Board', c='green', alpha=.5)
-    att_ax[0,0].set_xlabel('TIME (SECONDS)', weight='bold')
     att_ax[0,0].grid()
     
     att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
     att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
     att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
     att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
+    att_ax[0,1].set_ylabel('3*stddev', weight='bold')
 
     # Pitch PLot
     the_nav = data_dict1.the
     the_nav_mag = data_dict2.the
-    att_ax[1,0].set_ylabel('PITCH (DEGREES)', weight='bold')
+    att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
     att_ax[1,0].plot(t_store, r2d(the_nav), label='nav', c='red')
     att_ax[1,0].plot(t_store, r2d(the_nav_mag), label='nav_mag',c='blue')
     att_ax[1,0].plot(t_flight, r2d(the_flight), label='On-Board', c='green', alpha=.5)
@@ -405,22 +405,26 @@ if FLAG_PLOT_ATTITUDE:
     att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='red')
     att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
     att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
+    att_ax[1,1].set_ylabel('3*stddev', weight='bold')
 
     # Yaw Plot
     psi_nav = data_dict1.psi
     psi_nav_mag = data_dict2.psi
     att_ax[2,0].set_title(plotname, fontsize=10)
-    att_ax[2,0].set_ylabel('YAW (DEGREES)', weight='bold')
-    att_ax[2,0].plot(t_store, r2d(psi_nav), label='nav', c='red')
-    att_ax[2,0].plot(t_store, r2d(psi_nav_mag), label='nav_mag',c='blue')
+    att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
+    att_ax[2,0].plot(t_store, r2d(psi_nav), label='EKF', c='red')
+    att_ax[2,0].plot(t_store, r2d(psi_nav_mag), label='EKF+Mag',c='blue')
     att_ax[2,0].plot(t_flight, r2d(psi_flight), label='On-Board', c='green', alpha=.5)
+    att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
-    att_ax[2,0].legend(loc=0)
+    att_ax[2,0].legend(loc=1)
     
     att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
     att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
     att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
     att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
+    att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
+    att_ax[2,1].set_ylabel('3*stddev', weight='bold')
 
 if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1)
