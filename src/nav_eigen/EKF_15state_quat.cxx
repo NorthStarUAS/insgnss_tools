@@ -57,16 +57,26 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-static Matrix<double,15,15> F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
-static Matrix<double,15,12> G;
-static Matrix<double,15,6> K;
-static Matrix<double,15,1> x;
-static Matrix<double,12,12> Rw;
-static Matrix<double,6,15> H;
-static Matrix<double,6,6> R;
-static Matrix<double,6,1> y;
-static Matrix<double,3,3> C_N2B, C_B2N, I3 /* identity */, temp33;
-static Matrix<double,3,1> grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
+// define some types for notational convenience and consistency
+typedef Matrix<double,6,6> Matrix6d;
+typedef Matrix<double,12,12> Matrix12d;
+typedef Matrix<double,15,15> Matrix15d;
+typedef Matrix<double,6,15> Matrix6x15d;
+typedef Matrix<double,15,6> Matrix15x6d;
+typedef Matrix<double,15,12> Matrix15x12d;
+typedef Matrix<double,6,1> Vector6f;
+typedef Matrix<double,15,1> Vector15f;
+
+static Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
+static Matrix15x12d G;
+static Matrix15x6d K;
+static Vector15f x;
+static Matrix12d Rw;
+static Matrix6x15d H;
+static Matrix6d R;
+static Vector6f y;
+static Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
+static Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
 
 static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
@@ -205,8 +215,8 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    Matrix<double,3,1> vel_vec(nav.vn, nav.ve, nav.vd);
-    Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
+    Vector3d vel_vec(nav.vn, nav.ve, nav.vd);
+    Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
 	
     nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
@@ -219,7 +229,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    Matrix<double,3,1> att_vec = quat2eul(quat);
+    Vector3d att_vec = quat2eul(quat);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
@@ -310,10 +320,10 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	gps.newData = 0; // Reset the flag
 		
 	// Position, converted to NED
-	Matrix<double,3,1> pos_vec(nav.lat, nav.lon, nav.alt);
+	Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
 	pos_ins_ecef = lla2ecef(pos_vec);
 
-	Matrix<double,3,1> pos_ref = pos_vec;
+	Vector3d pos_ref = pos_vec;
 	pos_ref(2) = 0.0;
 	pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
 		
@@ -370,7 +380,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	Matrix<double,3,1> att_vec = quat2eul(quat);
+	Vector3d att_vec = quat2eul(quat);
 	nav.phi = att_vec(0);
 	nav.the = att_vec(1);
 	nav.psi = att_vec(2);
