@@ -32,7 +32,7 @@ using namespace Eigen;
 
 #include "nav_functions.hxx"
 
-Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
+Vector3d llarate(Vector3d V, Vector3d lla) {
     /* This function calculates the rate of change of latitude,
      * longitude, and altitude using WGS-84.
      */
@@ -46,7 +46,7 @@ Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
     double Rew = EARTH_RADIUS / sqrt_denom;
     double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
 	
-    Matrix<double,3,1> lla_dot;
+    Vector3d lla_dot;
     lla_dot(0,0) = V(0,0)/(Rns + h);
     lla_dot(1,0) = V(1,0)/((Rew + h)*cos(lat));
     lla_dot(2,0) = -V(2,0);
@@ -54,7 +54,7 @@ Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
     return lla_dot;
 }
 
-Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
+Vector3d navrate(Vector3d V, Vector3d lla) {
     /* This function calculates the angular velocity of the NED frame,
      * also known as the navigation rate using WGS-84.
      */
@@ -68,7 +68,7 @@ Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
     double Rew = EARTH_RADIUS / sqrt_denom;
     double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
 	
-    Matrix<double,3,1> nr;
+    Vector3d nr;
     nr(0,0) = V(1,0)/(Rew + h);
     nr(1,0) = -V(0,0)/(Rns + h);
     nr(2,0) = -V(1,0)*tan(lat)/(Rew + h);
@@ -76,7 +76,7 @@ Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla) {
     return nr;
 }
 
-Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {  
+Vector3d lla2ecef(Vector3d lla) {  
     /* This function calculates the ECEF Coordinate given the
      * Latitude, Longitude and Altitude.
      */
@@ -92,7 +92,7 @@ Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {
 
     double Rew = EARTH_RADIUS / sqrt(denom);
   
-    Matrix<double,3,1> ecef;
+    Vector3d ecef;
     ecef(0,0) = (Rew + alt) * coslat * coslon;
     ecef(1,0) = (Rew + alt) * coslat * sinlon;
     ecef(2,0) = (Rew * (1.0 - ECC2) + alt) * sinlat;
@@ -100,7 +100,7 @@ Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla) {
     return ecef;
 }
 
-Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref) {
+Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref) {
     /* This function converts a vector in ecef to ned coordinate
      * centered at ecef_ref.
      */
@@ -112,7 +112,7 @@ Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref)
     double cos_lat = cos(lat);
     double cos_lon = cos(lon);
     
-    Matrix<double,3,1> ned;
+    Vector3d ned;
     ned(2,0) = -cos_lat*cos_lon*ecef(0,0) - cos_lat*sin_lon*ecef(1,0) - sin_lat*ecef(2,0);
     ned(1,0) = -sin_lon*ecef(0,0) + cos_lon*ecef(1,0);
     ned(0,0) = -sin_lat*cos_lon*ecef(0,0) - sin_lat*sin_lon*ecef(1,0) + cos_lat*ecef(2,0);
@@ -120,10 +120,10 @@ Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref)
     return ned;
 }
 
-Matrix<double,3,3> sk(Matrix<double,3,1> w) {
+Matrix3d sk(Vector3d w) {
     /* This function gives a skew symmetric matrix from a given vector w */
 
-    Matrix<double,3,3> C;
+    Matrix3d C;
 
     C(0,0) = 0.0;	C(0,1) = -w(2,0);	C(0,2) = w(1,0);
     C(1,0) = w(2,0);	C(1,1) = 0.0;		C(1,2) = -w(0,0);
@@ -146,7 +146,7 @@ void qmult(double *p, double *q, double *r) {
 }
 
 // Quaternion to euler angle: returns phi, the, psi as a vector
-Matrix<double,3,1> quat2eul(Quaterniond q) {
+Vector3d quat2eul(Quaterniond q) {
     double q0, q1, q2, q3;
     double m11, m12, m13, m23, m33;
 	
@@ -161,7 +161,7 @@ Matrix<double,3,1> quat2eul(Quaterniond q) {
     m23 = 2*(q2*q3 + q0*q1);
     m33 = 2*(q0*q0 + q3*q3) - 1;
     
-    Matrix<double,3,1> result;
+    Vector3d result;
     result(2) = atan2(m12,m11);
     result(1) = asin(-m13);
     result(0) = atan2(m23,m33);
@@ -187,11 +187,11 @@ Quaterniond eul2quat(double phi, double the, double psi) {
 }
 
 // fixme: clean up math operations
-Matrix<double,3,3> quat2dcm(Quaterniond q) {
+Matrix3d quat2dcm(Quaterniond q) {
     /* Quaternion to C_N2B */
 
     double q0, q1, q2, q3;
-    Matrix<double,3,3> C_N2B;
+    Matrix3d C_N2B;
 
     q0 = q.w(); q1 = q.x(); q2 = q.y(); q3 = q.z();
 

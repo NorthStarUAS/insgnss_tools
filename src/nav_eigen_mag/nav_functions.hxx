@@ -21,8 +21,8 @@
  */
 
 //#include "matrix.h"
-#ifndef NAV_FUNCTIONS_H_
-#define NAV_FUNCTIONS_H_
+#ifndef NAV_FUNCTIONS_HXX_
+#define NAV_FUNCTIONS_HXX_
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
@@ -47,22 +47,22 @@ using namespace Eigen;
 
 /*---------------     Define Structures and Enumerated Types -------------*/
 
-Matrix<double,3,1> llarate(Matrix<double,3,1> V, Matrix<double,3,1> lla);
+Vector3d llarate(Vector3d V, Vector3d lla);
 
-Matrix<double,3,1> navrate(Matrix<double,3,1> V, Matrix<double,3,1> lla);
+Vector3d navrate(Vector3d V, Vector3d lla);
 
-Matrix<double,3,1> ecef2ned(Matrix<double,3,1> ecef, Matrix<double,3,1> pos_ref);
+Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref);
 
-Matrix<double,3,1> lla2ecef(Matrix<double,3,1> lla);
+Vector3d lla2ecef(Vector3d lla);
 
-Matrix<double,3,3> sk(Matrix<double,3,1> w);
+Matrix3d sk(Vector3d w);
 
 void qmult(double *p, double *q, double *r);
 
-Matrix<double,3,1> quat2eul(Quaterniond q);
+Vector3d quat2eul(Quaterniond q);
 
 Quaterniond eul2quat(double phi, double the, double psi);
 
-Matrix<double,3,3> quat2dcm(Quaterniond q);
+Matrix3d quat2dcm(Quaterniond q);
 
-#endif
+#endif	// NAV_FUNCTIONS_HXX
