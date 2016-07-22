@@ -57,8 +57,6 @@ Vector3d lla2ecef(Vector3d lla);
 
 Matrix3d sk(Vector3d w);
 
-void qmult(double *p, double *q, double *r);
-
 Vector3d quat2eul(Quaterniond q);
 
 Quaterniond eul2quat(double phi, double the, double psi);

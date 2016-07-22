@@ -99,7 +99,7 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 	
     // ... H
     H.topLeftCorner(6,6).setIdentity();
-	
+
     // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
     // Rw small - trust time update, Rw more - lean on measurement update
@@ -206,7 +206,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     double tnow = imu.time;
     double imu_dt = tnow - tprev;
     tprev = tnow;		
-	
+
     // ==================  Time Update  ===================
 
     // AHRS Transformations
@@ -334,7 +334,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	pos_gps_ecef = lla2ecef(pos_gps);
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
-		
+
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);

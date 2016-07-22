@@ -76,7 +76,7 @@ Vector3d navrate(Vector3d V, Vector3d lla) {
     return nr;
 }
 
-Vector3d lla2ecef(Vector3d lla) {  
+Vector3d lla2ecef(Vector3d lla) {
     /* This function calculates the ECEF Coordinate given the
      * Latitude, Longitude and Altitude.
      */
@@ -130,19 +130,6 @@ Matrix3d sk(Vector3d w) {
     C(2,0) = -w(1,0);	C(2,1) = w(0,0);	C(2,2) = 0.0;
 	
     return C;
-}
-
-// depricated
-void qmult(double *p, double *q, double *r) {
-    /* Quaternion Multiplication: r = p x q */
-    int i;
-	
-    for(i=0;i<3;i++) r[i] = 0.0;
-	
-    r[0] = p[0]*q[0] - (p[1]*q[1] + p[2]*q[2] + p[3]*q[3]);
-    r[1] = p[0]*q[1] + q[0]*p[1] + p[2]*q[3] - p[3]*q[2];
-    r[2] = p[0]*q[2] + q[0]*p[2] + p[3]*q[1] - p[1]*q[3];
-    r[3] = p[0]*q[3] + q[0]*p[3] + p[1]*q[2] - p[2]*q[1];
 }
 
 // Quaternion to euler angle: returns phi, the, psi as a vector

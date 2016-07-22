@@ -215,7 +215,7 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     double tnow = imu.time;
     double imu_dt = tnow - tprev;
     tprev = tnow;		
-	
+
     // ==================  Time Update  ===================
 
     // AHRS Transformations
@@ -344,10 +344,12 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
 
+	// measured mag vector (body frame)
 	Vector3d mag_sense;
 	mag_sense(0) = imu.hx;
 	mag_sense(1) = imu.hy;
 	mag_sense(2) = imu.hz;
+	mag_sense.normalize();
 	
 	Vector3d mag_error; // magnetometer measurement error
 	bool mag_error_in_ned = false;
@@ -360,12 +362,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	    // rotate ideal mag vector into body frame (then normalized)
 	    Vector3d mag_ideal = C_N2B * mag_ned;
 	    mag_ideal.normalize();
-	
-	    // measured mag vector (body frame)
-	    mag_sense(0) = imu.hx;
-	    mag_sense(1) = imu.hy;
-	    mag_sense(2) = imu.hz;
-	    mag_sense.normalize();
 	    mag_error = mag_sense - mag_ideal;
 	    // cout << "mag_error:" << mag_error << endl;
 
