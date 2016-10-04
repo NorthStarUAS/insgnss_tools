@@ -23,6 +23,7 @@ Last Update: April 22, 2015
 import argparse
 import numpy as np
 import time
+import os
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--aura-dir', help='load specified aura flight log')
@@ -307,6 +308,7 @@ else:
         if filter_init:
             data_dict1.append(insgps1)
             t_store.append(imupt.time)
+            # print imupt.time, imupt.p - insgps1.estGB[0], imupt.q - insgps1.estGB[1], imupt.r - insgps1.estGB[2], imupt.ax - insgps1.estAB[0], imupt.ay - insgps1.estAB[1], imupt.az - insgps1.estAB[2], imupt.hx, imupt.hy, imupt.hz, imupt.temp
 
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -366,7 +368,10 @@ else:
         print "filter2 is %.1f%% slower" % (-perc * 100.0)
         
 if args.sentera_dir:
-    data_sentera.save_filter_post(args.sentera_dir, t_store, data_dict2)
+    file_ins = os.path.join(args.sentera_dir, "filter-post-ins.txt")
+    file_mag = os.path.join(args.sentera_dir, "filter-post-mag.txt")
+    data_sentera.save_filter_result(file_ins, t_store, data_dict1)
+    data_sentera.save_filter_result(file_mag, t_store, data_dict2)
 
 nsig = 3
 

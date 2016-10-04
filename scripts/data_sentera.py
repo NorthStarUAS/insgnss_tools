@@ -51,16 +51,40 @@ def load(flight_dir):
     #hx_coeffs = np.array([ 0.01658555, -0.07790598], dtype=np.float64)
     #hy_coeffs = np.array([ 0.01880532, -1.26548151], dtype=np.float64)
     #hz_coeffs = np.array([ 0.01339084,  2.61905809], dtype=np.float64)
-   
+
     # ~/Projects/PILLS/2016-05-12\ --\ imagery_0004
-    hx_coeffs = np.array([ 0.01925678,  0.01527908], dtype=np.float64)
-    hy_coeffs = np.array([ 0.01890112, -1.18040666], dtype=np.float64)
-    hz_coeffs = np.array([ 0.01645011,  2.87769626], dtype=np.float64)
+    #hx_coeffs = np.array([ 0.01925678,  0.01527908], dtype=np.float64)
+    #hy_coeffs = np.array([ 0.01890112, -1.18040666], dtype=np.float64)
+    #hz_coeffs = np.array([ 0.01645011,  2.87769626], dtype=np.float64)
 
-    hx_func = np.poly1d(hx_coeffs)
-    hy_func = np.poly1d(hy_coeffs)
-    hz_func = np.poly1d(hz_coeffs)
+    #hx_func = np.poly1d(hx_coeffs)
+    #hy_func = np.poly1d(hy_coeffs)
+    #hz_func = np.poly1d(hz_coeffs)
 
+    # ~/Projects/PILLS/2016-06-29\ --\ calibration_0002/
+    # mag_affine = np.array(
+    #     [[ 0.0223062041, -0.0002700799, -0.0001325525,  1.2016235718],
+    #      [-0.0002700799,  0.0229484854,  0.0000356172,  0.1177744077],
+    #      [-0.0001325525,  0.0000356172,  0.0206129279, -3.2713740483],
+    #      [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    # )
+
+    # Phantom 3 - Aug 2016 (ellipse cal)
+    mag_affine = np.array(
+        [[ 0.0189725067,  0.0000203615,  0.0002139272, -0.0134053645],
+         [ 0.0000760692,  0.0180178765,  0.0000389461, -1.044762755 ],
+         [ 0.0002417847,  0.0000458039,  0.0171450614,  2.647911793 ],
+         [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    )
+    # Phantom 3 - Aug 2016 (ekf cal)
+    # mag_affine = np.array(
+    #     [[ 0.0181297161,  0.000774339,  -0.002037224 , -0.2576406372],
+    #      [ 0.0002434548,  0.018469032,   0.0016475328, -0.8452362072],
+    #      [ 0.0000145964,  0.000267444,   0.0159433791,  2.5630653789],
+    #      [ 0.          ,  0.         ,   0.          ,  1.          ]]
+    # )
+    print mag_affine
+    
     fimu = fileinput.input(imu_file)
     for line in fimu:
         #print line
@@ -80,22 +104,29 @@ def load(flight_dir):
                 hx = -float(hx)
                 hy =  float(hy)
                 hz = -float(hz)
-                mag_orienation = 'older'
-                if mag_orienation == 'older':
-                    hx_new = hx_func(float(hx))
-                    hy_new = hy_func(float(hy))
-                    hz_new = hz_func(float(hz))
-                elif mag_orientation = 'newer':
+                mag_orientation = 'newer'
+                if mag_orientation == 'older':
+                    #hx_new = hx_func(float(hx))
+                    #hy_new = hy_func(float(hy))
+                    #hz_new = hz_func(float(hz))
+                    s = [hx, hy, hz]
+                elif mag_orientation == 'newer':
                     # remap for 2016-05-12 (0004) data set
-                    hx_new = hx_func(float(-hy))
-                    hy_new = hy_func(float(-hx))
-                    hz_new = hz_func(float(-hz))
-                norm = np.linalg.norm([hx_new, hy_new, hz_new])
-                hx_new /= norm
-                hy_new /= norm
-                hz_new /= norm
+                    #hx_new = hx_func(float(-hy))
+                    #hy_new = hy_func(float(-hx))
+                    #hz_new = hz_func(float(-hz))
+                    s = [-hy, -hx, -hz]
+                # mag calibration mapping via mag_affine matrix
+                hs = np.hstack( [s, 1.0] )
+                hf = np.dot(mag_affine, hs)
+                #print hf[:3]
+                #norm = np.linalg.norm([hx_new, hy_new, hz_new])
+                #hx_new /= norm
+                #hy_new /= norm
+                #hz_new /= norm
+                
                 imu = pydefs.IMU( float(time)/1000000.0, 0,
-                                  p, q, r, ax, ay, az, hx_new, hy_new, hz_new,
+                                  p, q, r, ax, ay, az, hf[0], hf[1], hf[2],
                                   float(temp) )
                 imu_data.append( imu )
 
@@ -113,17 +144,22 @@ def load(flight_dir):
                  ecefvx, ecefvy, ecefvz,
                  fixtype, posacc, spdacc, posdop, numsvs, flags,
                  diff_status, carrier_status) = tokens
+                
+            # wgs84 position
+            pos_source = 'llh'  # 'llh' or 'ecef'
             llh = navpy.ecef2lla([float(ecefx)/100.0,
                                   float(ecefy)/100.0,
                                   float(ecefz)/100.0], "deg")
+            # velocity
             ned = navpy.ecef2ned([float(ecefvx)/100.0,
                                   float(ecefvy)/100.0,
                                   float(ecefvz)/100.0],
                                  llh[0], llh[1], llh[2])
             if int(numsvs) >= 4:
-                
-                gps = pydefs.GPS( float(time)/1000000.0, int(0), float(time)/1000000.0,
-                                  llh[0], llh[1], llh[2],
+                gps = pydefs.GPS( float(time)/1000000.0, int(0),
+                                  float(time)/1000000.0,
+                                  # llh[0], llh[1], llh[2],
+                                  float(lat), float(lon), float(alt),
                                   ned[0], ned[1], ned[2])
                 gps_data.append(gps)
 
@@ -132,8 +168,7 @@ def load(flight_dir):
 
     return imu_data, gps_data, filter_data
 
-def save_filter_post(flight_dir, t_store, data_store):
-    filename = os.path.join(flight_dir, 'filter-post.txt')
+def save_filter_result(filename, t_store, data_store):
     f = open(filename, 'w')
     size = len(t_store)
     for i in range(size):

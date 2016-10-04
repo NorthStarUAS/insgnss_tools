@@ -4,12 +4,16 @@
 
 FLAG_UNBIASED_IMU = False             # Choose if accel/gyro should be bias-free.
 
+import math
 import os, sys
 join = os.path.join
 import numpy as np
 from scipy import io as sio
 
 import pydefs
+
+class dict2struct():
+  pass
 
 def load(mat_filename):
     # Name of .mat file that exists in the directory defined above and
@@ -44,6 +48,14 @@ def load(mat_filename):
 
     # Magnetometer data - not used hence don't trust
     hm  = np.vstack((flight_data.hx, -flight_data.hy, -flight_data.hz)).T
+
+    # Geri mag calibration
+    mag_affine = np.array(
+        [[ 4.3374191736,  0.9527668819,  0.2106929615,  0.0649324241],
+         [-3.7617930866,  6.2839014058, -3.5707398622,  2.1616165305],
+         [-0.8688354599,  0.2205650877,  4.7466115481, -2.7041600008],
+         [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    )
 
     # Populate IMU Data
     imu = np.vstack((t, flight_data.p, flight_data.q, flight_data.r, 
@@ -116,7 +128,12 @@ def load(mat_filename):
         p, q, r = imu[k, 1:4]
         ax, ay, az = imu[k, 4:7]
         hx, hy, hz = imu[k, 7:10]
-        imu_pt = pydefs.IMU(t[k], 0, p, q, r, ax, ay, az, hx, hy, hz, 15.0)
+        
+        s = [hx, hy, hz, 1.0]
+        #hf = np.dot(mag_affine, s)
+        hf = s
+
+        imu_pt = pydefs.IMU(t[k], 0, p, q, r, ax, ay, az, hf[0], hf[1], hf[2], 15.0)
         imu_data.append(imu_pt)
 
         if abs(alt[k] - last_gps_alt) > 0.0001:
@@ -130,5 +147,27 @@ def load(mat_filename):
         k += 1
     print "imu records:", len(imu_data)
     print "gps records:", len(gps_data)
+
+    dir = os.path.dirname(mat_filename)
+    print 'dir:', dir
+    
+    filename = os.path.join(dir, 'imu-0.txt')
+    f = open(filename, 'w')
+    for imupt in imu_data:
+        line = [ '%.5f' % imupt.time, '%.4f' % imupt.p, '%.4f' % imupt.q, '%.4f' % imupt.r, '%.4f' % imupt.ax, '%.4f' % imupt.ay, '%.4f' % imupt.az, '%.4f' % imupt.hx, '%.4f' % imupt.hy, '%.4f' % imupt.hz, '%.4f' % imupt.temp, '0' ]
+        f.write(','.join(line) + '\n')
+
+    filename = os.path.join(dir, 'gps-0.txt')
+    f = open(filename, 'w')
+    for gpspt in gps_data:
+        line = [ '%.5f' % gpspt.time, '%.10f' % gpspt.lat, '%.10f' % gpspt.lon, '%.4f' % gpspt.alt, '%.4f' % gpspt.vn, '%.4f' % gpspt.ve, '%.4f' % gpspt.vd, '%.4f' % gpspt.time, '8', '0' ]
+        f.write(','.join(line) + '\n')
+
+    filename = os.path.join(dir, 'filter-0.txt')
+    f = open(filename, 'w')
+    r2d = 180.0 / math.pi
+    for filtpt in filter_data:
+        line = [ '%.5f' % filtpt.time, '%.10f' % filtpt.lat, '%.10f' % filtpt.lon, '%.4f' % filtpt.alt, '%.4f' % filtpt.vn, '%.4f' % filtpt.ve, '%.4f' % filtpt.vd, '%.4f' % (filtpt.phi*r2d), '%.4f' % (filtpt.the*r2d), '%.4f' % (filtpt.psi*r2d), '0' ]
+        f.write(','.join(line) + '\n')
 
     return imu_data, gps_data, filter_data

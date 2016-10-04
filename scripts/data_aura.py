@@ -20,37 +20,56 @@ def load(flight_dir):
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
-    # vireo_01: [ 1.55788695  0.14601611] [ 1.69562172 -0.10841082] [ 1.60536532 -0.09527724]
-    hx_coeffs = np.array([ 1.55788695,  0.14601611], dtype=np.float64)
-    hy_coeffs = np.array([ 1.69562172, -0.10841082], dtype=np.float64)
-    hz_coeffs = np.array([ 1.60536532, -0.09527724], dtype=np.float64)
+    # # vireo_01
+    # mag_affine = np.array(
+    #     [[ 1.6207467043,  0.0228992488,  0.0398638786,  0.1274248748],
+    #      [-0.0169905025,  1.7164397411, -0.0001290047, -0.1140304977],
+    #      [ 0.0424979948, -0.0038515935,  1.7193766423, -0.1449816095],
+    #      [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    # )
 
-    # telemaster?
-    #hx_coeffs = np.array([ 0.00269528, -0.21279657], dtype=np.float64)
-    #hy_coeffs = np.array([ 0.00263963,  0.01225428], dtype=np.float64)
-    #hz_coeffs = np.array([ 0.00300658, -0.11184107], dtype=np.float64)
-    print hx_coeffs
-    hx_func = np.poly1d(hx_coeffs)
-    hy_func = np.poly1d(hy_coeffs)
-    hz_func = np.poly1d(hz_coeffs)
+    # Tyr
+    mag_affine = np.array(
+        [[ 1.810,  0.109,  0.285, -0.237],
+         [-0.078,  1.931, -0.171, -0.060],
+         [ 0.008,  0.109,  1.929,  0.085],
+         [ 0.   ,  0.   ,  0.   ,  1.      ]]
+    )
 
+    # telemaster apm2_101
+    # mag_affine = np.array(
+    #     [[ 0.0026424919,  0.0001334248,  0.0000984977, -0.2235908546],
+    #      [-0.000081925 ,  0.0026419229,  0.0000751835, -0.0010757621],
+    #      [ 0.0000219407,  0.0000560341,  0.002541171 ,  0.040221458 ],
+    #      [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    # )
+
+    np.set_printoptions(precision=10,suppress=True)
+    print mag_affine
+    
     fimu = fileinput.input(imu_file)
     for line in fimu:
         time, p, q, r, ax, ay, az, hx, hy, hz, temp, status = line.split(',')
         # quick hack:
-        hx_new = hx_func(float(hx))
-        hy_new = hy_func(float(hy))
-        hz_new = hz_func(float(hz))
-        norm = np.linalg.norm([hx_new, hy_new, hz_new])
-        hx_new /= norm
-        hy_new /= norm
-        hz_new /= norm
+        #hx_new = hx_func(float(hx))
+        #hy_new = hy_func(float(hy))
+        #hz_new = hz_func(float(hz))
+        #norm = np.linalg.norm([hx_new, hy_new, hz_new])
+        #hx_new /= norm
+        #hy_new /= norm
+        #hz_new /= norm
+
+        s = [float(hx), float(hy), float(hz), 1.0]
+        hf = np.dot(mag_affine, s)
+        #print hf
         imu = pydefs.IMU( float(time), int(status),
                           float(p), float(q), float(r),
                           float(ax), float(ay), float(az),
-                          float(hx_new), float(hy_new), float(hz_new),
+                          hf[0], hf[1], hf[2],
                           float(temp) )
         imu_data.append( imu )
+        #print hx, hy, hz
+        #print '[', hx_new, hy_new, hz_new, '] [', hf[0], hf[1], hf[2], ']'
 
     fgps = fileinput.input(gps_file)
     for line in fgps:
