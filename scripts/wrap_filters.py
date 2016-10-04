@@ -372,6 +372,7 @@ if args.sentera_dir:
     file_mag = os.path.join(args.sentera_dir, "filter-post-mag.txt")
     data_sentera.save_filter_result(file_ins, t_store, data_dict1)
     data_sentera.save_filter_result(file_mag, t_store, data_dict2)
+    data_sentera.rewrite_pix4d_csv(args.sentera_dir, t_store, data_dict2)
 
 nsig = 3
 
