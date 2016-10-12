@@ -5,4 +5,5 @@ SUBDIRS = \
 	nav_mag \
 	nav_eigen \
 	nav_eigen_mag \
+	nav_eigen_test \
 	MadgwickAHRS

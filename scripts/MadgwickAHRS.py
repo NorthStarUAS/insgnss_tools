@@ -74,9 +74,9 @@ class filter():
 
     def update(self, imu, gps):
         self.sharedobj.MadgwickAHRSupdate(imu.time,
-                                         imu.p, imu.q, -imu.r,
-                                         imu.ax, imu.ay, -imu.az,
-                                         imu.hx, imu.hy, -imu.hz)
+                                         imu.p, -imu.q, -imu.r,
+                                         imu.ax, -imu.ay, -imu.az,
+                                         imu.hx, -imu.hy, -imu.hz)
         # self.sharedobj.MadgwickAHRSupdate(imu.time,
         #                                   imu.p, imu.q, -imu.r,
         #                                   imu.ax, imu.ay, -imu.az,

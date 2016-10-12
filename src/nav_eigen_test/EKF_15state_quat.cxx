@@ -29,8 +29,6 @@ using std::endl;
 #include "nav_functions.hxx"
 #include "nav_interface.hxx"
 
-#include "../utils/coremag.h"
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -49,8 +47,6 @@ const double SIG_GPS_P_NE = 3.0;
 const double SIG_GPS_P_D  = 5.0;
 const double SIG_GPS_V    = 0.5;
 
-const double SIG_MAG      = 0.1; // 0.05 would be a pretty well calibrated mag
-
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
 const double P_A_INIT = 0.34906;   // 20 deg
@@ -62,25 +58,25 @@ const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
 // define some types for notational convenience and consistency
-typedef Matrix<double,9,9> Matrix9d;
+typedef Matrix<double,6,6> Matrix6d;
 typedef Matrix<double,12,12> Matrix12d;
 typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15> Matrix9x15d;
-typedef Matrix<double,15,9> Matrix15x9d;
+typedef Matrix<double,6,15> Matrix6x15d;
+typedef Matrix<double,15,6> Matrix15x6d;
 typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1> Vector9d;
-typedef Matrix<double,15,1> Vector15d;
+typedef Matrix<double,6,1> Vector6f;
+typedef Matrix<double,15,1> Vector15f;
 
-Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
-Matrix15x12d G;
-Matrix15x9d K;
-Vector15d x;
-Matrix12d Rw;
-Matrix9x15d H;
-Matrix9d R;
-Vector9d y;
-Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
-Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
+static Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
+static Matrix15x12d G;
+static Matrix15x6d K;
+static Vector15f x;
+static Matrix12d Rw;
+static Matrix6x15d H;
+static Matrix6d R;
+static Vector6f y;
+static Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
+static Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx;
 
 static Quaterniond quat; // fixme, make state persist here, not in nav
 static double denom, Re, Rn;
@@ -130,10 +126,9 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     nav.Pgb[0] = P(12,12);	        nav.Pgb[1] = P(13,13);	              nav.Pgb[2] = P(14,14);
 	
     // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V*SIG_GPS_V;	 R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
-    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
-    
+    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;   R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
+    R(3,3) = SIG_GPS_V*SIG_GPS_V;	R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
+	
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
     nav.lon = gps.lon*D2R;
@@ -143,38 +138,34 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     nav.ve = gps.ve;
     nav.vd = gps.vd;
 	
-    // ideal magnetic vector
-    long int jd = now_to_julian_days();
-    double field[6];
-    calc_magvar( nav.lat, nav.lon,
-		 nav.alt / 1000.0, jd, field );
-    mag_ned(0) = field[3];
-    mag_ned(1) = field[4];
-    mag_ned(2) = field[5];
-    mag_ned.normalize();
-    // cout << "Ideal mag vector (ned): " << mag_ned << endl;
-    // // initial heading
-    // double init_psi_rad = 90.0*D2R;
-    // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
-    // 	init_psi_rad = atan2(mag_ned[0][1], mag_ned[0][0]);
-    // }
+    // ... and initialize states with IMU Data
+    // theta from Ax, aircraft at rest
+    nav.the = asin(imu.ax/g); 
+    // phi from Ay, aircraft at rest
+    nav.phi = asin(imu.ay/(g*cos(nav.the))); 
+    nav.psi = 0.0;
 
     // fixme: for now match the reference implementation so we can
     // compare intermediate calculations.
-    nav.the = 0*D2R;
+    nav.the = 8*D2R;
     nav.phi = 0*D2R;
-    // nav.psi = 90.0*D2R;
+    nav.psi = 90.0*D2R;
 
-    // ... and initialize states with IMU Data
-    // theta from Ax, aircraft at rest
-    // nav.the = asin(imu.ax/g); 
-    // phi from Ay, aircraft at rest
-    // nav.phi = asin(-imu.ay/(g*cos(nav.the))); 
-
-    // psi from magnetometer
-    if ( fabs(imu.hx) > 0.0001 && fabs(imu.hy) > 0.0001 ) {
-	nav.psi = 90*D2R - atan2(imu.hy, imu.hx);
-    }
+    /*
+      if((imu.hy) > 0){
+      nav.psi = 90*D2R - atan(imu.hx / imu.hy);
+      }
+      else if((imu.hy) < 0){
+      nav.psi = 270*D2R - atan(imu.hx / imu.hy) - 360*D2R;
+      }
+      else if((imu.hy) == 0){
+      if((imu.hx) < 0){
+      nav.psi = 180*D2R;
+      }
+      else{
+      nav.psi = 0.0;
+      }
+      }*/
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
     nav.quat[0] = quat.w();
@@ -344,36 +335,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
 
-	// measured mag vector (body frame)
-	Vector3d mag_sense;
-	mag_sense(0) = imu.hx;
-	mag_sense(1) = imu.hy;
-	mag_sense(2) = imu.hz;
-	mag_sense.normalize();
-	
-	Vector3d mag_error; // magnetometer measurement error
-	bool mag_error_in_ned = false;
-	if ( mag_error_in_ned ) {
-	    // rotate measured mag vector into ned frame (then normalized)
-	    Vector3d mag_sense_ned = C_B2N * mag_sense;
-	    mag_sense_ned.normalize();
-	    mag_error = mag_sense_ned - mag_ned;
-	} else {
-	    // rotate ideal mag vector into body frame (then normalized)
-	    Vector3d mag_ideal = C_N2B * mag_ned;
-	    mag_ideal.normalize();
-	    mag_error = mag_sense - mag_ideal;
-	    // cout << "mag_error:" << mag_error << endl;
-
-	    // Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
-	    Matrix3d tmp1 = sk(mag_sense) * 2.0;
-	    for ( int j = 0; j < 3; j++ ) {
-		for ( int i = 0; i < 3; i++ ) {
-		    H(6+i,6+j) = tmp1(i,j);
-		}
-	    }
-	}
-
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);
@@ -383,10 +344,6 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	y(4) = gps.ve - nav.ve;
 	y(5) = gps.vd - nav.vd;
 		
-	y(6) = mag_error(0);
-	y(7) = mag_error(1);
-	y(8) = mag_error(2);
-	
 	// Kalman Gain
 	// K = P*H'*inv(H*P*H'+R)
 	K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
