@@ -20,6 +20,12 @@ def load(flight_dir):
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
+    # HEY: in the latest aura code, calibrated magnetometer is logged,
+    # not raw magnetometer, so we don't need to correct here.  We
+    # could 'back correct' here if we wanted original values for some
+    # reason (using the calibration matrix saved with each flight
+    # log.)
+    
     # # vireo_01
     # mag_affine = np.array(
     #     [[ 1.6207467043,  0.0228992488,  0.0398638786,  0.1274248748],
@@ -29,12 +35,12 @@ def load(flight_dir):
     # )
 
     # Tyr
-    mag_affine = np.array(
-        [[ 1.810,  0.109,  0.285, -0.237],
-         [-0.078,  1.931, -0.171, -0.060],
-         [ 0.008,  0.109,  1.929,  0.085],
-         [ 0.   ,  0.   ,  0.   ,  1.      ]]
-    )
+    # mag_affine = np.array(
+    #     [[ 1.810,  0.109,  0.285, -0.237],
+    #      [-0.078,  1.931, -0.171, -0.060],
+    #      [ 0.008,  0.109,  1.929,  0.085],
+    #      [ 0.   ,  0.   ,  0.   ,  1.      ]]
+    # )
 
     # telemaster apm2_101
     # mag_affine = np.array(
@@ -43,9 +49,17 @@ def load(flight_dir):
     #      [ 0.0000219407,  0.0000560341,  0.002541171 ,  0.040221458 ],
     #      [ 0.          ,  0.          ,  0.          ,  1.          ]]
     # )
+    
+    # skywalker apm2_105
+    # mag_affine = np.array(
+    #      [[ 0.0025834778, 0.0001434776, 0.0001434961, -0.7900775707 ],
+    #       [-0.0001903118, 0.0024796553, 0.0001365238,  0.1881142449 ],
+    #       [ 0.0000556437, 0.0001329724, 0.0023791184,  0.1824851582, ],
+    #       [ 0.0000000000, 0.0000000000, 0.0000000000,  1.0000000000  ]]
+    # )
 
-    np.set_printoptions(precision=10,suppress=True)
-    print mag_affine
+    #np.set_printoptions(precision=10,suppress=True)
+    #print mag_affine
     
     fimu = fileinput.input(imu_file)
     for line in fimu:
@@ -59,17 +73,17 @@ def load(flight_dir):
         #hy_new /= norm
         #hz_new /= norm
 
-        s = [float(hx), float(hy), float(hz), 1.0]
-        hf = np.dot(mag_affine, s)
+        #s = [float(hx), float(hy), float(hz), 1.0]
+        #hf = np.dot(mag_affine, s)
         #print hf
         imu = pydefs.IMU( float(time), int(status),
                           float(p), float(q), float(r),
                           float(ax), float(ay), float(az),
-                          hf[0], hf[1], hf[2],
+                          float(hx), float(hy), float(hz),
                           float(temp) )
         imu_data.append( imu )
         #print hx, hy, hz
-        #print '[', hx_new, hy_new, hz_new, '] [', hf[0], hf[1], hf[2], ']'
+        #print '[', hx, hy, hz, '] [', hf[0], hf[1], hf[2], ']'
 
     fgps = fileinput.input(gps_file)
     for line in fgps:
