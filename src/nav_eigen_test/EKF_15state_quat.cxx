@@ -32,12 +32,12 @@ using std::endl;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const double SIG_W_AX = 1.0;	 // 1 m/s^2
-const double SIG_W_AY = 1.0;
-const double SIG_W_AZ = 1.0;
-const double SIG_W_GX = 0.00524; // 0.3 deg/s
-const double SIG_W_GY = 0.00524;
-const double SIG_W_GZ = 0.00524;
+const double SIG_W_AX = 0.1;	 // m/s^2
+const double SIG_W_AY = 0.1;
+const double SIG_W_AZ = 0.1;
+const double SIG_W_GX = 0.00175; // rad/s (0.1 deg/s)
+const double SIG_W_GY = 0.00175;
+const double SIG_W_GZ = 0.00175;
 const double SIG_A_D  = 0.1;	 // 5e-2*g
 const double TAU_A    = 100.0;
 const double SIG_G_D  = 0.00873; // 0.1 deg/s
@@ -45,7 +45,8 @@ const double TAU_G    = 50.0;
 
 const double SIG_GPS_P_NE = 3.0;
 const double SIG_GPS_P_D  = 5.0;
-const double SIG_GPS_V    = 0.5;
+const double SIG_GPS_V_NE = 0.5;
+const double SIG_GPS_V_D  = 1.0;
 
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
@@ -127,7 +128,7 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 	
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;   R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V*SIG_GPS_V;	R(4,4) = SIG_GPS_V*SIG_GPS_V;	      R(5,5) = SIG_GPS_V*SIG_GPS_V;
+    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;   R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
 	
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
