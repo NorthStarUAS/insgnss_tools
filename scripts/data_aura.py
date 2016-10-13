@@ -18,6 +18,7 @@ def load(flight_dir):
     imucal_file = flight_dir + "/imucal.xml"
     gps_file = flight_dir + "/gps-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
+    filter_post_file = flight_dir + "/filter-post.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
@@ -86,20 +87,26 @@ def load(flight_dir):
         #print '[', hx, hy, hz, '] [', hf[0], hf[1], hf[2], ']'
 
     fgps = fileinput.input(gps_file)
+    last_time = -1.0
     for line in fgps:
         # note the aura logs unix time of the gps record, not tow, but
         # for the pruposes of the insgns algorithm, it's only
         # important to have a properly incrementing clock, it doens't
         # really matter what the zero reference point of time is.
         time, lat, lon, alt, vn, ve, vd, unixsec, sats, status = line.split(',')
-        if int(sats) >= 5:
+        if int(sats) >= 5 and time > last_time:
             gps = pydefs.GPS( float(time), int(status), float(unixsec),
                               float(lat), float(lon), float(alt),
                               float(vn), float(ve), float(vd))
             gps_data.append(gps)
+        last_time = time
 
     # load filter records if they exist (for comparison purposes)
-    ffilter = fileinput.input(filter_file)
+    if os.path.exists(filter_post_file):
+        print "Notice: found a post process filter file so using it!"
+        ffilter = fileinput.input(filter_post_file)
+    else:
+        ffilter = fileinput.input(filter_file)
     for line in ffilter:
         time, lat, lon, alt, vn, ve, vd, phi, the, psi, status = line.split(',')
         if abs(float(lat)) > 0.0001 and abs(float(lon)) > 0.0001:
@@ -119,3 +126,20 @@ def load(flight_dir):
     print "gps records:", len(gps_data)
 
     return imu_data, gps_data, filter_data
+
+def save_filter_result(filename, t_store, data_store):
+    f = open(filename, 'w')
+    size = len(t_store)
+    for i in range(size):
+        line = "%.3f,%.10f,%.10f,%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,0" % \
+               (t_store[i],
+                data_store.nav_lat[i]*180.0/math.pi,
+                data_store.nav_lon[i]*180.0/math.pi,
+                data_store.nav_alt[i], data_store.nav_vn[i],
+                data_store.nav_ve[i], data_store.nav_vd[i],
+                data_store.phi[i]*180.0/math.pi,
+                data_store.the[i]*180.0/math.pi,
+                data_store.psi[i]*180.0/math.pi)
+        f.write(line + '\n')
+    f.close()
+

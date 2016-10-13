@@ -32,9 +32,9 @@ using std::endl;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const double SIG_W_AX = 0.1;	 // m/s^2
-const double SIG_W_AY = 0.1;
-const double SIG_W_AZ = 0.1;
+const double SIG_W_AX = 0.05;	 // m/s^2
+const double SIG_W_AY = 0.05;
+const double SIG_W_AZ = 0.05;
 const double SIG_W_GX = 0.00175; // rad/s (0.1 deg/s)
 const double SIG_W_GY = 0.00175;
 const double SIG_W_GZ = 0.00175;

@@ -58,13 +58,14 @@ import nav_polarity
 import nav_mag
 import nav_eigen
 import nav_eigen_mag
+import nav_eigen_test
 import MadgwickAHRS
 
+#filter2 = nav_eigen_mag.filter()
+#filter2 = nav_eigen_test.filter()
 #filter1 = nav_orig.filter()
-#filter2 = nav_eigen.filter()
-
 filter1 = nav_eigen.filter()
-filter2 = nav_eigen_mag.filter()
+filter2 = nav_eigen_test.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
@@ -366,7 +367,11 @@ else:
         print "filter2 is %.1f%% faster" % (perc * 100.0)
     else:
         print "filter2 is %.1f%% slower" % (-perc * 100.0)
-        
+
+if args.aura_dir:
+    filter_post = os.path.join(args.aura_dir, "filter-post.txt")
+    data_aura.save_filter_result(filter_post, t_store, data_dict2)
+    
 if args.sentera_dir:
     file_ins = os.path.join(args.sentera_dir, "filter-post-ins.txt")
     file_mag = os.path.join(args.sentera_dir, "filter-post-mag.txt")
