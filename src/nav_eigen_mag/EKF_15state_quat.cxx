@@ -161,16 +161,15 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 
     // fixme: for now match the reference implementation so we can
     // compare intermediate calculations.
-    nav.the = 0*D2R;
-    nav.phi = 0*D2R;
+    // nav.the = 0*D2R;
+    // nav.phi = 0*D2R;
     // nav.psi = 90.0*D2R;
 
     // ... and initialize states with IMU Data
     // theta from Ax, aircraft at rest
-    // nav.the = asin(imu.ax/g); 
+    nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
-    // nav.phi = asin(-imu.ay/(g*cos(nav.the))); 
-
+    nav.phi = asin(-imu.ay/(g*cos(nav.the))); 
     // psi from magnetometer
     if ( fabs(imu.hx) > 0.0001 && fabs(imu.hy) > 0.0001 ) {
 	nav.psi = 90*D2R - atan2(imu.hy, imu.hx);
