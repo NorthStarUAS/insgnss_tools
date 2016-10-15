@@ -184,6 +184,35 @@ def save_filter_result(filename, t_store, data_store):
         f.write(line + '\n')
     f.close()
 
+def rewrite_image_metadata_txt(base_dir, t_store, data_store):
+    meta_file = os.path.join(base_dir, 'image-metadata.txt')
+    new_file = os.path.join(base_dir, 'image-metadata-ekf.txt')
+
+    f_out = open(new_file, 'w')
+    f_out.write('File Name,Lat (decimal degrees),Lon (decimal degrees),Alt (meters MSL),Yaw (decimal degrees),Pitch (decimal degrees),Roll (decimal degrees),GPS Time (us since epoch)\n')
+
+    i = 0
+    for line in fileinput.input(meta_file):
+        if fileinput.isfirstline():
+            continue
+        tokens = line.split(',')
+        image = tokens[0]
+        (lat, lon, alt, psi, the, phi, time_orig) = map(float, tokens[1:])
+        time_sec = time_orig / 1000000.0       # convert seconds
+        while t_store[i] < time_sec:
+            i += 1
+        line = "%s,%.8f,%.8f,%.4f,%.4f,%.4f,%.4f,%.0f" % \
+               (image,
+                data_store.nav_lat[i]*180.0/math.pi,
+                data_store.nav_lon[i]*180.0/math.pi,
+                data_store.nav_alt[i],
+                data_store.psi[i]*180.0/math.pi,
+                data_store.the[i]*180.0/math.pi,
+                data_store.phi[i]*180.0/math.pi,
+                time_orig)
+        f_out.write(line + '\n');
+    f_out.close()
+
 def rewrite_pix4d_csv(base_dir, t_store, data_store):
     meta_file = os.path.join(base_dir, 'image-metadata.txt')
     pix4d_file = os.path.join(base_dir, 'pix4d-ekf.csv')

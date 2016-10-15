@@ -2,6 +2,7 @@
 
 import fileinput
 import numpy as np
+import os
 import math
 
 import pydefs

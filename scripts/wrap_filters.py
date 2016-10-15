@@ -59,13 +59,17 @@ import nav_mag
 import nav_eigen
 import nav_eigen_mag
 import nav_eigen_test
+import nav_eigen_mag_test
 import MadgwickAHRS
 
 #filter2 = nav_eigen_mag.filter()
 #filter2 = nav_eigen_test.filter()
 #filter1 = nav_orig.filter()
-filter1 = nav_eigen.filter()
-filter2 = nav_eigen_test.filter()
+#filter2 = nav_eigen.filter()
+#filter1 = nav_eigen.filter()
+#filter1 = nav_eigen_test.filter()
+filter1 = nav_eigen_mag.filter()
+filter2 = nav_eigen_mag_test.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
@@ -378,6 +382,7 @@ if args.sentera_dir:
     data_sentera.save_filter_result(file_ins, t_store, data_dict1)
     data_sentera.save_filter_result(file_mag, t_store, data_dict2)
     data_sentera.rewrite_pix4d_csv(args.sentera_dir, t_store, data_dict2)
+    data_sentera.rewrite_image_metadata_txt(args.sentera_dir, t_store, data_dict2)
 
 nsig = 3
 
