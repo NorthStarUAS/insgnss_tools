@@ -68,7 +68,7 @@ import MadgwickAHRS
 #filter2 = nav_eigen.filter()
 #filter1 = nav_eigen.filter()
 #filter1 = nav_eigen_test.filter()
-filter1 = nav_eigen_mag.filter()
+filter1 = nav_eigen.filter()
 filter2 = nav_eigen_mag_test.filter()
 #filter2 = MadgwickAHRS.filter()
 
