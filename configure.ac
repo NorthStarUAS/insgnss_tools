@@ -50,6 +50,20 @@ if test "x$ac_cv_header_eigen3_Eigen_Core" != xyes; then
    exit
 fi
 
+dnl find python primary
+AM_PATH_PYTHON
+AC_PATH_PROGS([PYTHON_CONFIG],
+              [python$PYTHON_VERSION-config python-config],
+              [no],
+              [`dirname $PYTHON`])
+AS_IF([test "$PYTHON_CONFIG" = no], [AC_MSG_ERROR([cannot find python-config for $PYTHON.])])
+PYTHON_INCLUDES=`$PYTHON_CONFIG --includes`
+AC_MSG_RESULT([$PYTHON_INCLUDES])
+AC_SUBST(PYTHON_INCLUDES)
+PYTHON_LIBS=`$PYTHON_CONFIG --libs`
+AC_MSG_RESULT([$PYTHON_LIBS])
+AC_SUBST(PYTHON_LIBS)
+
 AM_CONFIG_HEADER(src/include/nav_config.h)
 
 dnl code configuration selections
