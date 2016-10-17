@@ -19,7 +19,6 @@ def load(flight_dir):
     imucal_file = flight_dir + "/imucal.xml"
     gps_file = flight_dir + "/gps-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
-    filter_post_file = flight_dir + "/filter-post.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
@@ -103,11 +102,7 @@ def load(flight_dir):
         last_time = time
 
     # load filter records if they exist (for comparison purposes)
-    if os.path.exists(filter_post_file):
-        print "Notice: found a post process filter file so using it!"
-        ffilter = fileinput.input(filter_post_file)
-    else:
-        ffilter = fileinput.input(filter_file)
+    ffilter = fileinput.input(filter_file)
     for line in ffilter:
         time, lat, lon, alt, vn, ve, vd, phi, the, psi, status = line.split(',')
         if abs(float(lat)) > 0.0001 and abs(float(lon)) > 0.0001:
