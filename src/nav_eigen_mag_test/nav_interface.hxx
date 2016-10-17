@@ -43,29 +43,25 @@ enum errdefs {
 
 /// Navigation Filter Data Structure
 struct NAVdata {
-    double time;     // [sec], timestamp of NAV filter
-    double lat;		// [rad], geodetic latitude estimate
-    double lon;		// [rad], geodetic longitude estimate
-    double alt;		// [m], altitude relative to WGS84 estimate
-    double vn;		// [m/sec], north velocity estimate
-    double ve;		// [m/sec], east velocity estimate
-    double vd;		// [m/sec], down velocity estimate
-    double phi;		// [rad], Euler roll angle estimate
-    double the;		// [rad], Euler pitch angle estimate
-    double psi;		// [rad], Euler yaw angle estimate
-    double quat[4];	// Quaternion estimate
-    double ab[3];	// [m/sec^2], accelerometer bias estimate
-    double gb[3];	// [rad/sec], rate gyro bias estimate
-    double asf[3];	// [m/sec^2], accelerometer scale factor estimate
-    double gsf[3];	// [rad/sec], rate gyro scale factor estimate
-    double Pp[3];	// [rad], covariance estimate for position
-    double Pv[3];	// [rad], covariance estimate for velocity
-    double Pa[3];	// [rad], covariance estimate for angles
-    double Pab[3];	// [rad], covariance estimate for accelerometer bias
-    double Pgb[3];	// [rad], covariance estimate for rate gyro bias
-    double Pasf[3];	// [rad], covariance estimate for accelerometer scale factor
-    double Pgsf[3];	// [rad], covariance estimate for rate gyro scale factor
-    enum errdefs err_type;	// NAV filter status
+    double time;             // [sec], timestamp of NAV filter
+    double lat;		     // [rad], geodetic latitude estimate
+    double lon;		     // [rad], geodetic longitude estimate
+    double alt;		     // [m], altitude relative to WGS84 estimate
+    double vn;		     // [m/sec], north velocity estimate
+    double ve;		     // [m/sec], east velocity estimate
+    double vd;		     // [m/sec], down velocity estimate
+    double phi;		     // [rad], Euler roll angle estimate
+    double the;		     // [rad], Euler pitch angle estimate
+    double psi;		     // [rad], Euler yaw angle estimate
+    double qw, qx, qy, qz;   // Quaternion estimate
+    double abx, aby, abz;    // [m/sec^2], accelerometer bias estimate
+    double gbx, gby, gbz;    // [rad/sec], rate gyro bias estimate
+    double Pp0, Pp1, Pp2;    // [rad], covariance estimate for position
+    double Pv0, Pv1, Pv2;    // [rad], covariance estimate for velocity
+    double Pa0, Pa1, Pa2;    // [rad], covariance estimate for angles
+    double Pabx, Paby, Pabz; // [rad], covariance estimate for accelerometer bias
+    double Pgbx, Pgby, Pgbz; // [rad], covariance estimate for rate gyro bias
+    enum errdefs err_type;   // NAV filter status
 };
 
 const double g = 9.814;

@@ -12,14 +12,7 @@
  * \author Aerospace Engineering and Mechanics
  * \copyright Copyright 2011 Regents of the University of Minnesota. All rights reserved.
  *
- * $Id: EKF_15state_quat.c 911 2012-10-08 15:00:59Z lie $
  */
-
-#include <math.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
-#include <eigen3/Eigen/LU>
-using namespace Eigen;
 
 #include <iostream>
 using std::cout;
@@ -30,6 +23,8 @@ using std::endl;
 #include "nav_interface.hxx"
 
 #include "../utils/coremag.h"
+
+#include "EKF_15state_quat.hxx"
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters
@@ -62,39 +57,12 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-// define some types for notational convenience and consistency
-typedef Matrix<double,9,9> Matrix9d;
-typedef Matrix<double,12,12> Matrix12d;
-typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15> Matrix9x15d;
-typedef Matrix<double,15,9> Matrix15x9d;
-typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1> Vector9d;
-typedef Matrix<double,15,1> Vector15d;
-
-Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
-Matrix15x12d G;
-Matrix15x9d K;
-Vector15d x;
-Matrix12d Rw;
-Matrix9x15d H;
-Matrix9d R;
-Vector9d y;
-Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
-Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
-
-static Quaterniond quat; // fixme, make state persist here, not in nav
-static double denom, Re, Rn;
-static double tprev;
-
-static NAVdata nav;
-
 ////////// BRT I think there are some several identity and sparse matrices, so probably some optimization still left there
 ////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
 ////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
 ////////// BRT A lot of these multi line equations with temp matrices can be compressed
 	
-NAVdata init_nav(IMUdata imu, GPSdata gps) {
+NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -123,16 +91,16 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
     // ... update P in get_nav
-    nav.Pp[0] = P(0,0);	                nav.Pp[1] = P(1,1);	              nav.Pp[2] = P(2,2);
-    nav.Pv[0] = P(3,3);	                nav.Pv[1] = P(4,4);	              nav.Pv[2] = P(5,5);
-    nav.Pa[0] = P(6,6);	                nav.Pa[1] = P(7,7);	              nav.Pa[2] = P(8,8);
+    nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
+    nav.Pv0 = P(3,3);	  nav.Pv1 = P(4,4);	nav.Pv2 = P(5,5);
+    nav.Pa0 = P(6,6);	  nav.Pa1 = P(7,7);	nav.Pa2 = P(8,8);
 	
-    nav.Pab[0] = P(9,9);	        nav.Pab[1] = P(10,10);	              nav.Pab[2] = P(11,11);
-    nav.Pgb[0] = P(12,12);	        nav.Pgb[1] = P(13,13);	              nav.Pgb[2] = P(14,14);
+    nav.Pabx = P(9,9);	  nav.Paby = P(10,10);	nav.Pabz = P(11,11);
+    nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 	
     // ... R
     R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;   R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
+    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	 R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;  R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
     R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
     
     // .. then initialize states with GPS Data
@@ -177,27 +145,27 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
     }
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
-    nav.quat[0] = quat.w();
-    nav.quat[1] = quat.x();
-    nav.quat[2] = quat.y();
-    nav.quat[3] = quat.z();
+    nav.qw = quat.w();
+    nav.qx = quat.x();
+    nav.qy = quat.y();
+    nav.qz = quat.z();
 	
-    nav.ab[0] = 0.0;
-    nav.ab[1] = 0.0; 
-    nav.ab[2] = 0.0;
+    nav.abx = 0.0;
+    nav.aby = 0.0; 
+    nav.abz = 0.0;
 	
-    nav.gb[0] = imu.p;
-    nav.gb[1] = imu.q;
-    nav.gb[2] = imu.r;
+    nav.gbx = imu.p;
+    nav.gby = imu.q;
+    nav.gbz = imu.r;
 	
     // Specific forces and Rotation Rate
-    f_b(0) = imu.ax - nav.ab[0];
-    f_b(1) = imu.ay - nav.ab[1];
-    f_b(2) = imu.az - nav.ab[2];
+    f_b(0) = imu.ax - nav.abx;
+    f_b(1) = imu.ay - nav.aby;
+    f_b(2) = imu.az - nav.abz;
 	
-    om_ib(0) = imu.p - nav.gb[0];
-    om_ib(1) = imu.q - nav.gb[1];
-    om_ib(2) = imu.r - nav.gb[2];
+    om_ib(0) = imu.p - nav.gbx;
+    om_ib(1) = imu.q - nav.gby;
+    om_ib(2) = imu.r - nav.gbz;
 	
     // Time during initialization
     tprev = imu.time;
@@ -209,7 +177,7 @@ NAVdata init_nav(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-NAVdata get_nav(IMUdata imu, GPSdata gps) {
+NAVdata EKF::update(IMUdata imu, GPSdata gps) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     double tnow = imu.time;
@@ -316,11 +284,11 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
     P = PHI * P * PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
     P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
 	
-    nav.Pp[0] = P(0,0);     nav.Pp[1] = P(1,1);     nav.Pp[2] = P(2,2);
-    nav.Pv[0] = P(3,3);     nav.Pv[1] = P(4,4);     nav.Pv[2] = P(5,5);
-    nav.Pa[0] = P(6,6);     nav.Pa[1] = P(7,7);     nav.Pa[2] = P(8,8);
-    nav.Pab[0] = P(9,9);    nav.Pab[1] = P(10,10);  nav.Pab[2] = P(11,11);
-    nav.Pgb[0] = P(12,12);  nav.Pgb[1] = P(13,13);  nav.Pgb[2] = P(14,14);
+    nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
+    nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
+    nav.Pa0 = P(6,6);     nav.Pa1 = P(7,7);     nav.Pa2 = P(8,8);
+    nav.Pabx = P(9,9);    nav.Paby = P(10,10);  nav.Pabz = P(11,11);
+    nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 
     // ==================  DONE TU  ===================
 	
@@ -398,11 +366,11 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 		
 	P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
 		
-	nav.Pp[0] = P(0,0); 	nav.Pp[1] = P(1,1); 	nav.Pp[2] = P(2,2);
-	nav.Pv[0] = P(3,3); 	nav.Pv[1] = P(4,4); 	nav.Pv[2] = P(5,5);
-	nav.Pa[0] = P(6,6); 	nav.Pa[1] = P(7,7); 	nav.Pa[2] = P(8,8);
-	nav.Pab[0] = P(9,9); 	nav.Pab[1] = P(10,10);  nav.Pab[2] = P(11,11);
-	nav.Pgb[0] = P(12,12);  nav.Pgb[1] = P(13,13);  nav.Pgb[2] = P(14,14);
+	nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
+	nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
+	nav.Pa0 = P(6,6);     nav.Pa1 = P(7,7);     nav.Pa2 = P(8,8);
+	nav.Pabx = P(9,9);    nav.Paby = P(10,10);  nav.Pabz = P(11,11);
+	nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 		
 	// State Update
 	x = K * y;
@@ -428,27 +396,27 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 	nav.the = att_vec(1);
 	nav.psi = att_vec(2);
 	
-	nav.ab[0] += x(9);
-	nav.ab[1] += x(10);
-	nav.ab[2] += x(11);
+	nav.abx += x(9);
+	nav.aby += x(10);
+	nav.abz += x(11);
 
-	nav.gb[0] += x(12);
-	nav.gb[1] += x(13);
-	nav.gb[2] += x(14);
+	nav.gbx += x(12);
+	nav.gby += x(13);
+	nav.gbz += x(14);
     }
 	
-    nav.quat[0] = quat.w();
-    nav.quat[1] = quat.x();
-    nav.quat[2] = quat.y();
-    nav.quat[3] = quat.z();
+    nav.qw = quat.w();
+    nav.qx = quat.x();
+    nav.qy = quat.y();
+    nav.qz = quat.z();
 	
     // Remove current estimated biases from rate gyro and accels
-    imu.p -= nav.gb[0];
-    imu.q -= nav.gb[1];
-    imu.r -= nav.gb[2];
-    imu.ax -= nav.ab[0];
-    imu.ay -= nav.ab[1];
-    imu.az -= nav.ab[2];
+    imu.p -= nav.gbx;
+    imu.q -= nav.gby;
+    imu.r -= nav.gbz;
+    imu.ax -= nav.abx;
+    imu.ay -= nav.aby;
+    imu.az -= nav.abz;
 
     // Get the new Specific forces and Rotation Rate,
     // use in the next time update
@@ -462,3 +430,78 @@ NAVdata get_nav(IMUdata imu, GPSdata gps) {
 
     return nav;
 }
+
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
+{
+    class_<IMUdata>("IMUdata")
+	.def_readwrite("time", &IMUdata::time)
+	.def_readwrite("p", &IMUdata::p)
+	.def_readwrite("q", &IMUdata::q)
+	.def_readwrite("r", &IMUdata::r)
+ 	.def_readwrite("ax", &IMUdata::ax)
+ 	.def_readwrite("ay", &IMUdata::ay)
+ 	.def_readwrite("az", &IMUdata::az)
+ 	.def_readwrite("hx", &IMUdata::hx)
+ 	.def_readwrite("hy", &IMUdata::hy)
+ 	.def_readwrite("hz", &IMUdata::hz)
+    ;
+    
+    class_<GPSdata>("GPSdata")
+	.def_readwrite("time", &GPSdata::time)
+	.def_readwrite("lat", &GPSdata::lat)
+	.def_readwrite("lon", &GPSdata::lon)
+	.def_readwrite("alt", &GPSdata::alt)
+	.def_readwrite("vn", &GPSdata::vn)
+	.def_readwrite("ve", &GPSdata::ve)
+	.def_readwrite("vd", &GPSdata::vd)
+	.def_readwrite("newData", &GPSdata::newData)
+    ;
+
+    class_<NAVdata>("NAVdata")
+	.def_readwrite("time", &NAVdata::time)
+	.def_readwrite("lat", &NAVdata::lat)
+	.def_readwrite("lon", &NAVdata::lon)
+	.def_readwrite("alt", &NAVdata::alt)
+	.def_readwrite("vn", &NAVdata::vn)
+	.def_readwrite("ve", &NAVdata::ve)
+	.def_readwrite("vd", &NAVdata::vd)
+	.def_readwrite("phi", &NAVdata::phi)
+	.def_readwrite("the", &NAVdata::the)
+	.def_readwrite("psi", &NAVdata::psi)
+	.def_readwrite("qw", &NAVdata::qw)
+	.def_readwrite("qx", &NAVdata::qx)
+	.def_readwrite("qy", &NAVdata::qy)
+	.def_readwrite("qz", &NAVdata::qz)
+	.def_readwrite("abx", &NAVdata::abx)
+	.def_readwrite("aby", &NAVdata::aby)
+	.def_readwrite("abz", &NAVdata::abz)
+	.def_readwrite("gbx", &NAVdata::gbx)
+	.def_readwrite("gby", &NAVdata::gby)
+	.def_readwrite("gbz", &NAVdata::gbz)
+	.def_readwrite("Pp0", &NAVdata::Pp0)
+	.def_readwrite("Pp1", &NAVdata::Pp1)
+	.def_readwrite("Pp2", &NAVdata::Pp2)
+	.def_readwrite("Pv0", &NAVdata::Pv0)
+	.def_readwrite("Pv1", &NAVdata::Pv1)
+	.def_readwrite("Pv2", &NAVdata::Pv2)
+	.def_readwrite("Pa0", &NAVdata::Pa0)
+	.def_readwrite("Pa1", &NAVdata::Pa1)
+	.def_readwrite("Pa2", &NAVdata::Pa2)
+	.def_readwrite("Pabx", &NAVdata::Pabx)
+	.def_readwrite("Paby", &NAVdata::Paby)
+	.def_readwrite("Pabz", &NAVdata::Pabz)
+	.def_readwrite("Pgbx", &NAVdata::Pgbx)
+	.def_readwrite("Pgby", &NAVdata::Pgby)
+	.def_readwrite("Pgbz", &NAVdata::Pgbz)
+    ;
+    
+    class_<EKF>("EKF")
+        .def("init", &EKF::init)
+        .def("update", &EKF::update)
+    ;
+}
+

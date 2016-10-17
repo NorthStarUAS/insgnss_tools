@@ -7,4 +7,6 @@ libnav_eigen_mag_test_la_SOURCES = \
         nav_functions.cxx nav_functions.hxx nav_interface.hxx \
 	../utils/coremag.c ../utils/coremag.h
 
-libnav_eigen_mag_test_la_LDFLAGS = -module -avoid-version -shared
+AM_CPPFLAGS = @PYTHON_INCLUDES@
+
+libnav_eigen_mag_test_la_LDFLAGS = -module -avoid-version -shared -lboost_python
