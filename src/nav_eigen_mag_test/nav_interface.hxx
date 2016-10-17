@@ -67,10 +67,5 @@ struct NAVdata {
 const double g = 9.814;
 const double D2R = M_PI / 180.0;
 
-/// Standard function to initialize the navigation filter.
-NAVdata init_nav(IMUdata imu, GPSdata gps);
-
-/// Standard function to call the navigation filter.
-NAVdata get_nav(IMUdata imu, GPSdata gps);
 
 #endif // NAV_INTERFACE_HXX_

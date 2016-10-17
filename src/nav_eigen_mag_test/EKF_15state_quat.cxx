@@ -26,27 +26,6 @@ using std::endl;
 
 #include "EKF_15state_quat.hxx"
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//error characteristics of navigation parameters
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const double SIG_W_AX = 0.05;	 // m/s^2
-const double SIG_W_AY = 0.05;
-const double SIG_W_AZ = 0.05;
-const double SIG_W_GX = 0.00175; // rad/s (0.1 deg/s)
-const double SIG_W_GY = 0.00175;
-const double SIG_W_GZ = 0.00175;
-const double SIG_A_D  = 0.1;	 // 5e-2*g
-const double TAU_A    = 100.0;
-const double SIG_G_D  = 0.00873; // 0.1 deg/s
-const double TAU_G    = 50.0;
-
-const double SIG_GPS_P_NE = 3.0;
-const double SIG_GPS_P_D  = 5.0;
-const double SIG_GPS_V_NE = 0.5;
-const double SIG_GPS_V_D  = 1.0;
-
-const double SIG_MAG      = 0.2; // 0.05 would be a pretty well calibrated mag
-
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
 const double P_A_INIT = 0.34906;   // 20 deg
@@ -61,7 +40,31 @@ const double Rns = 6.386034030458164e+006; // earth radius
 ////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
 ////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
 ////////// BRT A lot of these multi line equations with temp matrices can be compressed
-	
+
+void EKF::config(double SIG_W_AX, double SIG_W_AY, double SIG_W_AZ,
+		 double SIG_W_GX, double SIG_W_GY, double SIG_W_GZ,
+		 double SIG_A_D, double TAU_A, double SIG_G_D, double TAU_G,	
+		 double SIG_GPS_P_NE, double SIG_GPS_P_D,
+		 double SIG_GPS_V_NE, double SIG_GPS_V_D,
+		 double SIG_MAG)
+{
+    this->SIG_W_AX = SIG_W_AX;
+    this->SIG_W_AY = SIG_W_AY;
+    this->SIG_W_AZ = SIG_W_AZ;
+    this->SIG_W_GX = SIG_W_GX;
+    this->SIG_W_GY = SIG_W_GY;
+    this->SIG_W_GZ = SIG_W_GZ;
+    this->SIG_A_D = SIG_A_D;
+    this->TAU_A = TAU_A;
+    this->SIG_G_D = SIG_G_D;
+    this->TAU_G = TAU_G;
+    this->SIG_GPS_P_NE = SIG_GPS_P_NE;
+    this->SIG_GPS_P_D = SIG_GPS_P_D;
+    this->SIG_GPS_V_NE = SIG_GPS_V_NE;
+    this->SIG_GPS_V_D = SIG_GPS_V_D;
+    this->SIG_MAG = SIG_MAG;
+}
+
 NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
@@ -73,7 +76,6 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     // ... H
     H.topLeftCorner(6,6).setIdentity();
 
-    // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
@@ -82,7 +84,7 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;	      Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
     Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;    Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
     Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;  Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
-	
+
     // ... P (initial)
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
     P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 	      P(5,5) = P_V_INIT*P_V_INIT;
@@ -90,6 +92,11 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT;       P(11,11) = P_AB_INIT*P_AB_INIT;
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
+     // ... R
+    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
+    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	 R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;  R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
+    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
+   
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);	  nav.Pv1 = P(4,4);	nav.Pv2 = P(5,5);
@@ -98,11 +105,6 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     nav.Pabx = P(9,9);	  nav.Paby = P(10,10);	nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 	
-    // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	 R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;  R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
-    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
-    
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
     nav.lon = gps.lon*D2R;
