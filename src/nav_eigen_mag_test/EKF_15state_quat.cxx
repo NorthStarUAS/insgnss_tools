@@ -41,28 +41,28 @@ const double Rns = 6.386034030458164e+006; // earth radius
 ////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
 ////////// BRT A lot of these multi line equations with temp matrices can be compressed
 
-void EKF::config(double SIG_W_AX, double SIG_W_AY, double SIG_W_AZ,
-		 double SIG_W_GX, double SIG_W_GY, double SIG_W_GZ,
-		 double SIG_A_D, double TAU_A, double SIG_G_D, double TAU_G,	
-		 double SIG_GPS_P_NE, double SIG_GPS_P_D,
-		 double SIG_GPS_V_NE, double SIG_GPS_V_D,
-		 double SIG_MAG)
+void EKF::config(double sig_w_ax, double sig_w_ay, double sig_w_az,
+		 double sig_w_gx, double sig_w_gy, double sig_w_gz,
+		 double sig_a_d, double tau_a, double sig_g_d, double tau_g,	
+		 double sig_gps_p_ne, double sig_gps_p_d,
+		 double sig_gps_v_ne, double sig_gps_v_d,
+		 double sig_mag)
 {
-    this->SIG_W_AX = SIG_W_AX;
-    this->SIG_W_AY = SIG_W_AY;
-    this->SIG_W_AZ = SIG_W_AZ;
-    this->SIG_W_GX = SIG_W_GX;
-    this->SIG_W_GY = SIG_W_GY;
-    this->SIG_W_GZ = SIG_W_GZ;
-    this->SIG_A_D = SIG_A_D;
-    this->TAU_A = TAU_A;
-    this->SIG_G_D = SIG_G_D;
-    this->TAU_G = TAU_G;
-    this->SIG_GPS_P_NE = SIG_GPS_P_NE;
-    this->SIG_GPS_P_D = SIG_GPS_P_D;
-    this->SIG_GPS_V_NE = SIG_GPS_V_NE;
-    this->SIG_GPS_V_D = SIG_GPS_V_D;
-    this->SIG_MAG = SIG_MAG;
+    this->sig_w_ax = sig_w_ax;
+    this->sig_w_ay = sig_w_ay;
+    this->sig_w_az = sig_w_az;
+    this->sig_w_gx = sig_w_gx;
+    this->sig_w_gy = sig_w_gy;
+    this->sig_w_gz = sig_w_gz;
+    this->sig_a_d = sig_a_d;
+    this->tau_a = tau_a;
+    this->sig_g_d = sig_g_d;
+    this->tau_g = tau_g;
+    this->sig_gps_p_ne = sig_gps_p_ne;
+    this->sig_gps_p_d = sig_gps_p_d;
+    this->sig_gps_v_ne = sig_gps_v_ne;
+    this->sig_gps_v_d = sig_gps_v_d;
+    this->sig_mag = sig_mag;
 }
 
 NAVdata EKF::init(IMUdata imu, GPSdata gps) {
@@ -80,10 +80,10 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw(0,0) = SIG_W_AX*SIG_W_AX;	Rw(1,1) = SIG_W_AY*SIG_W_AY;	      Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
-    Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;	      Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
-    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;    Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
-    Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;  Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
+    Rw(0,0) = sig_w_ax*sig_w_ax;	Rw(1,1) = sig_w_ay*sig_w_ay;	      Rw(2,2) = sig_w_az*sig_w_az; //1 sigma on noise
+    Rw(3,3) = sig_w_gx*sig_w_gx;	Rw(4,4) = sig_w_gy*sig_w_gy;	      Rw(5,5) = sig_w_gz*sig_w_gz;
+    Rw(6,6) = 2*sig_a_d*sig_a_d/tau_a;	Rw(7,7) = 2*sig_a_d*sig_a_d/tau_a;    Rw(8,8) = 2*sig_a_d*sig_a_d/tau_a;
+    Rw(9,9) = 2*sig_g_d*sig_g_d/tau_g;	Rw(10,10) = 2*sig_g_d*sig_g_d/tau_g;  Rw(11,11) = 2*sig_g_d*sig_g_d/tau_g;
 
     // ... P (initial)
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
@@ -93,9 +93,9 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
      // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	 R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;  R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
-    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
+    R(0,0) = sig_gps_p_ne*sig_gps_p_ne;	 R(1,1) = sig_gps_p_ne*sig_gps_p_ne;  R(2,2) = sig_gps_p_d*sig_gps_p_d;
+    R(3,3) = sig_gps_v_ne*sig_gps_v_ne;	 R(4,4) = sig_gps_v_ne*sig_gps_v_ne;  R(5,5) = sig_gps_v_d*sig_gps_v_d;
+    R(6,6) = sig_mag*sig_mag;            R(7,7) = sig_mag*sig_mag;            R(8,8) = sig_mag*sig_mag;
    
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
@@ -258,8 +258,8 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
     F(8,14) = -0.5;
 	
     // ... Accel Markov Bias
-    F(9,9) = -1.0/TAU_A;    F(10,10) = -1.0/TAU_A;  F(11,11) = -1.0/TAU_A;
-    F(12,12) = -1.0/TAU_G;  F(13,13) = -1.0/TAU_G;  F(14,14) = -1.0/TAU_G;
+    F(9,9) = -1.0/tau_a;    F(10,10) = -1.0/tau_a;  F(11,11) = -1.0/tau_a;
+    F(12,12) = -1.0/tau_g;  F(13,13) = -1.0/tau_g;  F(14,14) = -1.0/tau_g;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
     PHI = I15 + F * imu_dt;

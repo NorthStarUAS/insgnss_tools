@@ -21,60 +21,76 @@
 using namespace Eigen;
 
 // define some types for notational convenience and consistency
-typedef Matrix<double,9,9> Matrix9d;
+typedef Matrix<double,9,9>   Matrix9d;
 typedef Matrix<double,12,12> Matrix12d;
 typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15> Matrix9x15d;
-typedef Matrix<double,15,9> Matrix15x9d;
+typedef Matrix<double,9,15>  Matrix9x15d;
+typedef Matrix<double,15,9>  Matrix15x9d;
 typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1> Vector9d;
-typedef Matrix<double,15,1> Vector15d;
+typedef Matrix<double,9,1>   Vector9d;
+typedef Matrix<double,15,1>  Vector15d;
 
 class EKF {
 
 public:
 
-    EKF() {
-	config();		// start with default values
+    EKF():
+	// default values appropriate for typical hobby/diy sensors
+	sig_w_ax(0.05),	   // m/s^2
+	sig_w_ay(0.05),
+	sig_w_az(0.05),
+	sig_w_gx(0.00175), // rad/s (0.1 deg/s)
+	sig_w_gy(0.00175),
+	sig_w_gz(0.00175),
+	sig_a_d(0.1),      // 5e-2*g
+	tau_a(100.0),
+	sig_g_d(0.00873),  // 0.1 deg/s
+	tau_g(50.0),
+	sig_gps_p_ne(3.0),
+	sig_gps_p_d(5.0),
+	sig_gps_v_ne(0.5),
+	sig_gps_v_d(1.0),
+	sig_mag(0.2)
+    {
     }
     ~EKF() {}
 
     // set error characteristics of navigation parameters
-    void config(double SIG_W_AX = 0.05,	// m/s^2
-		double SIG_W_AY = 0.05,
-		double SIG_W_AZ = 0.05,
-		double SIG_W_GX = 0.00175, // rad/s (0.1 deg/s)
-		double SIG_W_GY = 0.00175,
-		double SIG_W_GZ = 0.00175,
-		double SIG_A_D  = 0.1,	 // 5e-2*g
-		double TAU_A    = 100.0,
-		double SIG_G_D  = 0.00873, // 0.1 deg/s
-		double TAU_G    = 50.0,
-		double SIG_GPS_P_NE = 3.0,
-		double SIG_GPS_P_D  = 5.0,
-		double SIG_GPS_V_NE = 0.5,
-		double SIG_GPS_V_D  = 1.0,
-		double SIG_MAG      = 0.2);
+    void config(double sig_w_ax = 0.05,	   // m/s^2
+		double sig_w_ay = 0.05,
+		double sig_w_az = 0.05,
+		double sig_w_gx = 0.00175, // rad/s (0.1 deg/s)
+		double sig_w_gy = 0.00175,
+		double sig_w_gz = 0.00175,
+		double sig_a_d  = 0.1,     // 5e-2*g
+		double tau_a    = 100.0,
+		double sig_g_d  = 0.00873, // 0.1 deg/s
+		double tau_g    = 50.0,
+		double sig_gps_p_ne = 3.0,
+		double sig_gps_p_d  = 5.0,
+		double sig_gps_v_ne = 0.5,
+		double sig_gps_v_d  = 1.0,
+		double sig_mag      = 0.2);
     NAVdata init(IMUdata imu, GPSdata gps);
     NAVdata update(IMUdata imu, GPSdata gps);
     
 private:
 
-    double SIG_W_AX;		// m/s^2
-    double SIG_W_AY;
-    double SIG_W_AZ;
-    double SIG_W_GX;		// rad/s (0.1 deg/s)
-    double SIG_W_GY;
-    double SIG_W_GZ;
-    double SIG_A_D;		// 5e-2*g
-    double TAU_A;
-    double SIG_G_D;		// 0.1 deg/s
-    double TAU_G;
-    double SIG_GPS_P_NE;
-    double SIG_GPS_P_D;
-    double SIG_GPS_V_NE;
-    double SIG_GPS_V_D;
-    double SIG_MAG;
+    double sig_w_ax;		// m/s^2
+    double sig_w_ay;
+    double sig_w_az;
+    double sig_w_gx;		// rad/s (0.1 deg/s)
+    double sig_w_gy;
+    double sig_w_gz;
+    double sig_a_d;		// 5e-2*g
+    double tau_a;
+    double sig_g_d;		// 0.1 deg/s
+    double tau_g;
+    double sig_gps_p_ne;
+    double sig_gps_p_d;
+    double sig_gps_v_ne;
+    double sig_gps_v_d;
+    double sig_mag;
 
     Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12d G;
