@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NAV_15STATE_MAG_HXX
-#define NAV_15STATE_MAG_HXX
+#ifndef NAV_15STATE_HXX
+#define NAV_15STATE_HXX
 
 
 #include <math.h>
@@ -31,23 +31,23 @@ const double g = 9.814;
 const double D2R = M_PI / 180.0;
 
 // define some types for notational convenience and consistency
-typedef Matrix<double,9,9>   Matrix9d;
+typedef Matrix<double,6,6> Matrix6d;
 typedef Matrix<double,12,12> Matrix12d;
 typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15>  Matrix9x15d;
-typedef Matrix<double,15,9>  Matrix15x9d;
+typedef Matrix<double,6,15> Matrix6x15d;
+typedef Matrix<double,15,6> Matrix15x6d;
 typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1>   Vector9d;
-typedef Matrix<double,15,1>  Vector15d;
+typedef Matrix<double,6,1> Vector6d;
+typedef Matrix<double,15,1> Vector15d;
 
-class EKF {
+class EKF15 {
 
 public:
 
-    EKF() {
+    EKF15() {
 	default_config();
     }
-    ~EKF() {}
+    ~EKF15() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -62,12 +62,12 @@ private:
 
     Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12d G;
-    Matrix15x9d K;
+    Matrix15x6d K;
     Vector15d x;
     Matrix12d Rw;
-    Matrix9x15d H;
-    Matrix9d R;
-    Vector9d y;
+    Matrix6x15d H;
+    Matrix6d R;
+    Vector6d y;
     Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
     Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
 
@@ -86,7 +86,7 @@ private:
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_eigen_mag)
+BOOST_PYTHON_MODULE(libnav_eigen_test)
 {
     class_<IMUdata>("IMUdata")
 	.def_readwrite("time", &IMUdata::time)
@@ -168,11 +168,11 @@ BOOST_PYTHON_MODULE(libnav_eigen_mag)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
     ;
 	
-    class_<EKF>("EKF15mag")
-        .def("set_config", &EKF::set_config)
-        .def("init", &EKF::init)
-        .def("update", &EKF::update)
+    class_<EKF15>("EKF15")
+        .def("set_config", &EKF15::set_config)
+        .def("init", &EKF15::init)
+        .def("update", &EKF15::update)
     ;
 }
 
-#endif // NAV_15STATE_MAG_HXX
+#endif // NAV_15STATE_HXX

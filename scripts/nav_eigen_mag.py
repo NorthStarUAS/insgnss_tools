@@ -20,7 +20,7 @@ class filter():
         # Load compilied `.so` file.
         # sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_mag/.libs/libnav_eigen_mag.so'))
 
-        self.ekf = libnav_eigen_mag.EKF()
+        self.ekf = libnav_eigen_mag.EKF15mag()
         #self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
         #self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata
         
