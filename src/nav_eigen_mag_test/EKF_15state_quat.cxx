@@ -35,14 +35,20 @@ const double P_GB_INIT = 0.01745;  //5 deg/s
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-////////// BRT I think there are some several identity and sparse matrices, so probably some optimization still left there
-////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
-////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
-////////// BRT A lot of these multi line equations with temp matrices can be compressed
+// BRT: (1) I think there are some several identity and sparse
+// matrices, so probably some optimization still left there.  (2)
+// Seems like a lot of the transforms could be more efficiently done
+// with just a matrix or vector multiply.  (3) Probably could do a lot
+// of block operations with F, i.e. F.block(j,k) = C_B2N, etc.  (4) A
+// lot of these multi line equations with temp matrices can be
+// compressed.
 
-void EKF::set_config(NAVconfig new_config)
-{
-    config = new_config;
+void EKF::set_config(NAVconfig config) {
+    this->config = config;
+}
+
+NAVconfig EKF::get_config() {
+    return config;
 }
 
 void EKF::default_config()

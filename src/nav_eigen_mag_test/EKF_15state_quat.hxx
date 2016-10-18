@@ -26,7 +26,7 @@ using namespace Eigen;
 
 #include "nav_structs.hxx"
 
-// usefule constats
+// usefule constants
 const double g = 9.814;
 const double D2R = M_PI / 180.0;
 
@@ -49,9 +49,12 @@ public:
     }
     ~EKF() {}
 
-    // set error characteristics of navigation parameters
-    void set_config(NAVconfig new_config);
+    // set/get error characteristics of navigation sensors
+    void set_config(NAVconfig config);
+    NAVconfig get_config();
     void default_config();
+
+    // main interface
     NAVdata init(IMUdata imu, GPSdata gps);
     NAVdata update(IMUdata imu, GPSdata gps);
     
@@ -76,6 +79,9 @@ private:
     NAVdata nav;
 };
 
+
+// The following constructs a python interface for this class and
+// associated structures.
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -107,41 +113,41 @@ BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
     ;
 
     class_<NAVdata>("NAVdata")
-	.def_readwrite("time", &NAVdata::time)
-	.def_readwrite("lat", &NAVdata::lat)
-	.def_readwrite("lon", &NAVdata::lon)
-	.def_readwrite("alt", &NAVdata::alt)
-	.def_readwrite("vn", &NAVdata::vn)
-	.def_readwrite("ve", &NAVdata::ve)
-	.def_readwrite("vd", &NAVdata::vd)
-	.def_readwrite("phi", &NAVdata::phi)
-	.def_readwrite("the", &NAVdata::the)
-	.def_readwrite("psi", &NAVdata::psi)
-	.def_readwrite("qw", &NAVdata::qw)
-	.def_readwrite("qx", &NAVdata::qx)
-	.def_readwrite("qy", &NAVdata::qy)
-	.def_readwrite("qz", &NAVdata::qz)
-	.def_readwrite("abx", &NAVdata::abx)
-	.def_readwrite("aby", &NAVdata::aby)
-	.def_readwrite("abz", &NAVdata::abz)
-	.def_readwrite("gbx", &NAVdata::gbx)
-	.def_readwrite("gby", &NAVdata::gby)
-	.def_readwrite("gbz", &NAVdata::gbz)
-	.def_readwrite("Pp0", &NAVdata::Pp0)
-	.def_readwrite("Pp1", &NAVdata::Pp1)
-	.def_readwrite("Pp2", &NAVdata::Pp2)
-	.def_readwrite("Pv0", &NAVdata::Pv0)
-	.def_readwrite("Pv1", &NAVdata::Pv1)
-	.def_readwrite("Pv2", &NAVdata::Pv2)
-	.def_readwrite("Pa0", &NAVdata::Pa0)
-	.def_readwrite("Pa1", &NAVdata::Pa1)
-	.def_readwrite("Pa2", &NAVdata::Pa2)
-	.def_readwrite("Pabx", &NAVdata::Pabx)
-	.def_readwrite("Paby", &NAVdata::Paby)
-	.def_readwrite("Pabz", &NAVdata::Pabz)
-	.def_readwrite("Pgbx", &NAVdata::Pgbx)
-	.def_readwrite("Pgby", &NAVdata::Pgby)
-	.def_readwrite("Pgbz", &NAVdata::Pgbz)
+	.def_readonly("time", &NAVdata::time)
+	.def_readonly("lat", &NAVdata::lat)
+	.def_readonly("lon", &NAVdata::lon)
+	.def_readonly("alt", &NAVdata::alt)
+	.def_readonly("vn", &NAVdata::vn)
+	.def_readonly("ve", &NAVdata::ve)
+	.def_readonly("vd", &NAVdata::vd)
+	.def_readonly("phi", &NAVdata::phi)
+	.def_readonly("the", &NAVdata::the)
+	.def_readonly("psi", &NAVdata::psi)
+	.def_readonly("qw", &NAVdata::qw)
+	.def_readonly("qx", &NAVdata::qx)
+	.def_readonly("qy", &NAVdata::qy)
+	.def_readonly("qz", &NAVdata::qz)
+	.def_readonly("abx", &NAVdata::abx)
+	.def_readonly("aby", &NAVdata::aby)
+	.def_readonly("abz", &NAVdata::abz)
+	.def_readonly("gbx", &NAVdata::gbx)
+	.def_readonly("gby", &NAVdata::gby)
+	.def_readonly("gbz", &NAVdata::gbz)
+	.def_readonly("Pp0", &NAVdata::Pp0)
+	.def_readonly("Pp1", &NAVdata::Pp1)
+	.def_readonly("Pp2", &NAVdata::Pp2)
+	.def_readonly("Pv0", &NAVdata::Pv0)
+	.def_readonly("Pv1", &NAVdata::Pv1)
+	.def_readonly("Pv2", &NAVdata::Pv2)
+	.def_readonly("Pa0", &NAVdata::Pa0)
+	.def_readonly("Pa1", &NAVdata::Pa1)
+	.def_readonly("Pa2", &NAVdata::Pa2)
+	.def_readonly("Pabx", &NAVdata::Pabx)
+	.def_readonly("Paby", &NAVdata::Paby)
+	.def_readonly("Pabz", &NAVdata::Pabz)
+	.def_readonly("Pgbx", &NAVdata::Pgbx)
+	.def_readonly("Pgby", &NAVdata::Pgby)
+	.def_readonly("Pgbz", &NAVdata::Pgbz)
     ;
 
     class_<NAVconfig>("NAVconfig")
