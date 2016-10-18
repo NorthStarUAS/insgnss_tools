@@ -86,7 +86,7 @@ private:
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_eigen_test)
+BOOST_PYTHON_MODULE(libnav_eigen)
 {
     class_<IMUdata>("IMUdata")
 	.def_readwrite("time", &IMUdata::time)

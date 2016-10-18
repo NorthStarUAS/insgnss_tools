@@ -56,19 +56,15 @@ r2d = np.rad2deg
 import nav_orig
 import nav_polarity
 import nav_mag
-import nav_eigen_test
+import nav_eigen
 import nav_eigen_mag
 import nav_eigen_old
 import nav_eigen_mag_old
 import MadgwickAHRS
 
 #filter2 = nav_eigen_mag_old.filter()
-#filter2 = nav_eigen_test.filter()
 #filter1 = nav_orig.filter()
-#filter2 = nav_eigen.filter()
-#filter1 = nav_eigen.filter()
-#filter1 = nav_eigen_test.filter()
-filter1 = nav_eigen_test.filter()
+filter1 = nav_eigen.filter()
 filter2 = nav_eigen_old.filter()
 #filter2 = MadgwickAHRS.filter()
 

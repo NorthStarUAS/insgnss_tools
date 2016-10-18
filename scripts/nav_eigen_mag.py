@@ -2,37 +2,14 @@ import numpy as np
 import os
 import sys
 
-# Import the structures
-import cdefs
 import pydefs
-
-# Import these ctypes for proper declaration of cdefs.py structures
-import ctypes
-# Abbreviate these ctypes commands
-POINTER = ctypes.POINTER
-byref   = ctypes.byref
 
 sys.path.append('../build/src/nav_eigen_mag/.libs/')
 import libnav_eigen_mag
 
 class filter():
     def __init__(self):
-        # Load compilied `.so` file.
-        # sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_mag/.libs/libnav_eigen_mag.so'))
-
         self.ekf = libnav_eigen_mag.EKF15mag()
-        #self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
-        #self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata
-        
-        # Declare inputs to the init_nav function
-        #self.init_func.argtypes = [cdefs.newIMU,
-        #                           cdefs.newGPS]
-        #self.init_func.restype = cdefs.newNAV
-        
-        # Declare inputs to the get_nav function
-        #self.update_func.argtypes = [cdefs.newIMU,
-        #                             cdefs.newGPS]
-        #self.update_func.restype = cdefs.newNAV
 
     def python2c(self, imu, gps):
         cimu = libnav_eigen_mag.IMUdata()

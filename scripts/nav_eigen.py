@@ -2,41 +2,17 @@ import numpy as np
 import os
 import sys
 
-# Import the structures
-import cdefs
 import pydefs
 
-# Import these ctypes for proper declaration of cdefs.py structures
-import ctypes
-# Abbreviate these ctypes commands
-POINTER = ctypes.POINTER
-byref   = ctypes.byref
-
-sys.path.append('../build/src/nav_eigen_test/.libs/')
-import libnav_eigen_test
+sys.path.append('../build/src/nav_eigen/.libs/')
+import libnav_eigen
 
 class filter():
     def __init__(self):
-        # Load compilied `.so` file.
-        # sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_test/.libs/libnav_eigen_test.so'))
-
-        # self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
-        # self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata
-        
-        self.ekf = libnav_eigen_test.EKF15()
-
-        # Declare inputs to the init_nav function
-        # self.init_func.argtypes = [cdefs.newIMU,
-        #                            cdefs.newGPS]
-        # self.init_func.restype = cdefs.newNAV
-        
-        # # Declare inputs to the get_nav function
-        # self.update_func.argtypes = [cdefs.newIMU,
-        #                              cdefs.newGPS]
-        # self.update_func.restype = cdefs.newNAV
+        self.ekf = libnav_eigen.EKF15()
 
     def python2c(self, imu, gps):
-        cimu = libnav_eigen_test.IMUdata()
+        cimu = libnav_eigen.IMUdata()
         cimu.time = imu.time
         cimu.p = imu.p
         cimu.q = imu.q
@@ -48,7 +24,7 @@ class filter():
         cimu.hy = imu.hy
         cimu.hz = imu.hz
         
-        cgps = libnav_eigen_test.GPSdata()
+        cgps = libnav_eigen.GPSdata()
         cgps.time = gps.time
         cgps.tow = gps.tow
         cgps.newData = gps.newData
