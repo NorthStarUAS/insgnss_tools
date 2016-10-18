@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 lib_LTLIBRARIES = libnav_eigen_mag_test.la
 
 libnav_eigen_mag_test_la_SOURCES = \
-        EKF_15state_quat.cxx \
+        EKF_15state_mag.cxx EKF_15state_mag.hxx \
         nav_functions.cxx nav_functions.hxx \
 	nav_structs.hxx \
 	../utils/coremag.c ../utils/coremag.h

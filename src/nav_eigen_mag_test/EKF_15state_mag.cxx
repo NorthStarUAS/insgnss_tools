@@ -23,7 +23,7 @@ using std::endl;
 
 #include "../utils/coremag.h"
 
-#include "EKF_15state_quat.hxx"
+#include "EKF_15state_mag.hxx"
 
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
