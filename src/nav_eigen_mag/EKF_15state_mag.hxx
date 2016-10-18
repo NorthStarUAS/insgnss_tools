@@ -40,14 +40,14 @@ typedef Matrix<double,15,12> Matrix15x12d;
 typedef Matrix<double,9,1>   Vector9d;
 typedef Matrix<double,15,1>  Vector15d;
 
-class EKF {
+class EKF15mag {
 
 public:
 
-    EKF() {
+    EKF15mag() {
 	default_config();
     }
-    ~EKF() {}
+    ~EKF15mag() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -168,10 +168,10 @@ BOOST_PYTHON_MODULE(libnav_eigen_mag)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
     ;
 	
-    class_<EKF>("EKF15mag")
-        .def("set_config", &EKF::set_config)
-        .def("init", &EKF::init)
-        .def("update", &EKF::update)
+    class_<EKF15mag>("EKF15mag")
+        .def("set_config", &EKF15mag::set_config)
+        .def("init", &EKF15mag::init)
+        .def("update", &EKF15mag::update)
     ;
 }
 

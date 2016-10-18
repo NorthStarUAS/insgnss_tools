@@ -43,15 +43,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF::set_config(NAVconfig config) {
+void EKF15mag::set_config(NAVconfig config) {
     this->config = config;
 }
 
-NAVconfig EKF::get_config() {
+NAVconfig EKF15mag::get_config() {
     return config;
 }
 
-void EKF::default_config()
+void EKF15mag::default_config()
 {
     config.sig_w_ax = 0.05;	   // m/s^2
     config.sig_w_ay = 0.05;
@@ -70,7 +70,7 @@ void EKF::default_config()
     config.sig_mag      = 0.2;
 }
 
-NAVdata EKF::init(IMUdata imu, GPSdata gps) {
+NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -184,7 +184,7 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-NAVdata EKF::update(IMUdata imu, GPSdata gps) {
+NAVdata EKF15mag::update(IMUdata imu, GPSdata gps) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     double tnow = imu.time;
