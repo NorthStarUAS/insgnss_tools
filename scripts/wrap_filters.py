@@ -57,9 +57,9 @@ import nav_orig
 import nav_polarity
 import nav_mag
 import nav_eigen
-import nav_eigen_mag_old
 import nav_eigen_test
-import nav_eigen_mag_test
+import nav_eigen_mag
+import nav_eigen_mag_old
 import MadgwickAHRS
 
 #filter2 = nav_eigen_mag_old.filter()
@@ -68,8 +68,8 @@ import MadgwickAHRS
 #filter2 = nav_eigen.filter()
 #filter1 = nav_eigen.filter()
 #filter1 = nav_eigen_test.filter()
-filter1 = nav_eigen_mag_old.filter()
-filter2 = nav_eigen_mag_test.filter()
+filter1 = nav_eigen_mag.filter()
+filter2 = nav_eigen_mag_old.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs

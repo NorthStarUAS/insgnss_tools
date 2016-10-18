@@ -12,15 +12,15 @@ import ctypes
 POINTER = ctypes.POINTER
 byref   = ctypes.byref
 
-sys.path.append('../build/src/nav_eigen_mag_test/.libs/')
-import libnav_eigen_mag_test
+sys.path.append('../build/src/nav_eigen_mag/.libs/')
+import libnav_eigen_mag
 
 class filter():
     def __init__(self):
         # Load compilied `.so` file.
-        # sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_mag_test/.libs/libnav_eigen_mag_test.so'))
+        # sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_mag/.libs/libnav_eigen_mag.so'))
 
-        self.ekf = libnav_eigen_mag_test.EKF()
+        self.ekf = libnav_eigen_mag.EKF()
         #self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
         #self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata
         
@@ -35,7 +35,7 @@ class filter():
         #self.update_func.restype = cdefs.newNAV
 
     def python2c(self, imu, gps):
-        cimu = libnav_eigen_mag_test.IMUdata()
+        cimu = libnav_eigen_mag.IMUdata()
         cimu.time = imu.time
         cimu.p = imu.p
         cimu.q = imu.q
@@ -47,7 +47,7 @@ class filter():
         cimu.hy = imu.hy
         cimu.hz = imu.hz
         
-        cgps = libnav_eigen_mag_test.GPSdata()
+        cgps = libnav_eigen_mag.GPSdata()
         cgps.time = gps.time
         cgps.tow = gps.tow
         cgps.newData = gps.newData
