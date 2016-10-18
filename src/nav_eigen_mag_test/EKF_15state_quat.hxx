@@ -57,22 +57,6 @@ public:
     
 private:
 
-    // double sig_w_ax;		// m/s^2
-    // double sig_w_ay;
-    // double sig_w_az;
-    // double sig_w_gx;		// rad/s (0.1 deg/s)
-    // double sig_w_gy;
-    // double sig_w_gz;
-    // double sig_a_d;		// 5e-2*g
-    // double tau_a;
-    // double sig_g_d;		// 0.1 deg/s
-    // double tau_g;
-    // double sig_gps_p_ne;
-    // double sig_gps_p_d;
-    // double sig_gps_v_ne;
-    // double sig_gps_v_d;
-    // double sig_mag;
-
     Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12d G;
     Matrix15x9d K;
@@ -160,6 +144,24 @@ BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
 	.def_readwrite("Pgbz", &NAVdata::Pgbz)
     ;
 
+    class_<NAVconfig>("NAVconfig")
+	.def_readwrite("sig_w_ax", &NAVconfig::sig_w_ax)
+	.def_readwrite("sig_w_ay", &NAVconfig::sig_w_ay)
+	.def_readwrite("sig_w_az", &NAVconfig::sig_w_az)
+	.def_readwrite("sig_w_gx", &NAVconfig::sig_w_gx)
+	.def_readwrite("sig_w_gy", &NAVconfig::sig_w_gy)
+	.def_readwrite("sig_w_gz", &NAVconfig::sig_w_gz)
+	.def_readwrite("sig_a_d", &NAVconfig::sig_a_d)
+	.def_readwrite("tau_a", &NAVconfig::tau_a)
+	.def_readwrite("sig_g_d", &NAVconfig::sig_g_d)
+	.def_readwrite("tau_g", &NAVconfig::tau_g)
+	.def_readwrite("sig_gps_p_ne", &NAVconfig::sig_gps_p_ne)
+	.def_readwrite("sig_gps_p_d", &NAVconfig::sig_gps_p_d)
+	.def_readwrite("sig_gps_v_ne", &NAVconfig::sig_gps_v_ne)
+	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
+	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
+    ;
+	
     class_<EKF>("EKF")
         .def("set_config", &EKF::set_config)
         .def("init", &EKF::init)
