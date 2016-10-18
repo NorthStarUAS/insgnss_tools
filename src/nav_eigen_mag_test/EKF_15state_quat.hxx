@@ -14,11 +14,21 @@
  *
  */
 
+#ifndef NAV_15STATE_MAG_HXX
+#define NAV_15STATE_MAG_HXX
+
+
 #include <math.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
+
+#include "nav_structs.hxx"
+
+// usefule constats
+const double g = 9.814;
+const double D2R = M_PI / 180.0;
 
 // define some types for notational convenience and consistency
 typedef Matrix<double,9,9>   Matrix9d;
@@ -34,63 +44,34 @@ class EKF {
 
 public:
 
-    EKF():
-	// default values appropriate for typical hobby/diy sensors
-	sig_w_ax(0.05),	   // m/s^2
-	sig_w_ay(0.05),
-	sig_w_az(0.05),
-	sig_w_gx(0.00175), // rad/s (0.1 deg/s)
-	sig_w_gy(0.00175),
-	sig_w_gz(0.00175),
-	sig_a_d(0.1),      // 5e-2*g
-	tau_a(100.0),
-	sig_g_d(0.00873),  // 0.1 deg/s
-	tau_g(50.0),
-	sig_gps_p_ne(3.0),
-	sig_gps_p_d(5.0),
-	sig_gps_v_ne(0.5),
-	sig_gps_v_d(1.0),
-	sig_mag(0.2)
-    {
+    EKF() {
+	default_config();
     }
     ~EKF() {}
 
     // set error characteristics of navigation parameters
-    void config(double sig_w_ax = 0.05,	   // m/s^2
-		double sig_w_ay = 0.05,
-		double sig_w_az = 0.05,
-		double sig_w_gx = 0.00175, // rad/s (0.1 deg/s)
-		double sig_w_gy = 0.00175,
-		double sig_w_gz = 0.00175,
-		double sig_a_d  = 0.1,     // 5e-2*g
-		double tau_a    = 100.0,
-		double sig_g_d  = 0.00873, // 0.1 deg/s
-		double tau_g    = 50.0,
-		double sig_gps_p_ne = 3.0,
-		double sig_gps_p_d  = 5.0,
-		double sig_gps_v_ne = 0.5,
-		double sig_gps_v_d  = 1.0,
-		double sig_mag      = 0.2);
+    void set_config(NAVconfig new_config);
+    void default_config();
     NAVdata init(IMUdata imu, GPSdata gps);
     NAVdata update(IMUdata imu, GPSdata gps);
     
 private:
 
-    double sig_w_ax;		// m/s^2
-    double sig_w_ay;
-    double sig_w_az;
-    double sig_w_gx;		// rad/s (0.1 deg/s)
-    double sig_w_gy;
-    double sig_w_gz;
-    double sig_a_d;		// 5e-2*g
-    double tau_a;
-    double sig_g_d;		// 0.1 deg/s
-    double tau_g;
-    double sig_gps_p_ne;
-    double sig_gps_p_d;
-    double sig_gps_v_ne;
-    double sig_gps_v_d;
-    double sig_mag;
+    // double sig_w_ax;		// m/s^2
+    // double sig_w_ay;
+    // double sig_w_az;
+    // double sig_w_gx;		// rad/s (0.1 deg/s)
+    // double sig_w_gy;
+    // double sig_w_gz;
+    // double sig_a_d;		// 5e-2*g
+    // double tau_a;
+    // double sig_g_d;		// 0.1 deg/s
+    // double tau_g;
+    // double sig_gps_p_ne;
+    // double sig_gps_p_d;
+    // double sig_gps_v_ne;
+    // double sig_gps_v_d;
+    // double sig_mag;
 
     Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12d G;
@@ -107,5 +88,83 @@ private:
     double denom, Re, Rn;
     double tprev;
 
+    NAVconfig config;
     NAVdata nav;
 };
+
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
+{
+    class_<IMUdata>("IMUdata")
+	.def_readwrite("time", &IMUdata::time)
+	.def_readwrite("p", &IMUdata::p)
+	.def_readwrite("q", &IMUdata::q)
+	.def_readwrite("r", &IMUdata::r)
+ 	.def_readwrite("ax", &IMUdata::ax)
+ 	.def_readwrite("ay", &IMUdata::ay)
+ 	.def_readwrite("az", &IMUdata::az)
+ 	.def_readwrite("hx", &IMUdata::hx)
+ 	.def_readwrite("hy", &IMUdata::hy)
+ 	.def_readwrite("hz", &IMUdata::hz)
+    ;
+    
+    class_<GPSdata>("GPSdata")
+	.def_readwrite("time", &GPSdata::time)
+	.def_readwrite("lat", &GPSdata::lat)
+	.def_readwrite("lon", &GPSdata::lon)
+	.def_readwrite("alt", &GPSdata::alt)
+	.def_readwrite("vn", &GPSdata::vn)
+	.def_readwrite("ve", &GPSdata::ve)
+	.def_readwrite("vd", &GPSdata::vd)
+	.def_readwrite("newData", &GPSdata::newData)
+    ;
+
+    class_<NAVdata>("NAVdata")
+	.def_readwrite("time", &NAVdata::time)
+	.def_readwrite("lat", &NAVdata::lat)
+	.def_readwrite("lon", &NAVdata::lon)
+	.def_readwrite("alt", &NAVdata::alt)
+	.def_readwrite("vn", &NAVdata::vn)
+	.def_readwrite("ve", &NAVdata::ve)
+	.def_readwrite("vd", &NAVdata::vd)
+	.def_readwrite("phi", &NAVdata::phi)
+	.def_readwrite("the", &NAVdata::the)
+	.def_readwrite("psi", &NAVdata::psi)
+	.def_readwrite("qw", &NAVdata::qw)
+	.def_readwrite("qx", &NAVdata::qx)
+	.def_readwrite("qy", &NAVdata::qy)
+	.def_readwrite("qz", &NAVdata::qz)
+	.def_readwrite("abx", &NAVdata::abx)
+	.def_readwrite("aby", &NAVdata::aby)
+	.def_readwrite("abz", &NAVdata::abz)
+	.def_readwrite("gbx", &NAVdata::gbx)
+	.def_readwrite("gby", &NAVdata::gby)
+	.def_readwrite("gbz", &NAVdata::gbz)
+	.def_readwrite("Pp0", &NAVdata::Pp0)
+	.def_readwrite("Pp1", &NAVdata::Pp1)
+	.def_readwrite("Pp2", &NAVdata::Pp2)
+	.def_readwrite("Pv0", &NAVdata::Pv0)
+	.def_readwrite("Pv1", &NAVdata::Pv1)
+	.def_readwrite("Pv2", &NAVdata::Pv2)
+	.def_readwrite("Pa0", &NAVdata::Pa0)
+	.def_readwrite("Pa1", &NAVdata::Pa1)
+	.def_readwrite("Pa2", &NAVdata::Pa2)
+	.def_readwrite("Pabx", &NAVdata::Pabx)
+	.def_readwrite("Paby", &NAVdata::Paby)
+	.def_readwrite("Pabz", &NAVdata::Pabz)
+	.def_readwrite("Pgbx", &NAVdata::Pgbx)
+	.def_readwrite("Pgby", &NAVdata::Pgby)
+	.def_readwrite("Pgbz", &NAVdata::Pgbz)
+    ;
+
+    class_<EKF>("EKF")
+        .def("set_config", &EKF::set_config)
+        .def("init", &EKF::init)
+        .def("update", &EKF::update)
+    ;
+}
+
+#endif // NAV_15STATE_MAG_HXX

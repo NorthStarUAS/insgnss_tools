@@ -4,7 +4,8 @@ lib_LTLIBRARIES = libnav_eigen_mag_test.la
 
 libnav_eigen_mag_test_la_SOURCES = \
         EKF_15state_quat.cxx \
-        nav_functions.cxx nav_functions.hxx nav_interface.hxx \
+        nav_functions.cxx nav_functions.hxx \
+	nav_structs.hxx \
 	../utils/coremag.c ../utils/coremag.h
 
 AM_CPPFLAGS = @PYTHON_INCLUDES@

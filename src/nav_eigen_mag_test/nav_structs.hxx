@@ -8,11 +8,10 @@
  * \author Aerospace Engineering and Mechanics
  * \copyright Copyright 2011 Regents of the University of Minnesota. All rights reserved.
  *
- * $Id: nav_interface.h 757 2012-01-04 21:57:48Z murch $
  */
 
-#ifndef NAV_INTERFACE_HXX_
-#define NAV_INTERFACE_HXX_
+#ifndef NAV_STRUCTS_HXX
+#define NAV_STRUCTS_HXX
 
 
 struct IMUdata {
@@ -41,7 +40,7 @@ enum errdefs {
     gps_aided,			// NAV filter, GPS aided
 };
 
-/// Navigation Filter Data Structure
+/// Navigation filter data structure
 struct NAVdata {
     double time;             // [sec], timestamp of NAV filter
     double lat;		     // [rad], geodetic latitude estimate
@@ -64,8 +63,24 @@ struct NAVdata {
     enum errdefs err_type;   // NAV filter status
 };
 
-const double g = 9.814;
-const double D2R = M_PI / 180.0;
+
+struct NAVconfig {
+    double sig_w_ax;		// m/s^2
+    double sig_w_ay;
+    double sig_w_az;
+    double sig_w_gx;		// rad/s (0.1 deg/s)
+    double sig_w_gy;
+    double sig_w_gz;
+    double sig_a_d;		// 5e-2*g
+    double tau_a;
+    double sig_g_d;		// 0.1 deg/s
+    double tau_g;
+    double sig_gps_p_ne;
+    double sig_gps_p_d;
+    double sig_gps_v_ne;
+    double sig_gps_v_d;
+    double sig_mag;
+};
 
 
-#endif // NAV_INTERFACE_HXX_
+#endif // NAV_STRUCTS_HXX

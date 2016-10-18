@@ -20,7 +20,6 @@ using std::endl;
 #include <stdio.h>
 
 #include "nav_functions.hxx"
-#include "nav_interface.hxx"
 
 #include "../utils/coremag.h"
 
@@ -41,28 +40,28 @@ const double Rns = 6.386034030458164e+006; // earth radius
 ////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
 ////////// BRT A lot of these multi line equations with temp matrices can be compressed
 
-void EKF::config(double sig_w_ax, double sig_w_ay, double sig_w_az,
-		 double sig_w_gx, double sig_w_gy, double sig_w_gz,
-		 double sig_a_d, double tau_a, double sig_g_d, double tau_g,	
-		 double sig_gps_p_ne, double sig_gps_p_d,
-		 double sig_gps_v_ne, double sig_gps_v_d,
-		 double sig_mag)
+void EKF::set_config(NAVconfig new_config)
 {
-    this->sig_w_ax = sig_w_ax;
-    this->sig_w_ay = sig_w_ay;
-    this->sig_w_az = sig_w_az;
-    this->sig_w_gx = sig_w_gx;
-    this->sig_w_gy = sig_w_gy;
-    this->sig_w_gz = sig_w_gz;
-    this->sig_a_d = sig_a_d;
-    this->tau_a = tau_a;
-    this->sig_g_d = sig_g_d;
-    this->tau_g = tau_g;
-    this->sig_gps_p_ne = sig_gps_p_ne;
-    this->sig_gps_p_d = sig_gps_p_d;
-    this->sig_gps_v_ne = sig_gps_v_ne;
-    this->sig_gps_v_d = sig_gps_v_d;
-    this->sig_mag = sig_mag;
+    config = new_config;
+}
+
+void EKF::default_config()
+{
+    config.sig_w_ax = 0.05;	   // m/s^2
+    config.sig_w_ay = 0.05;
+    config.sig_w_az = 0.05;
+    config.sig_w_gx = 0.00175; // rad/s (0.1 deg/s)
+    config.sig_w_gy = 0.00175;
+    config.sig_w_gz = 0.00175;
+    config.sig_a_d  = 0.1;     // 5e-2*g
+    config.tau_a    = 100.0;
+    config.sig_g_d  = 0.00873; // 0.1 deg/s
+    config.tau_g    = 50.0;
+    config.sig_gps_p_ne = 3.0;
+    config.sig_gps_p_d  = 5.0;
+    config.sig_gps_v_ne = 0.5;
+    config.sig_gps_v_d  = 1.0;
+    config.sig_mag      = 0.2;
 }
 
 NAVdata EKF::init(IMUdata imu, GPSdata gps) {
@@ -80,10 +79,10 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw(0,0) = sig_w_ax*sig_w_ax;	Rw(1,1) = sig_w_ay*sig_w_ay;	      Rw(2,2) = sig_w_az*sig_w_az; //1 sigma on noise
-    Rw(3,3) = sig_w_gx*sig_w_gx;	Rw(4,4) = sig_w_gy*sig_w_gy;	      Rw(5,5) = sig_w_gz*sig_w_gz;
-    Rw(6,6) = 2*sig_a_d*sig_a_d/tau_a;	Rw(7,7) = 2*sig_a_d*sig_a_d/tau_a;    Rw(8,8) = 2*sig_a_d*sig_a_d/tau_a;
-    Rw(9,9) = 2*sig_g_d*sig_g_d/tau_g;	Rw(10,10) = 2*sig_g_d*sig_g_d/tau_g;  Rw(11,11) = 2*sig_g_d*sig_g_d/tau_g;
+    Rw(0,0) = config.sig_w_ax*config.sig_w_ax;	Rw(1,1) = config.sig_w_ay*config.sig_w_ay;	      Rw(2,2) = config.sig_w_az*config.sig_w_az; //1 sigma on noise
+    Rw(3,3) = config.sig_w_gx*config.sig_w_gx;	Rw(4,4) = config.sig_w_gy*config.sig_w_gy;	      Rw(5,5) = config.sig_w_gz*config.sig_w_gz;
+    Rw(6,6) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;	Rw(7,7) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;    Rw(8,8) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;
+    Rw(9,9) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;	Rw(10,10) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;  Rw(11,11) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;
 
     // ... P (initial)
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
@@ -93,9 +92,9 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
      // ... R
-    R(0,0) = sig_gps_p_ne*sig_gps_p_ne;	 R(1,1) = sig_gps_p_ne*sig_gps_p_ne;  R(2,2) = sig_gps_p_d*sig_gps_p_d;
-    R(3,3) = sig_gps_v_ne*sig_gps_v_ne;	 R(4,4) = sig_gps_v_ne*sig_gps_v_ne;  R(5,5) = sig_gps_v_d*sig_gps_v_d;
-    R(6,6) = sig_mag*sig_mag;            R(7,7) = sig_mag*sig_mag;            R(8,8) = sig_mag*sig_mag;
+    R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
+    R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
+    R(6,6) = config.sig_mag*config.sig_mag;            R(7,7) = config.sig_mag*config.sig_mag;            R(8,8) = config.sig_mag*config.sig_mag;
    
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
@@ -258,8 +257,8 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
     F(8,14) = -0.5;
 	
     // ... Accel Markov Bias
-    F(9,9) = -1.0/tau_a;    F(10,10) = -1.0/tau_a;  F(11,11) = -1.0/tau_a;
-    F(12,12) = -1.0/tau_g;  F(13,13) = -1.0/tau_g;  F(14,14) = -1.0/tau_g;
+    F(9,9) = -1.0/config.tau_a;    F(10,10) = -1.0/config.tau_a;  F(11,11) = -1.0/config.tau_a;
+    F(12,12) = -1.0/config.tau_g;  F(13,13) = -1.0/config.tau_g;  F(14,14) = -1.0/config.tau_g;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
     PHI = I15 + F * imu_dt;
@@ -432,78 +431,3 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
 
     return nav;
 }
-
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
-{
-    class_<IMUdata>("IMUdata")
-	.def_readwrite("time", &IMUdata::time)
-	.def_readwrite("p", &IMUdata::p)
-	.def_readwrite("q", &IMUdata::q)
-	.def_readwrite("r", &IMUdata::r)
- 	.def_readwrite("ax", &IMUdata::ax)
- 	.def_readwrite("ay", &IMUdata::ay)
- 	.def_readwrite("az", &IMUdata::az)
- 	.def_readwrite("hx", &IMUdata::hx)
- 	.def_readwrite("hy", &IMUdata::hy)
- 	.def_readwrite("hz", &IMUdata::hz)
-    ;
-    
-    class_<GPSdata>("GPSdata")
-	.def_readwrite("time", &GPSdata::time)
-	.def_readwrite("lat", &GPSdata::lat)
-	.def_readwrite("lon", &GPSdata::lon)
-	.def_readwrite("alt", &GPSdata::alt)
-	.def_readwrite("vn", &GPSdata::vn)
-	.def_readwrite("ve", &GPSdata::ve)
-	.def_readwrite("vd", &GPSdata::vd)
-	.def_readwrite("newData", &GPSdata::newData)
-    ;
-
-    class_<NAVdata>("NAVdata")
-	.def_readwrite("time", &NAVdata::time)
-	.def_readwrite("lat", &NAVdata::lat)
-	.def_readwrite("lon", &NAVdata::lon)
-	.def_readwrite("alt", &NAVdata::alt)
-	.def_readwrite("vn", &NAVdata::vn)
-	.def_readwrite("ve", &NAVdata::ve)
-	.def_readwrite("vd", &NAVdata::vd)
-	.def_readwrite("phi", &NAVdata::phi)
-	.def_readwrite("the", &NAVdata::the)
-	.def_readwrite("psi", &NAVdata::psi)
-	.def_readwrite("qw", &NAVdata::qw)
-	.def_readwrite("qx", &NAVdata::qx)
-	.def_readwrite("qy", &NAVdata::qy)
-	.def_readwrite("qz", &NAVdata::qz)
-	.def_readwrite("abx", &NAVdata::abx)
-	.def_readwrite("aby", &NAVdata::aby)
-	.def_readwrite("abz", &NAVdata::abz)
-	.def_readwrite("gbx", &NAVdata::gbx)
-	.def_readwrite("gby", &NAVdata::gby)
-	.def_readwrite("gbz", &NAVdata::gbz)
-	.def_readwrite("Pp0", &NAVdata::Pp0)
-	.def_readwrite("Pp1", &NAVdata::Pp1)
-	.def_readwrite("Pp2", &NAVdata::Pp2)
-	.def_readwrite("Pv0", &NAVdata::Pv0)
-	.def_readwrite("Pv1", &NAVdata::Pv1)
-	.def_readwrite("Pv2", &NAVdata::Pv2)
-	.def_readwrite("Pa0", &NAVdata::Pa0)
-	.def_readwrite("Pa1", &NAVdata::Pa1)
-	.def_readwrite("Pa2", &NAVdata::Pa2)
-	.def_readwrite("Pabx", &NAVdata::Pabx)
-	.def_readwrite("Paby", &NAVdata::Paby)
-	.def_readwrite("Pabz", &NAVdata::Pabz)
-	.def_readwrite("Pgbx", &NAVdata::Pgbx)
-	.def_readwrite("Pgby", &NAVdata::Pgby)
-	.def_readwrite("Pgbz", &NAVdata::Pgbz)
-    ;
-    
-    class_<EKF>("EKF")
-        .def("init", &EKF::init)
-        .def("update", &EKF::update)
-    ;
-}
-
