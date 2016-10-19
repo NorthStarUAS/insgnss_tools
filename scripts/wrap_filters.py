@@ -65,7 +65,7 @@ import MadgwickAHRS
 #filter2 = nav_eigen_mag_old.filter()
 #filter1 = nav_orig.filter()
 filter1 = nav_eigen.filter()
-filter2 = nav_eigen_old.filter()
+filter2 = nav_eigen_mag.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs

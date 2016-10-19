@@ -1,5 +1,6 @@
 SUBDIRS = \
 	include \
+	nav_structs \
 	utils \
 	nav_orig \
 	nav_mag \
