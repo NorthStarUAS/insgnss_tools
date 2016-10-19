@@ -73,13 +73,14 @@ AC_CONFIG_FILES([ \
         src/Makefile \
         src/include/Makefile \
         src/utils/Makefile \
-        src/nav_structs/Makefile \
+        src/nav_core/Makefile \
         src/nav_orig/Makefile \
         src/nav_mag/Makefile \
         src/nav_eigen/Makefile \
         src/nav_eigen_mag/Makefile \
 	src/nav_eigen_old/Makefile \
         src/nav_eigen_mag_old/Makefile \
+        src/nav_openloop/Makefile \
         src/MadgwickAHRS/Makefile \
 ])
 AC_OUTPUT

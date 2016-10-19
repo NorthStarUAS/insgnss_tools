@@ -1,6 +1,6 @@
 SUBDIRS = \
 	include \
-	nav_structs \
+	nav_core \
 	utils \
 	nav_orig \
 	nav_mag \
@@ -8,4 +8,5 @@ SUBDIRS = \
 	nav_eigen_mag \
 	nav_eigen_old \
 	nav_eigen_mag_old \
+	nav_openloop \
 	MadgwickAHRS

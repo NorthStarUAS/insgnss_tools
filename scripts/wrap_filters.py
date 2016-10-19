@@ -72,7 +72,7 @@ import pydefs
 insgps1 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                        np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 insgps2 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
-                           np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
+                        np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
 class data_store():
     def __init__(self):

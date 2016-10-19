@@ -24,7 +24,7 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav_structs/nav_structs.hxx"
+#include "../nav_core/nav_structs.hxx"
 
 // usefule constants
 const double g = 9.814;

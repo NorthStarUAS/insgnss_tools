@@ -27,7 +27,7 @@ const double P_V_INIT = 1.0;
 const double P_A_INIT = 0.34906;   // 20 deg
 const double P_HDG_INIT = 3.14159; // 180 deg
 const double P_AB_INIT = 0.9810;   // 0.5*g
-const double P_GB_INIT = 0.01745;  //5 deg/s
+const double P_GB_INIT = 0.01745;  // 5 deg/s
 
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius

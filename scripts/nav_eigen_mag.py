@@ -4,9 +4,9 @@ import sys
 
 import pydefs
 
-sys.path.append('../build/src/nav_structs/.libs/')
+sys.path.append('../build/src/nav_core/.libs/')
 sys.path.append('../build/src/nav_eigen_mag/.libs/')
-import libnav_structs
+import libnav_core
 import libnav_eigen_mag
 
 class filter():
@@ -14,7 +14,7 @@ class filter():
         self.ekf = libnav_eigen_mag.EKF15mag()
 
     def python2c(self, imu, gps):
-        cimu = libnav_structs.IMUdata()
+        cimu = libnav_core.IMUdata()
         cimu.time = imu.time
         cimu.p = imu.p
         cimu.q = imu.q
@@ -26,7 +26,7 @@ class filter():
         cimu.hy = imu.hy
         cimu.hz = imu.hz
         
-        cgps = libnav_structs.GPSdata()
+        cgps = libnav_core.GPSdata()
         cgps.time = gps.time
         cgps.tow = gps.tow
         cgps.newData = gps.newData
