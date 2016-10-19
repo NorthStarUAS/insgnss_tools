@@ -120,6 +120,7 @@ def load(flight_dir):
 
     print "imu records:", len(imu_data)
     print "gps records:", len(gps_data)
+    print "filter records:", len(filter_data)
 
     return imu_data, gps_data, filter_data
 

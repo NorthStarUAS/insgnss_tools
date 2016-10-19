@@ -88,7 +88,7 @@ struct NAVconfig {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_structs)
+BOOST_PYTHON_MODULE(libnav_core)
 {
     class_<IMUdata>("IMUdata")
 	.def_readwrite("time", &IMUdata::time)

@@ -280,6 +280,7 @@ else:
     # of .mat file
     start_time = time.time()
     gps_index = 0
+    filter_index = 0
     new_gps = 0
     filter_init = False
     for k, imupt in enumerate(imu_data):
@@ -294,6 +295,13 @@ else:
             gps_index = len(gps_data)-1
         gpspt = gps_data[gps_index-1]
         gpspt.newData = new_gps
+        # walk the filter counter forward as needed
+        if imupt.time > filter_data[filter_index].time:
+            filter_index += 1
+        if filter_index >= len(filter_data):
+            # no more filter data, stay on the last record
+            filter_index = len(filter_data)-1
+        filterpt = filter_data[filter_index]
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
         # If k is at the initialization time init_nav else get_nav
