@@ -55,9 +55,9 @@ public:
     
 private:
 
-    double lat_deg, lon_deg, alt_m;   // location
+    double lat_rad, lon_rad, alt_m;   // location
     double vn_ms, ve_ms, vd_ms;	      // ned vel
-    double phi_deg, the_deg, psi_deg; // euler attitude
+    double phi_rad, the_rad, psi_rad; // euler attitude
     double gxb, gyb, gzb;	      // gyro biases
     double gxs, gys, gzs;	      // gyro scale factors
     double axb, ayb, azb;	      // accel biases
@@ -65,6 +65,7 @@ private:
 
     Vector3d pos_ecef;
     Quaterniond ned2body, body2ned;
+    Vector3d vel_ned;
     Vector3d glocal_ned;
     double tprev;
     NAVdata nav;

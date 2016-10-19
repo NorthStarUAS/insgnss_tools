@@ -4,6 +4,7 @@ lib_LTLIBRARIES = libnav_openloop.la
 
 libnav_openloop_la_SOURCES = \
         openloop.cxx openloop.hxx \
+	glocal.cxx glocal.hxx \
         ../nav_core/nav_functions.cxx ../nav_core/nav_functions.hxx
 
 AM_CPPFLAGS = @PYTHON_INCLUDES@

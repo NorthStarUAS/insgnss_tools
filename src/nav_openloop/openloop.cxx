@@ -1,25 +1,35 @@
+#include <iostream>
+using std::cout;
+using std::endl;
+
 #include "../nav_core/nav_functions.hxx"
+
 #include "glocal.hxx"
 #include "openloop.hxx"
 
-void OpenLoop::init(double lat_deg, double lon_deg, double alt_m,
+void OpenLoop::init(double lat_rad, double lon_rad, double alt_m,
 		    double vn_ms, double ve_ms, double vd_ms,
-		    double phi_deg, double the_deg, double psi_deg)
+		    double phi_rad, double the_rad, double psi_rad)
 {
-    this->lat_deg = lat_deg;
-    this->lon_deg = lon_deg;
+    set_gyro_calib(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    set_accel_calib(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+    
+    this->lat_rad = lat_rad;
+    this->lon_rad = lon_rad;
     this->alt_m = alt_m;
     this->vn_ms = vn_ms;
     this->ve_ms = ve_ms;
     this->vd_ms = vd_ms;
-    this->phi_deg = phi_deg;
-    this->the_deg = the_deg;
-    this->psi_deg = psi_deg;
+    this->phi_rad = phi_rad;
+    this->the_rad = the_rad;
+    this->psi_rad = psi_rad;
 
-    Vector3d pos_vec(lat_deg*D2R, lon_deg*D2R, alt_m);
+    printf("%.8f %.8f\n", lat_rad, lon_rad);
+    Vector3d pos_vec(lat_rad, lon_rad, alt_m);
     pos_ecef = lla2ecef(pos_vec);
-    glocal_ned = local_gravity( lat_deg*D2R, alt_m );
-    ned2body = eul2quat(phi_deg*D2R, the_deg*D2R, psi_deg*D2R);
+    vel_ned = Vector3d(vn_ms, ve_ms, vd_ms);
+    glocal_ned = local_gravity( lat_rad, alt_m );
+    ned2body = eul2quat(phi_rad, the_rad, psi_rad);
 }
 
 void OpenLoop::set_gyro_calib(double gxb, double gyb, double gzb,
@@ -57,6 +67,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     double r = (imu.r - gzb) * gzs;
     Quaterniond rot_body = eul2quat(p*dt, q*dt, r*dt);
     ned2body *= rot_body;
+    ned2body.normalize();
     body2ned = ned2body.inverse();
     Vector3d att_vec = quat2eul(ned2body);
     nav.phi = att_vec(0);
@@ -68,16 +79,19 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     double ay = (imu.ay - ayb) * ays;
     double az = (imu.az - azb) * azs;
     Quaterniond tmp1(0.0, ax, ay, az);
-    Quaterniond tmp2 = body2ned * tmp1 * ned2body;
+    //Quaterniond tmp2 = body2ned * tmp1 * ned2body;
+    Quaterniond tmp2 = ned2body * tmp1 * body2ned;
     Vector3d accel_ned = tmp2.vec();
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
+    printf("%.2f %.2f %.2f\n", accel_ned(0), accel_ned(1), accel_ned(2));
 
     // update the velocity vector
-    nav.vn += accel_ned(0)*dt;
-    nav.ve += accel_ned(1)*dt;
-    nav.vd += accel_ned(2)*dt;
+    vel_ned += accel_ned*dt;
+    nav.vn = vel_ned(0);
+    nav.ve = vel_ned(1);
+    nav.vd = vel_ned(2);
 
     return nav;
 }
