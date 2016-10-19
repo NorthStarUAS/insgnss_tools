@@ -26,10 +26,10 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "nav_functions.hxx"
+#include "../nav_core/nav_functions.hxx"
 #include "nav_interface.hxx"
 
-#include "../utils/coremag.h"
+#include "../nav_core/coremag.h"
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //error characteristics of navigation parameters

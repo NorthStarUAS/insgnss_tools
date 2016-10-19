@@ -4,7 +4,7 @@ lib_LTLIBRARIES = libnav_eigen.la
 
 libnav_eigen_la_SOURCES = \
         EKF_15state.cxx EKF_15state.hxx \
-        nav_functions.cxx nav_functions.hxx
+        ../nav_core/nav_functions.cxx ../nav_core/nav_functions.hxx
 
 AM_CPPFLAGS = @PYTHON_INCLUDES@
 
