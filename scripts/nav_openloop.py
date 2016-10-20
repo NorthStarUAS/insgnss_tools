@@ -68,7 +68,7 @@ class filter():
 
     def update(self, imu, gps, filt):
         cimu, cgps = self.python2c(imu, gps)
-        if filt.time > self.filter_sync + 300:
+        if filt.time > self.filter_sync + 15:
             print 'resync:', filt.time
             self.filter_sync = filt.time
             return self.init(imu, gps, filt)
