@@ -3,7 +3,9 @@ AUTOMAKE_OPTIONS = subdir-objects
 lib_LTLIBRARIES = libnav_eigen.la
 
 libnav_eigen_la_SOURCES = \
-        EKF_15state_quat.cxx \
-        nav_functions.cxx nav_functions.hxx nav_interface.hxx
+        EKF_15state.cxx EKF_15state.hxx \
+        ../nav_core/nav_functions.cxx ../nav_core/nav_functions.hxx
 
-libnav_eigen_la_LDFLAGS = -module -avoid-version -shared
+AM_CPPFLAGS = @PYTHON_INCLUDES@
+
+libnav_eigen_la_LDFLAGS = -module -avoid-version -shared -lboost_python

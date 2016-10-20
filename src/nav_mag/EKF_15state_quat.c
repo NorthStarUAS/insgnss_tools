@@ -23,7 +23,7 @@
 
 #include "../include/globaldefs.h"
 #include "../utils/matrix.h"
-#include "../utils/coremag.h"
+#include "../nav_core/coremag.h"
 
 #include "nav_functions.h"
 #include "nav_interface.h"

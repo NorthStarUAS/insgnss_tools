@@ -15,7 +15,7 @@ byref   = ctypes.byref
 class filter():
     def __init__(self):
         # Load compilied `.so` file.
-        sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_test/.libs/libnav_eigen_test.so'))
+        sharedobj = ctypes.CDLL(os.path.abspath('../build/src/nav_eigen_old/.libs/libnav_eigen_old.so'))
 
         self.init_func = sharedobj._Z8init_nav7IMUdata7GPSdata
         self.update_func = sharedobj._Z7get_nav7IMUdata7GPSdata

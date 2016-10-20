@@ -58,25 +58,22 @@ import nav_polarity
 import nav_mag
 import nav_eigen
 import nav_eigen_mag
-import nav_eigen_test
-import nav_eigen_mag_test
+import nav_eigen_old
+import nav_eigen_mag_old
+import nav_openloop
 import MadgwickAHRS
 
-#filter2 = nav_eigen_mag.filter()
-#filter2 = nav_eigen_test.filter()
+#filter2 = nav_eigen_mag_old.filter()
 #filter1 = nav_orig.filter()
-#filter2 = nav_eigen.filter()
-#filter1 = nav_eigen.filter()
-#filter1 = nav_eigen_test.filter()
-filter1 = nav_eigen.filter()
-filter2 = nav_eigen_mag_test.filter()
+filter1 = nav_eigen_mag.filter()
+filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
 insgps1 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
                        np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 insgps2 = pydefs.INSGPS(0, 0.0, np.zeros(3), np.zeros(3), np.zeros(3),
-                           np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
+                        np.zeros(3), np.zeros(3), np.eye(15), np.zeros(6))
 
 class data_store():
     def __init__(self):
@@ -284,6 +281,7 @@ else:
     # of .mat file
     start_time = time.time()
     gps_index = 0
+    filter_index = 0
     new_gps = 0
     filter_init = False
     for k, imupt in enumerate(imu_data):
@@ -298,6 +296,13 @@ else:
             gps_index = len(gps_data)-1
         gpspt = gps_data[gps_index-1]
         gpspt.newData = new_gps
+        # walk the filter counter forward as needed
+        if imupt.time > filter_data[filter_index].time:
+            filter_index += 1
+        if filter_index >= len(filter_data):
+            # no more filter data, stay on the last record
+            filter_index = len(filter_data)-1
+        filterpt = filter_data[filter_index]
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
         # If k is at the initialization time init_nav else get_nav
@@ -326,6 +331,7 @@ else:
 
     start_time = time.time()
     gps_index = 0
+    filter_index = 0
     new_gps = 0
     filter_init = False
     for k, imupt in enumerate(imu_data):
@@ -340,15 +346,21 @@ else:
             gps_index = len(gps_data)-1
         gpspt = gps_data[gps_index-1]
         gpspt.newData = new_gps
+        # walk the filter counter forward as needed
+        if imupt.time > filter_data[filter_index].time:
+            filter_index += 1
+        if filter_index >= len(filter_data):
+            # no more filter data, stay on the last record
+            filter_index = len(filter_data)-1
+        filterpt = filter_data[filter_index]
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
-            print "init:", imupt.time, gpspt.time
-            insgps2 = filter2.init(imupt, gpspt)
+            insgps2 = filter2.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
-            insgps2 = filter2.update(imupt, gpspt)
+            insgps2 = filter2.update(imupt, gpspt, filterpt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter

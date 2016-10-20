@@ -14,67 +14,51 @@
  *
  */
 
+#ifndef NAV_15STATE_MAG_HXX
+#define NAV_15STATE_MAG_HXX
+
+
 #include <math.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
+#include "../nav_core/nav_structs.hxx"
+
+// usefule constants
+const double g = 9.814;
+const double D2R = M_PI / 180.0;
+
 // define some types for notational convenience and consistency
-typedef Matrix<double,9,9> Matrix9d;
+typedef Matrix<double,9,9>   Matrix9d;
 typedef Matrix<double,12,12> Matrix12d;
 typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15> Matrix9x15d;
-typedef Matrix<double,15,9> Matrix15x9d;
+typedef Matrix<double,9,15>  Matrix9x15d;
+typedef Matrix<double,15,9>  Matrix15x9d;
 typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1> Vector9d;
-typedef Matrix<double,15,1> Vector15d;
+typedef Matrix<double,9,1>   Vector9d;
+typedef Matrix<double,15,1>  Vector15d;
 
-class EKF {
+class EKF15mag {
 
 public:
 
-    EKF() {
-	config();		// start with default values
+    EKF15mag() {
+	default_config();
     }
-    ~EKF() {}
+    ~EKF15mag() {}
 
-    // set error characteristics of navigation parameters
-    void config(double SIG_W_AX = 0.05,	// m/s^2
-		double SIG_W_AY = 0.05,
-		double SIG_W_AZ = 0.05,
-		double SIG_W_GX = 0.00175, // rad/s (0.1 deg/s)
-		double SIG_W_GY = 0.00175,
-		double SIG_W_GZ = 0.00175,
-		double SIG_A_D  = 0.1,	 // 5e-2*g
-		double TAU_A    = 100.0,
-		double SIG_G_D  = 0.00873, // 0.1 deg/s
-		double TAU_G    = 50.0,
-		double SIG_GPS_P_NE = 3.0,
-		double SIG_GPS_P_D  = 5.0,
-		double SIG_GPS_V_NE = 0.5,
-		double SIG_GPS_V_D  = 1.0,
-		double SIG_MAG      = 0.2);
+    // set/get error characteristics of navigation sensors
+    void set_config(NAVconfig config);
+    NAVconfig get_config();
+    void default_config();
+
+    // main interface
     NAVdata init(IMUdata imu, GPSdata gps);
     NAVdata update(IMUdata imu, GPSdata gps);
     
 private:
-
-    double SIG_W_AX;		// m/s^2
-    double SIG_W_AY;
-    double SIG_W_AZ;
-    double SIG_W_GX;		// rad/s (0.1 deg/s)
-    double SIG_W_GY;
-    double SIG_W_GZ;
-    double SIG_A_D;		// 5e-2*g
-    double TAU_A;
-    double SIG_G_D;		// 0.1 deg/s
-    double TAU_G;
-    double SIG_GPS_P_NE;
-    double SIG_GPS_P_D;
-    double SIG_GPS_V_NE;
-    double SIG_GPS_V_D;
-    double SIG_MAG;
 
     Matrix15d F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12d G;
@@ -87,9 +71,27 @@ private:
     Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
     Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
 
-    Quaterniond quat; // fixme, make state persist here, not in nav
+    Quaterniond quat;
     double denom, Re, Rn;
     double tprev;
 
+    NAVconfig config;
     NAVdata nav;
 };
+
+
+// The following constructs a python interface for this class.
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(libnav_eigen_mag)
+{
+    class_<EKF15mag>("EKF15mag")
+        .def("set_config", &EKF15mag::set_config)
+        .def("init", &EKF15mag::init)
+        .def("update", &EKF15mag::update)
+    ;
+}
+
+#endif // NAV_15STATE_MAG_HXX

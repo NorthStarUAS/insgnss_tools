@@ -19,53 +19,55 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "nav_functions.hxx"
-#include "nav_interface.hxx"
-
-#include "../utils/coremag.h"
-
-#include "EKF_15state_quat.hxx"
+#include "../nav_core/nav_functions.hxx"
+#include "EKF_15state.hxx"
 
 const double P_P_INIT = 10.0;
 const double P_V_INIT = 1.0;
 const double P_A_INIT = 0.34906;   // 20 deg
 const double P_HDG_INIT = 3.14159; // 180 deg
 const double P_AB_INIT = 0.9810;   // 0.5*g
-const double P_GB_INIT = 0.01745;  //5 deg/s
+const double P_GB_INIT = 0.01745;  // 5 deg/s
 
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
 
-////////// BRT I think there are some several identity and sparse matrices, so probably some optimization still left there
-////////// BRT Seems like a lot of the transforms could be more efficiently done with just a matrix or vector multiply
-////////// BRT Probably could do a lot of block operations with F, i.e. F.block(j,k) = C_B2N, etc
-////////// BRT A lot of these multi line equations with temp matrices can be compressed
+// BRT: (1) I think there are some several identity and sparse
+// matrices, so probably some optimization still left there.  (2)
+// Seems like a lot of the transforms could be more efficiently done
+// with just a matrix or vector multiply.  (3) Probably could do a lot
+// of block operations with F, i.e. F.block(j,k) = C_B2N, etc.  (4) A
+// lot of these multi line equations with temp matrices can be
+// compressed.
 
-void EKF::config(double SIG_W_AX, double SIG_W_AY, double SIG_W_AZ,
-		 double SIG_W_GX, double SIG_W_GY, double SIG_W_GZ,
-		 double SIG_A_D, double TAU_A, double SIG_G_D, double TAU_G,	
-		 double SIG_GPS_P_NE, double SIG_GPS_P_D,
-		 double SIG_GPS_V_NE, double SIG_GPS_V_D,
-		 double SIG_MAG)
-{
-    this->SIG_W_AX = SIG_W_AX;
-    this->SIG_W_AY = SIG_W_AY;
-    this->SIG_W_AZ = SIG_W_AZ;
-    this->SIG_W_GX = SIG_W_GX;
-    this->SIG_W_GY = SIG_W_GY;
-    this->SIG_W_GZ = SIG_W_GZ;
-    this->SIG_A_D = SIG_A_D;
-    this->TAU_A = TAU_A;
-    this->SIG_G_D = SIG_G_D;
-    this->TAU_G = TAU_G;
-    this->SIG_GPS_P_NE = SIG_GPS_P_NE;
-    this->SIG_GPS_P_D = SIG_GPS_P_D;
-    this->SIG_GPS_V_NE = SIG_GPS_V_NE;
-    this->SIG_GPS_V_D = SIG_GPS_V_D;
-    this->SIG_MAG = SIG_MAG;
+void EKF15::set_config(NAVconfig config) {
+    this->config = config;
 }
 
-NAVdata EKF::init(IMUdata imu, GPSdata gps) {
+NAVconfig EKF15::get_config() {
+    return config;
+}
+
+void EKF15::default_config()
+{
+    config.sig_w_ax = 0.05;	   // m/s^2
+    config.sig_w_ay = 0.05;
+    config.sig_w_az = 0.05;
+    config.sig_w_gx = 0.00175; // rad/s (0.1 deg/s)
+    config.sig_w_gy = 0.00175;
+    config.sig_w_gz = 0.00175;
+    config.sig_a_d  = 0.1;     // 5e-2*g
+    config.tau_a    = 100.0;
+    config.sig_g_d  = 0.00873; // 0.1 deg/s
+    config.tau_g    = 50.0;
+    config.sig_gps_p_ne = 3.0;
+    config.sig_gps_p_d  = 5.0;
+    config.sig_gps_v_ne = 0.5;
+    config.sig_gps_v_d  = 1.0;
+    config.sig_mag      = 0.2;
+}
+
+NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -76,15 +78,16 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     // ... H
     H.topLeftCorner(6,6).setIdentity();
 
+    // first order correlation + white noise, tau = time constant for correlation
     // gain on white noise plus gain on correlation
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw(0,0) = SIG_W_AX*SIG_W_AX;	Rw(1,1) = SIG_W_AY*SIG_W_AY;	      Rw(2,2) = SIG_W_AZ*SIG_W_AZ; //1 sigma on noise
-    Rw(3,3) = SIG_W_GX*SIG_W_GX;	Rw(4,4) = SIG_W_GY*SIG_W_GY;	      Rw(5,5) = SIG_W_GZ*SIG_W_GZ;
-    Rw(6,6) = 2*SIG_A_D*SIG_A_D/TAU_A;	Rw(7,7) = 2*SIG_A_D*SIG_A_D/TAU_A;    Rw(8,8) = 2*SIG_A_D*SIG_A_D/TAU_A;
-    Rw(9,9) = 2*SIG_G_D*SIG_G_D/TAU_G;	Rw(10,10) = 2*SIG_G_D*SIG_G_D/TAU_G;  Rw(11,11) = 2*SIG_G_D*SIG_G_D/TAU_G;
-
+    Rw(0,0) = config.sig_w_ax*config.sig_w_ax;	Rw(1,1) = config.sig_w_ay*config.sig_w_ay;	      Rw(2,2) = config.sig_w_az*config.sig_w_az; //1 sigma on noise
+    Rw(3,3) = config.sig_w_gx*config.sig_w_gx;	Rw(4,4) = config.sig_w_gy*config.sig_w_gy;	      Rw(5,5) = config.sig_w_gz*config.sig_w_gz;
+    Rw(6,6) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;	Rw(7,7) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;    Rw(8,8) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;
+    Rw(9,9) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;	Rw(10,10) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;  Rw(11,11) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;
+	
     // ... P (initial)
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
     P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 	      P(5,5) = P_V_INIT*P_V_INIT;
@@ -92,11 +95,6 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT;       P(11,11) = P_AB_INIT*P_AB_INIT;
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 	
-     // ... R
-    R(0,0) = SIG_GPS_P_NE*SIG_GPS_P_NE;	 R(1,1) = SIG_GPS_P_NE*SIG_GPS_P_NE;  R(2,2) = SIG_GPS_P_D*SIG_GPS_P_D;
-    R(3,3) = SIG_GPS_V_NE*SIG_GPS_V_NE;	 R(4,4) = SIG_GPS_V_NE*SIG_GPS_V_NE;  R(5,5) = SIG_GPS_V_D*SIG_GPS_V_D;
-    R(6,6) = SIG_MAG*SIG_MAG;            R(7,7) = SIG_MAG*SIG_MAG;            R(8,8) = SIG_MAG*SIG_MAG;
-   
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);	  nav.Pv1 = P(4,4);	nav.Pv2 = P(5,5);
@@ -104,6 +102,10 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
 	
     nav.Pabx = P(9,9);	  nav.Paby = P(10,10);	nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
+	
+    // ... R
+    R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
+    R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
 	
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
@@ -114,37 +116,34 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
     nav.ve = gps.ve;
     nav.vd = gps.vd;
 	
-    // ideal magnetic vector
-    long int jd = now_to_julian_days();
-    double field[6];
-    calc_magvar( nav.lat, nav.lon,
-		 nav.alt / 1000.0, jd, field );
-    mag_ned(0) = field[3];
-    mag_ned(1) = field[4];
-    mag_ned(2) = field[5];
-    mag_ned.normalize();
-    // cout << "Ideal mag vector (ned): " << mag_ned << endl;
-    // // initial heading
-    // double init_psi_rad = 90.0*D2R;
-    // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
-    // 	init_psi_rad = atan2(mag_ned[0][1], mag_ned[0][0]);
-    // }
-
-    // fixme: for now match the reference implementation so we can
-    // compare intermediate calculations.
-    // nav.the = 0*D2R;
-    // nav.phi = 0*D2R;
-    // nav.psi = 90.0*D2R;
-
     // ... and initialize states with IMU Data
     // theta from Ax, aircraft at rest
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
-    nav.phi = asin(-imu.ay/(g*cos(nav.the))); 
-    // psi from magnetometer
-    if ( fabs(imu.hx) > 0.0001 && fabs(imu.hy) > 0.0001 ) {
-	nav.psi = 90*D2R - atan2(imu.hy, imu.hx);
-    }
+    nav.phi = asin(imu.ay/(g*cos(nav.the))); 
+    nav.psi = 0.0;
+
+    // fixme: for now match the reference implementation so we can
+    // compare intermediate calculations.
+    nav.the = 8*D2R;
+    nav.phi = 0*D2R;
+    nav.psi = 90.0*D2R;
+
+    /*
+      if((imu.hy) > 0){
+      nav.psi = 90*D2R - atan(imu.hx / imu.hy);
+      }
+      else if((imu.hy) < 0){
+      nav.psi = 270*D2R - atan(imu.hx / imu.hy) - 360*D2R;
+      }
+      else if((imu.hy) == 0){
+      if((imu.hx) < 0){
+      nav.psi = 180*D2R;
+      }
+      else{
+      nav.psi = 0.0;
+      }
+      }*/
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
     nav.qw = quat.w();
@@ -179,7 +178,7 @@ NAVdata EKF::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-NAVdata EKF::update(IMUdata imu, GPSdata gps) {
+NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     double tnow = imu.time;
@@ -258,8 +257,8 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
     F(8,14) = -0.5;
 	
     // ... Accel Markov Bias
-    F(9,9) = -1.0/TAU_A;    F(10,10) = -1.0/TAU_A;  F(11,11) = -1.0/TAU_A;
-    F(12,12) = -1.0/TAU_G;  F(13,13) = -1.0/TAU_G;  F(14,14) = -1.0/TAU_G;
+    F(9,9) = -1.0/config.tau_a;    F(10,10) = -1.0/config.tau_a;  F(11,11) = -1.0/config.tau_a;
+    F(12,12) = -1.0/config.tau_g;  F(13,13) = -1.0/config.tau_g;  F(14,14) = -1.0/config.tau_g;
 	
     // State Transition Matrix: PHI = I15 + F*dt;
     PHI = I15 + F * imu_dt;
@@ -314,36 +313,6 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
 		
 	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
 
-	// measured mag vector (body frame)
-	Vector3d mag_sense;
-	mag_sense(0) = imu.hx;
-	mag_sense(1) = imu.hy;
-	mag_sense(2) = imu.hz;
-	mag_sense.normalize();
-	
-	Vector3d mag_error; // magnetometer measurement error
-	bool mag_error_in_ned = false;
-	if ( mag_error_in_ned ) {
-	    // rotate measured mag vector into ned frame (then normalized)
-	    Vector3d mag_sense_ned = C_B2N * mag_sense;
-	    mag_sense_ned.normalize();
-	    mag_error = mag_sense_ned - mag_ned;
-	} else {
-	    // rotate ideal mag vector into body frame (then normalized)
-	    Vector3d mag_ideal = C_N2B * mag_ned;
-	    mag_ideal.normalize();
-	    mag_error = mag_sense - mag_ideal;
-	    // cout << "mag_error:" << mag_error << endl;
-
-	    // Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
-	    Matrix3d tmp1 = sk(mag_sense) * 2.0;
-	    for ( int j = 0; j < 3; j++ ) {
-		for ( int i = 0; i < 3; i++ ) {
-		    H(6+i,6+j) = tmp1(i,j);
-		}
-	    }
-	}
-
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
 	y(1) = pos_gps_ned(1) - pos_ins_ned(1);
@@ -353,10 +322,6 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
 	y(4) = gps.ve - nav.ve;
 	y(5) = gps.vd - nav.vd;
 		
-	y(6) = mag_error(0);
-	y(7) = mag_error(1);
-	y(8) = mag_error(2);
-	
 	// Kalman Gain
 	// K = P*H'*inv(H*P*H'+R)
 	K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
@@ -432,78 +397,3 @@ NAVdata EKF::update(IMUdata imu, GPSdata gps) {
 
     return nav;
 }
-
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(libnav_eigen_mag_test)
-{
-    class_<IMUdata>("IMUdata")
-	.def_readwrite("time", &IMUdata::time)
-	.def_readwrite("p", &IMUdata::p)
-	.def_readwrite("q", &IMUdata::q)
-	.def_readwrite("r", &IMUdata::r)
- 	.def_readwrite("ax", &IMUdata::ax)
- 	.def_readwrite("ay", &IMUdata::ay)
- 	.def_readwrite("az", &IMUdata::az)
- 	.def_readwrite("hx", &IMUdata::hx)
- 	.def_readwrite("hy", &IMUdata::hy)
- 	.def_readwrite("hz", &IMUdata::hz)
-    ;
-    
-    class_<GPSdata>("GPSdata")
-	.def_readwrite("time", &GPSdata::time)
-	.def_readwrite("lat", &GPSdata::lat)
-	.def_readwrite("lon", &GPSdata::lon)
-	.def_readwrite("alt", &GPSdata::alt)
-	.def_readwrite("vn", &GPSdata::vn)
-	.def_readwrite("ve", &GPSdata::ve)
-	.def_readwrite("vd", &GPSdata::vd)
-	.def_readwrite("newData", &GPSdata::newData)
-    ;
-
-    class_<NAVdata>("NAVdata")
-	.def_readwrite("time", &NAVdata::time)
-	.def_readwrite("lat", &NAVdata::lat)
-	.def_readwrite("lon", &NAVdata::lon)
-	.def_readwrite("alt", &NAVdata::alt)
-	.def_readwrite("vn", &NAVdata::vn)
-	.def_readwrite("ve", &NAVdata::ve)
-	.def_readwrite("vd", &NAVdata::vd)
-	.def_readwrite("phi", &NAVdata::phi)
-	.def_readwrite("the", &NAVdata::the)
-	.def_readwrite("psi", &NAVdata::psi)
-	.def_readwrite("qw", &NAVdata::qw)
-	.def_readwrite("qx", &NAVdata::qx)
-	.def_readwrite("qy", &NAVdata::qy)
-	.def_readwrite("qz", &NAVdata::qz)
-	.def_readwrite("abx", &NAVdata::abx)
-	.def_readwrite("aby", &NAVdata::aby)
-	.def_readwrite("abz", &NAVdata::abz)
-	.def_readwrite("gbx", &NAVdata::gbx)
-	.def_readwrite("gby", &NAVdata::gby)
-	.def_readwrite("gbz", &NAVdata::gbz)
-	.def_readwrite("Pp0", &NAVdata::Pp0)
-	.def_readwrite("Pp1", &NAVdata::Pp1)
-	.def_readwrite("Pp2", &NAVdata::Pp2)
-	.def_readwrite("Pv0", &NAVdata::Pv0)
-	.def_readwrite("Pv1", &NAVdata::Pv1)
-	.def_readwrite("Pv2", &NAVdata::Pv2)
-	.def_readwrite("Pa0", &NAVdata::Pa0)
-	.def_readwrite("Pa1", &NAVdata::Pa1)
-	.def_readwrite("Pa2", &NAVdata::Pa2)
-	.def_readwrite("Pabx", &NAVdata::Pabx)
-	.def_readwrite("Paby", &NAVdata::Paby)
-	.def_readwrite("Pabz", &NAVdata::Pabz)
-	.def_readwrite("Pgbx", &NAVdata::Pgbx)
-	.def_readwrite("Pgby", &NAVdata::Pgby)
-	.def_readwrite("Pgbz", &NAVdata::Pgbz)
-    ;
-    
-    class_<EKF>("EKF")
-        .def("init", &EKF::init)
-        .def("update", &EKF::update)
-    ;
-}
-
