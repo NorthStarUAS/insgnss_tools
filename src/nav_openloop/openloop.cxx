@@ -85,7 +85,6 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
-    printf("%.2f %.2f %.2f\n", accel_ned(0), accel_ned(1), accel_ned(2));
 
     // update the velocity vector
     vel_ned += accel_ned*dt;
