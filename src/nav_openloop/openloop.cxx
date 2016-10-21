@@ -102,9 +102,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 
     // update the position
     pos_ecef += vel_ecef*dt;
-    printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
+    //printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
     pos_lla = ecef2lla(pos_ecef);
-    printf("lla: %.8f %.8f %.2f\n", pos_lla(0)/D2R, pos_lla(1)/D2R, pos_lla(2));
+    //printf("lla: %.8f %.8f %.2f\n", pos_lla(0)/D2R, pos_lla(1)/D2R, pos_lla(2));
     nav.lat = pos_lla(0);
     nav.lon = pos_lla(1);
     nav.alt = pos_lla(2);

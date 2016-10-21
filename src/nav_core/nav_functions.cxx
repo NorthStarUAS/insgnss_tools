@@ -143,13 +143,11 @@ Vector3d ecef2lla( Vector3d ecef_pos ) {
     double u = r*(1+t+1/t);
     double v = sqrt(u*u+e4*q);
     double w = e2*(u+v-q)/(2*v);
-    printf("u=%.8f v=%.8f w=%.8f\n", u, v, w);
     double k = sqrt(u+v+w*w)-w;
     double D = k*sqrtXXpYY/(k+e2);
     lla(1) = 2*atan2(Y, X+sqrtXXpYY);
     double sqrtDDpZZ = sqrt(D*D+Z*Z);
     lla(0) = 2*atan2(Z, D+sqrtDDpZZ);
-    printf("k=%.8f\n", k);
     lla(2) = (k+e2-1)*sqrtDDpZZ/k;
     return lla;
 }
