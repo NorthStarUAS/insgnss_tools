@@ -31,7 +31,7 @@ using namespace Eigen;
 /*     Define Constants   */
 
 #define EARTH_RATE   0.00007292115   		/* rotation rate of earth (rad/sec) */
-#define EARTH_RADIUS 6378137         		/* earth semi-major axis radius (m) */
+#define EARTH_RADIUS 6378137.0         		/* earth semi-major axis radius (m) */
 #define ECCENTRICITY 0.0818191908426 		/* major eccentricity of earth ellipsoid */
 #define ECC2	     0.0066943799901 		/* major eccentricity squared */
 #define FLATTENING   0.0033528106650 		/* flattening of the ellipsoid */
@@ -45,6 +45,11 @@ using namespace Eigen;
 #define MAG_DEC      0.270944862           	/* magnetic declination of Stanford (rad): 15.15 degrees */
 #define MM2M         0.001                 	/* mm to m */
 
+/* for ecef2lla */
+#define _SQUASH    0.9966471893352525192801545
+#define E2         fabs(1 - _SQUASH*_SQUASH)
+
+
 /*---------------     Define Structures and Enumerated Types -------------*/
 
 Vector3d llarate(Vector3d V, Vector3d lla);
@@ -54,6 +59,9 @@ Vector3d navrate(Vector3d V, Vector3d lla);
 Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref);
 
 Vector3d lla2ecef(Vector3d lla);
+Vector3d ecef2lla( Vector3d ecef_pos );
+    
+Quaterniond lla2quat(double lon_rad, double lat_rad);
 
 Matrix3d sk(Vector3d w);
 

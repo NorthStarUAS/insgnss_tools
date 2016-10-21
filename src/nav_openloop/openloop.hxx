@@ -63,9 +63,10 @@ private:
     double axb, ayb, azb;	      // accel biases
     double axs, ays, azs;	      // accel scale factor
 
-    Vector3d pos_ecef;
+    Vector3d pos_ecef, pos_lla;
     Quaterniond ned2body, body2ned;
-    Vector3d vel_ned;
+    Quaterniond ecef2ned, ned2ecef;
+    Vector3d vel_ned, vel_ecef;
     Vector3d glocal_ned;
     double tprev;
     NAVdata nav;

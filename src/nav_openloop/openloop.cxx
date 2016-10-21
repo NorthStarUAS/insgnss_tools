@@ -7,6 +7,13 @@ using std::endl;
 #include "glocal.hxx"
 #include "openloop.hxx"
 
+static Vector3d quat_transform(Quaterniond q, Vector3d v) {
+    Quaterniond tmp1(0.0, v(0), v(1), v(2));
+    //Quaterniond tmp2 = body2ned * tmp1 * ned2body;
+    Quaterniond tmp2 = q * tmp1 * q.inverse();
+    return tmp2.vec();
+}
+
 void OpenLoop::init(double lat_rad, double lon_rad, double alt_m,
 		    double vn_ms, double ve_ms, double vd_ms,
 		    double phi_rad, double the_rad, double psi_rad)
@@ -25,11 +32,12 @@ void OpenLoop::init(double lat_rad, double lon_rad, double alt_m,
     this->psi_rad = psi_rad;
 
     printf("%.8f %.8f\n", lat_rad, lon_rad);
-    Vector3d pos_vec(lat_rad, lon_rad, alt_m);
-    pos_ecef = lla2ecef(pos_vec);
+    pos_lla = Vector3d(lat_rad, lon_rad, alt_m);
+    pos_ecef = lla2ecef(pos_lla);
     vel_ned = Vector3d(vn_ms, ve_ms, vd_ms);
     glocal_ned = local_gravity( lat_rad, alt_m );
     ned2body = eul2quat(phi_rad, the_rad, psi_rad);
+    ecef2ned = lla2quat(lon_rad, lat_rad);
 }
 
 void OpenLoop::set_gyro_calib(double gxb, double gyb, double gzb,
@@ -78,20 +86,31 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     double ax = (imu.ax - axb) * axs;
     double ay = (imu.ay - ayb) * ays;
     double az = (imu.az - azb) * azs;
-    Quaterniond tmp1(0.0, ax, ay, az);
-    //Quaterniond tmp2 = body2ned * tmp1 * ned2body;
-    Quaterniond tmp2 = ned2body * tmp1 * body2ned;
-    Vector3d accel_ned = tmp2.vec();
+    Vector3d accel_ned = quat_transform(ned2body, Vector3d(ax, ay, az));
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
-    printf("%.2f %.2f %.2f\n", accel_ned(0), accel_ned(1), accel_ned(2));
 
     // update the velocity vector
     vel_ned += accel_ned*dt;
     nav.vn = vel_ned(0);
     nav.ve = vel_ned(1);
     nav.vd = vel_ned(2);
+    // transform to ecef frame
+    //vel_ecef = quat_transform(ecef2ned.inverse(), vel_ned);
+    vel_ecef = quat_transform(ecef2ned, vel_ned);
 
+    // update the position
+    pos_ecef += vel_ecef*dt;
+    printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
+    pos_lla = ecef2lla(pos_ecef);
+    printf("lla: %.8f %.8f %.2f\n", pos_lla(0)/D2R, pos_lla(1)/D2R, pos_lla(2));
+    nav.lat = pos_lla(0);
+    nav.lon = pos_lla(1);
+    nav.alt = pos_lla(2);
+    
+    // update ecef2ned transform with just updated position
+    ecef2ned = lla2quat(lon_rad, lat_rad);
+    
     return nav;
 }
