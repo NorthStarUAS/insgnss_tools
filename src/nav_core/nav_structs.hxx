@@ -19,13 +19,22 @@ struct IMUdata {
     double p, q, r;		// rad/sec
     double ax, ay, az;		// m/sec^2
     double hx, hy, hz;		// guass
+    double temp;		// C
 };
 
 struct GPSdata {
     double time;		// seconds
-    double lat, lon, alt;	// deg, meter
+    double unix_sec;		// seconds in unix time reference
+    double lat, lon, alt;	// rad, meter
     double vn, ve, vd;		// m/sec
     bool newData;
+};
+
+struct Filterdata {
+    double time;		// seconds
+    double lat, lon, alt;	// rad, meter
+    double vn, ve, vd;		// m/sec
+    double phi, the, psi;	// rad
 };
 
 /// Define status message enum list

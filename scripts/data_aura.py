@@ -5,7 +5,9 @@ import numpy as np
 import os
 import math
 
-import pydefs
+import sys
+sys.path.append('../build/src/nav_core/.libs/')
+import libnav_core
 
 d2r = math.pi / 180.0
 
@@ -77,15 +79,20 @@ def load(flight_dir):
         s = [float(hx), float(hy), float(hz), 1.0]
         hf = np.dot(mag_affine, s)
         #print hf
-        imu = pydefs.IMU( float(time), int(status),
-                          float(p), float(q), float(r),
-                          float(ax), float(ay), float(az),
-                          float(hx), float(hy), float(hz),
-                          #float(hf[0]), float(hf[1]), float(hf[2]),
-                          float(temp) )
+        imu = libnav_core.IMUdata()
+        imu.time = float(time)
+        imu.p = float(p)
+        imu.q = float(q)
+        imu.r = float(r)
+        imu.ax = float(ax)
+        imu.ay = float(ay)
+        imu.az = float(az)
+        imu.hx = float(hx)
+        imu.hy = float(hy)
+        imu.hz = float(hz)
+        #float(hf[0]), float(hf[1]), float(hf[2]),
+        imu.temp = float(temp)
         imu_data.append( imu )
-        #print hx, hy, hz
-        #print '[', hx, hy, hz, '] [', hf[0], hf[1], hf[2], ']'
 
     fgps = fileinput.input(gps_file)
     last_time = -1.0
@@ -94,11 +101,18 @@ def load(flight_dir):
         # but for the pruposes of the insgns algorithm, it's only
         # important to have a properly incrementing clock, it doens't
         # really matter what the zero reference point of time is.
-        time, lat, lon, alt, vn, ve, vd, unixsec, sats, status = line.split(',')
+        time, lat, lon, alt, vn, ve, vd, unix_sec, sats, status = line.split(',')
         if int(sats) >= 5 and time > last_time:
-            gps = pydefs.GPS( float(time), int(status), float(unixsec),
-                              float(lat), float(lon), float(alt),
-                              float(vn), float(ve), float(vd))
+            gps = libnav_core.GPSdata()
+            gps.time = float(time)
+            #gps.status = int(status)
+            gps.unix_sec = float(unix_sec)
+            gps.lat = float(lat)
+            gps.lon = float(lon)
+            gps.alt = float(alt)
+            gps.vn = float(vn)
+            gps.ve = float(ve)
+            gps.vd = float(vd)
             gps_data.append(gps)
         last_time = time
 
@@ -112,11 +126,17 @@ def load(flight_dir):
                 psi = psi - 360.0
             if psi < -180.0:
                 psi = psi - 360.0
-            filter = pydefs.FILTER(float(time),
-                                   float(lat)*d2r, float(lon)*d2r, float(alt),
-                                   float(vn), float(ve), float(vd),
-                                   float(phi)*d2r, float(the)*d2r,
-                                   float(psi)*d2r)
+            filter = libnav_core.Filterdata()
+            filter.time = float(time)
+            filter.lat = float(lat)*d2r
+            filter.lon = float(lon)*d2r
+            filter.alt = float(alt)
+            filter.vn = float(vn)
+            filter.ve = float(ve)
+            filter.vd = float(vd)
+            filter.phi = float(phi)*d2r
+            filter.the = float(the)*d2r
+            filter.psi = float(psi)*d2r
             filter_data.append(filter)
 
     return imu_data, gps_data, filter_data

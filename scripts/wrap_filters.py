@@ -57,7 +57,6 @@ r2d = np.rad2deg
 
 # filter interfaces
 import nav_orig
-import nav_polarity
 import nav_mag
 import nav_eigen
 import nav_eigen_mag
@@ -68,8 +67,9 @@ import MadgwickAHRS
 
 #filter2 = nav_eigen_mag_old.filter()
 #filter1 = nav_orig.filter()
-filter1 = nav_eigen.filter()
-filter2 = nav_eigen_mag.filter()
+#filter1 = nav_eigen.filter()
+filter1 = nav_eigen_mag.filter()
+filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
@@ -89,7 +89,6 @@ class data_store():
         self.nav_vn = []
         self.nav_ve = []
         self.nav_vd = []
-        self.navStatus = []
 
         self.ax_bias = []
         self.ay_bias = [] 
@@ -105,29 +104,28 @@ class data_store():
         self.Pgb = []
 
     def append(self, insgps):
-        self.psi.append(insgps.estATT[0])
-        self.the.append(insgps.estATT[1])
-        self.phi.append(insgps.estATT[2])
-        self.nav_lat.append(insgps.estPOS[0])
-        self.nav_lon.append(insgps.estPOS[1])
-        self.nav_alt.append(insgps.estPOS[2])
-        self.nav_vn.append(insgps.estVEL[0])
-        self.nav_ve.append(insgps.estVEL[1])
-        self.nav_vd.append(insgps.estVEL[2])
-        self.navStatus.append(insgps.valid) #fixme: was err_type
+        self.psi.append(insgps.psi)
+        self.the.append(insgps.the)
+        self.phi.append(insgps.phi)
+        self.nav_lat.append(insgps.lat)
+        self.nav_lon.append(insgps.lon)
+        self.nav_alt.append(insgps.alt)
+        self.nav_vn.append(insgps.vn)
+        self.nav_ve.append(insgps.ve)
+        self.nav_vd.append(insgps.vd)
 
-        self.ax_bias.append(insgps.estAB[0])
-        self.ay_bias.append(insgps.estAB[1])
-        self.az_bias.append(insgps.estAB[2])
-        self.p_bias.append(insgps.estGB[0])
-        self.q_bias.append(insgps.estGB[1])
-        self.r_bias.append(insgps.estGB[2])
+        self.ax_bias.append(insgps.abx)
+        self.ay_bias.append(insgps.aby)
+        self.az_bias.append(insgps.abz)
+        self.p_bias.append(insgps.gbx)
+        self.q_bias.append(insgps.gby)
+        self.r_bias.append(insgps.gbz)
         
-        self.Pp.append( np.diag(insgps.P[0:3,0:3]) )
-        self.Pvel.append( np.diag(insgps.P[3:6,3:6]) )
-        self.Patt.append( np.diag(insgps.P[6:9,6:9]) )
-        self.Pab.append( np.diag(insgps.P[9:12,9:12]) )
-        self.Pgb.append( np.diag(insgps.P[12:15,12:15]) )
+        self.Pp.append( np.array([insgps.Pp0, insgps.Pp1, insgps.Pp2]) )
+        self.Pvel.append( np.array([insgps.Pv0, insgps.Pv1, insgps.Pv2]) )
+        self.Patt.append( np.array([insgps.Pa0, insgps.Pa1, insgps.Pa2]) )
+        self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
+        self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
 # Values (Calculated by compiled test navigation filter) need to be
 # stored in python variables and they need to be in the globaldefs.c
