@@ -25,10 +25,13 @@ import numpy as np
 import time
 import os
 
+import flight_data
+
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--aura-dir', help='load specified aura flight log')
-parser.add_argument('--mat-flight', help='load specified .mat flight log')
-parser.add_argument('--sentera-dir', help='load specified sentera flight log')
+parser.add_argument('--flight', help='load specified aura flight log')
+parser.add_argument('--aura-flight', help='load specified aura flight log')
+parser.add_argument('--umn-flight', help='load specified .mat flight log')
+parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -65,8 +68,8 @@ import MadgwickAHRS
 
 #filter2 = nav_eigen_mag_old.filter()
 #filter1 = nav_orig.filter()
-filter1 = nav_eigen_mag.filter()
-filter2 = nav_openloop.filter()
+filter1 = nav_eigen.filter()
+filter2 = nav_eigen_mag.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
@@ -135,21 +138,22 @@ data_dict1 = data_store()
 data_dict2 = data_store()
 t_store = []
 
-import data_aura
-import data_sentera
-import data_umn
-if args.aura_dir:
-    imu_data, gps_data, filter_data = data_aura.load(args.aura_dir)
-    plotname = os.path.basename(args.aura_dir)
-elif args.sentera_dir:
-    imu_data, gps_data, filter_data = data_sentera.load(args.sentera_dir)
-    plotname = os.path.basename(args.sentera_dir)
-elif args.mat_flight:
-    imu_data, gps_data, filter_data = data_umn.load(args.mat_flight)
-    plotname = os.path.basename(args.mat_flight)
-else:
-    print "no input file / dir specifed"
+imu_data, gps_data, filter_data = flight_data.load(args)
+print "imu records:", len(imu_data)
+print "gps records:", len(gps_data)
+print "filter records:", len(filter_data)
+if len(imu_data) == 0 and len(gps_data) == 0:
+    print "not enough data loaded to continue."
     quit()
+
+if args.flight:
+    plotname = os.path.basename(args.flight)    
+elif args.aura_flight:
+    plotname = os.path.basename(args.aura_flight)
+elif args.sentera_flight:
+    plotname = os.path.basename(args.sentera_flight)
+elif args.umn_flight:
+    plotname = os.path.basename(args.umn_flight)
 
 if False:
     # quick hack estimate gyro biases
@@ -308,10 +312,10 @@ else:
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
             print "init:", imupt.time, gpspt.time
-            insgps1 = filter1.init(imupt, gpspt)
+            insgps1 = filter1.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
-            insgps1 = filter1.update(imupt, gpspt)
+            insgps1 = filter1.update(imupt, gpspt, filterpt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -384,17 +388,22 @@ else:
     else:
         print "filter2 is %.1f%% slower" % (-perc * 100.0)
 
-if args.aura_dir:
-    filter_post = os.path.join(args.aura_dir, "filter-post.txt")
+if args.flight or args.aura_flight:
+    import data_aura
+    if args.flight:
+        filter_post = os.path.join(args.flight, "filter-post.txt")
+    elif args.aura_flight:
+        filter_post = os.path.join(args.aura_flight, "filter-post.txt")
     data_aura.save_filter_result(filter_post, t_store, data_dict2)
     
-if args.sentera_dir:
-    file_ins = os.path.join(args.sentera_dir, "filter-post-ins.txt")
-    file_mag = os.path.join(args.sentera_dir, "filter-post-mag.txt")
+if args.sentera_flight:
+    import data_sentera
+    file_ins = os.path.join(args.sentera_flight, "filter-post-ins.txt")
+    file_mag = os.path.join(args.sentera_flight, "filter-post-mag.txt")
     data_sentera.save_filter_result(file_ins, t_store, data_dict1)
     data_sentera.save_filter_result(file_mag, t_store, data_dict2)
-    data_sentera.rewrite_pix4d_csv(args.sentera_dir, t_store, data_dict2)
-    data_sentera.rewrite_image_metadata_txt(args.sentera_dir, t_store, data_dict2)
+    data_sentera.rewrite_pix4d_csv(args.sentera_flight, t_store, data_dict2)
+    data_sentera.rewrite_image_metadata_txt(args.sentera_flight, t_store, data_dict2)
 
 nsig = 3
 

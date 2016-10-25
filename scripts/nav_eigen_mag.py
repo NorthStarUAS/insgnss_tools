@@ -25,6 +25,7 @@ class filter():
         cimu.hx = imu.hx
         cimu.hy = imu.hy
         cimu.hz = imu.hz
+        #print 'imu:', imu.time, imu.p, imu.q, imu.r, imu.ax, imu.ay, imu.az, imu.hx, imu.hy, imu.hz
         
         cgps = libnav_core.GPSdata()
         cgps.time = gps.time
@@ -36,6 +37,7 @@ class filter():
         cgps.lat = gps.lat
         cgps.lon = gps.lon
         cgps.alt = gps.alt
+        #print 'gps:',  gps.time, gps.tow, gps.newData, gps.lat, gps.lon, gps.alt, gps.vn, gps.ve, gps.vd
 
         return cimu, cgps
 
@@ -58,12 +60,12 @@ class filter():
                                stateInnov)
         return insgps
     
-    def init(self, imu, gps):
+    def init(self, imu, gps, filterpt=None):
         cimu, cgps = self.python2c(imu, gps)
         cnav = self.ekf.init(cimu, cgps)
         return self.c2python(cnav)
 
-    def update(self, imu, gps):
+    def update(self, imu, gps, filterpt=None):
         cimu, cgps = self.python2c(imu, gps)
         cnav = self.ekf.update(cimu, cgps)
         return self.c2python(cnav)

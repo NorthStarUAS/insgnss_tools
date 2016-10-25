@@ -145,8 +145,6 @@ def load(mat_filename):
         filter_data.append(fd_pt)
 
         k += 1
-    print "imu records:", len(imu_data)
-    print "gps records:", len(gps_data)
 
     dir = os.path.dirname(mat_filename)
     print 'dir:', dir

@@ -23,7 +23,7 @@ def load(flight_dir):
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
     # not raw magnetometer, so we don't need to correct here.  We
-    # could 'back correct' here if we wanted original values for some
+    # could 'back correct' if we wanted original values for some
     # reason (using the calibration matrix saved with each flight
     # log.)
     
@@ -44,12 +44,12 @@ def load(flight_dir):
     # )
 
     # telemaster apm2_101
-    # mag_affine = np.array(
-    #     [[ 0.0026424919,  0.0001334248,  0.0000984977, -0.2235908546],
-    #      [-0.000081925 ,  0.0026419229,  0.0000751835, -0.0010757621],
-    #      [ 0.0000219407,  0.0000560341,  0.002541171 ,  0.040221458 ],
-    #      [ 0.          ,  0.          ,  0.          ,  1.          ]]
-    # )
+    mag_affine = np.array(
+        [[ 0.0026424919,  0.0001334248,  0.0000984977, -0.2235908546],
+         [-0.000081925 ,  0.0026419229,  0.0000751835, -0.0010757621],
+         [ 0.0000219407,  0.0000560341,  0.002541171 ,  0.040221458 ],
+         [ 0.          ,  0.          ,  0.          ,  1.          ]]
+    )
     
     # skywalker apm2_105
     # mag_affine = np.array(
@@ -74,13 +74,14 @@ def load(flight_dir):
         #hy_new /= norm
         #hz_new /= norm
 
-        #s = [float(hx), float(hy), float(hz), 1.0]
-        #hf = np.dot(mag_affine, s)
+        s = [float(hx), float(hy), float(hz), 1.0]
+        hf = np.dot(mag_affine, s)
         #print hf
         imu = pydefs.IMU( float(time), int(status),
                           float(p), float(q), float(r),
                           float(ax), float(ay), float(az),
                           float(hx), float(hy), float(hz),
+                          #float(hf[0]), float(hf[1]), float(hf[2]),
                           float(temp) )
         imu_data.append( imu )
         #print hx, hy, hz
@@ -89,8 +90,8 @@ def load(flight_dir):
     fgps = fileinput.input(gps_file)
     last_time = -1.0
     for line in fgps:
-        # note the aura logs unix time of the gps record, not tow, but
-        # for the pruposes of the insgns algorithm, it's only
+        # Note: the aura logs unix time of the gps record, not tow,
+        # but for the pruposes of the insgns algorithm, it's only
         # important to have a properly incrementing clock, it doens't
         # really matter what the zero reference point of time is.
         time, lat, lon, alt, vn, ve, vd, unixsec, sats, status = line.split(',')
@@ -118,10 +119,6 @@ def load(flight_dir):
                                    float(psi)*d2r)
             filter_data.append(filter)
 
-    print "imu records:", len(imu_data)
-    print "gps records:", len(gps_data)
-    print "filter records:", len(filter_data)
-
     return imu_data, gps_data, filter_data
 
 def save_filter_result(filename, t_store, data_store):
@@ -139,4 +136,3 @@ def save_filter_result(filename, t_store, data_store):
                 data_store.psi[i]*180.0/math.pi)
         f.write(line + '\n')
     f.close()
-

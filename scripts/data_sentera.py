@@ -162,10 +162,6 @@ def load(flight_dir):
                                   float(lat), float(lon), float(alt),
                                   ned[0], ned[1], ned[2])
                 gps_data.append(gps)
-
-    print "imu records:", len(imu_data)
-    print "gps records:", len(gps_data)
-
     return imu_data, gps_data, filter_data
 
 def save_filter_result(filename, t_store, data_store):

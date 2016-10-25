@@ -76,7 +76,7 @@ NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
 
     // Assemble the matrices
     // .... gravity, g
-    grav(2) = g;
+    grav = Vector3d(0.0, 0.0, g);
 	
     // ... H
     H.topLeftCorner(6,6).setIdentity();
