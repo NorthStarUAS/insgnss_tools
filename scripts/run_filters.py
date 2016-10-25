@@ -1,23 +1,14 @@
 #!/usr/bin/python
 
-"""WRAP_NAV_FILTER.PY
-This script plays flight data through navigation filter C-Code.
-Both baseline navigation and researchNavigation are compiled into `.so` 
-shared objects and wrapped in Python.  
+"""run_filters.py
 
-This code automatically calls necessary terminal calls to gcc to compile
-the functions.  However, more details on compiling the C-Code to make the 
-`.so` manually can be found in `README.md`.
+This script plays flight data through the selected navigation filters.
+The filters are compiled as .so objects and wrapped for python with boost.
 
 A set of customizable input flags are defined at the start of the script.
 
-**Note:** Rerunning this in interactive mode has unexpected results!
-          It doesn't seem to reload the latest `.so`.  This script
-          should be called from the terminal.  For example:
-          >> python wrap_nav_filter.py
-
-Author: Hamid M.
-Last Update: April 22, 2015
+Initial revision: Hamid M.
+Many updates: Curtis L. Olson
 """
 
 import argparse
