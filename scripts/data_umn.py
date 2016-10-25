@@ -10,7 +10,9 @@ join = os.path.join
 import numpy as np
 from scipy import io as sio
 
-import pydefs
+import sys
+sys.path.append('../build/src/nav_core/.libs/')
+import libnav_core
 
 class dict2struct():
   pass
@@ -133,15 +135,48 @@ def load(mat_filename):
         #hf = np.dot(mag_affine, s)
         hf = s
 
-        imu_pt = pydefs.IMU(t[k], 0, p, q, r, ax, ay, az, hf[0], hf[1], hf[2], 15.0)
+        imu_pt = libnav_core.IMUdata()
+        imu_pt.time = t[k]
+        imu_pt.p = p
+        imu_pt.q = q
+        imu_pt.r = r
+        imu_pt.ax = ax
+        imu_pt.ay = ay
+        imu_pt.az = az
+        #imu_pt.hx = hx
+        #imu_pt.hy = hy
+        #imu_pt.hz = hz
+        imu_pt.hx = hf[0]
+        imu_pt.hy = hf[1]
+        imu_pt.hz = hf[2]
+        imu_pt.temp = 15.0
         imu_data.append(imu_pt)
 
         if abs(alt[k] - last_gps_alt) > 0.0001:
             last_gps_alt = alt[k]
-            gps_pt = pydefs.GPS(t[k], 0, t[k], lat[k], lon[k], alt[k], vn[k], ve[k], vd[k])
+            gps_pt = libnav_core.GPSdata()
+            gps_pt.time = t[k]
+            #gps_pt.status = int(status)
+            gps_pt.unix_sec = t[k]
+            gps_pt.lat = lat[k]
+            gps_pt.lon = lon[k]
+            gps_pt.alt = alt[k]
+            gps_pt.vn = vn[k]
+            gps_pt.ve = ve[k]
+            gps_pt.vd = vd[k]
             gps_data.append(gps_pt)
 
-        fd_pt = pydefs.FILTER(t[k], flight_data.navlat[k], flight_data.navlon[k], flight_data.navalt[k], flight_data.navvn[k], flight_data.navve[k], flight_data.navvd[k], flight_data.phi[k], flight_data.theta[k], flight_data.psi[k])
+        fd_pt = libnav_core.Filterdata()
+        fd_pt.time = t[k]
+        fd_pt.lat = flight_data.navlat[k]
+        fd_pt.lon = flight_data.navlon[k]
+        fd_pt.alt = flight_data.navalt[k]
+        fd_pt.vn = flight_data.navvn[k]
+        fd_pt.ve = flight_data.navve[k]
+        fd_pt.vd = flight_data.navvd[k]
+        fd_pt.phi = flight_data.phi[k]
+        fd_pt.the = flight_data.theta[k]
+        fd_pt.psi = flight_data.psi[k]
         filter_data.append(fd_pt)
 
         k += 1
