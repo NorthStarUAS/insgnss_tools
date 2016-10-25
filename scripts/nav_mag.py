@@ -27,6 +27,7 @@ class filter():
                                            POINTER(cdefs.NAV)]
 
         self.cnav = cdefs.NAV()
+        self.name = 'EKF15+Mag (C)'
 
     def python2c(self, imu, gps):
         cimu = cdefs.IMU()

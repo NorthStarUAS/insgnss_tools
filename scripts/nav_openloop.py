@@ -12,6 +12,7 @@ import libnav_openloop
 class filter():
     def __init__(self):
         self.ekf = libnav_openloop.OpenLoop()
+        self.name = 'Open Loop'
         self.filter_sync = 0.0
 
     def python2c(self, imu, gps):

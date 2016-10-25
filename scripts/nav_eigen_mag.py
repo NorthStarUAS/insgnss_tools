@@ -12,6 +12,7 @@ import libnav_eigen_mag
 class filter():
     def __init__(self):
         self.ekf = libnav_eigen_mag.EKF15mag()
+        self.name = 'EKF15+Mag'
 
     def python2c(self, imu, gps):
         cimu = libnav_core.IMUdata()

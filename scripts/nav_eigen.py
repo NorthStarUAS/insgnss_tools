@@ -12,6 +12,7 @@ import libnav_eigen
 class filter():
     def __init__(self):
         self.ekf = libnav_eigen.EKF15()
+        self.name = 'EKF15'
 
     def python2c(self, imu, gps):
         cimu = libnav_core.IMUdata()
