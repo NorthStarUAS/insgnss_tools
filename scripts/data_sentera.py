@@ -8,7 +8,9 @@ import re
 
 import navpy
 
-import pydefs
+import sys
+sys.path.append('../build/src/nav_core/.libs/')
+import libnav_core
 
 d2r = math.pi / 180.0
 g = 9.81
@@ -125,9 +127,19 @@ def load(flight_dir):
                 #hy_new /= norm
                 #hz_new /= norm
                 
-                imu = pydefs.IMU( float(time)/1000000.0, 0,
-                                  p, q, r, ax, ay, az, hf[0], hf[1], hf[2],
-                                  float(temp) )
+                imu = libnav_core.IMUdata()
+                imu.time = float(time)/1000000.0
+                imu.p = p
+                imu.q = q
+                imu.r = r
+                imu.ax = ax
+                imu.ay = ay
+                imu.az = az
+                imu.hx = hf[0]
+                imu.hy = hf[1]
+                imu.hz = hf[2]
+                #float(hf[0]), float(hf[1]), float(hf[2]),
+                imu.temp = float(temp)
                 imu_data.append( imu )
 
     fgps = fileinput.input(gps_file)
@@ -156,11 +168,16 @@ def load(flight_dir):
                                   float(ecefvz)/100.0],
                                  llh[0], llh[1], llh[2])
             if int(numsvs) >= 4:
-                gps = pydefs.GPS( float(time)/1000000.0, int(0),
-                                  float(time)/1000000.0,
-                                  # llh[0], llh[1], llh[2],
-                                  float(lat), float(lon), float(alt),
-                                  ned[0], ned[1], ned[2])
+                gps = libnav_core.GPSdata()
+                gps.time = float(time)/1000000.0
+                #gps.status = int(status)
+                gps.unix_sec = float(time)/1000000.0 # make filter happy
+                gps.lat = float(lat)
+                gps.lon = float(lon)
+                gps.alt = float(alt)
+                gps.vn = ned[0]
+                gps.ve = ned[1]
+                gps.vd = ned[2]
                 gps_data.append(gps)
     return imu_data, gps_data, filter_data
 
