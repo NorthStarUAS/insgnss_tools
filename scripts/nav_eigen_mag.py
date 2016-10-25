@@ -2,9 +2,7 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('../build/src/nav_core/.libs/')
 sys.path.append('../build/src/nav_eigen_mag/.libs/')
-import libnav_core
 import libnav_eigen_mag
 
 class filter():
