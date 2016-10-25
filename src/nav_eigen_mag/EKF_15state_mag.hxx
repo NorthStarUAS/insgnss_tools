@@ -80,18 +80,4 @@ private:
 };
 
 
-// The following constructs a python interface for this class.
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(libnav_eigen_mag)
-{
-    class_<EKF15mag>("EKF15mag")
-        .def("set_config", &EKF15mag::set_config)
-        .def("init", &EKF15mag::init)
-        .def("update", &EKF15mag::update)
-    ;
-}
-
 #endif // NAV_15STATE_MAG_HXX

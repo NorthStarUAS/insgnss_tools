@@ -80,18 +80,4 @@ private:
 };
 
 
-// The following constructs a python interface for this class.
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(libnav_eigen)
-{
-    class_<EKF15>("EKF15")
-        .def("set_config", &EKF15::set_config)
-        .def("init", &EKF15::init)
-        .def("update", &EKF15::update)
-    ;
-}
-
 #endif // NAV_15STATE_HXX

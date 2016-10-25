@@ -73,13 +73,13 @@ class filter():
                                stateInnov)
         return insgps
     
-    def init(self, imu, gps):
+    def init(self, imu, gps, filterpt=None):
         cimu, cgps = self.python2c(imu, gps)
         self.sharedobj.init_nav(cimu, cgps, self.cnav)
         nav = self.c2python()
         return nav
 
-    def update(self, imu, gps):
+    def update(self, imu, gps, filterpt=None):
         cimu, cgps = self.python2c(imu, gps)
         self.sharedobj.get_nav(cimu, cgps, self.cnav)
         nav = self.c2python()

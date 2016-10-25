@@ -76,6 +76,7 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
     grav = Vector3d(0.0, 0.0, g);
 	
     // ... H
+    H.setZero();
     H.topLeftCorner(6,6).setIdentity();
 
     // first order correlation + white noise, tau = time constant for correlation
@@ -83,17 +84,24 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
+    Rw.setZero();
     Rw(0,0) = config.sig_w_ax*config.sig_w_ax;	Rw(1,1) = config.sig_w_ay*config.sig_w_ay;	      Rw(2,2) = config.sig_w_az*config.sig_w_az; //1 sigma on noise
     Rw(3,3) = config.sig_w_gx*config.sig_w_gx;	Rw(4,4) = config.sig_w_gy*config.sig_w_gy;	      Rw(5,5) = config.sig_w_gz*config.sig_w_gz;
     Rw(6,6) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;	Rw(7,7) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;    Rw(8,8) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;
     Rw(9,9) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;	Rw(10,10) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;  Rw(11,11) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;
-	
+
     // ... P (initial)
+    P.setZero();
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
     P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 	      P(5,5) = P_V_INIT*P_V_INIT;
     P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 	      P(8,8) = P_HDG_INIT*P_HDG_INIT;
     P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT;       P(11,11) = P_AB_INIT*P_AB_INIT;
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
+	
+    // ... R
+    R.setZero();
+    R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
+    R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
 	
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
@@ -102,10 +110,6 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
 	
     nav.Pabx = P(9,9);	  nav.Paby = P(10,10);	nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
-	
-    // ... R
-    R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
-    R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
 	
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
@@ -397,3 +401,19 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 
     return nav;
 }
+
+
+// The following constructs a python interface for this class.
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE(libnav_eigen)
+{
+    class_<EKF15>("EKF15")
+        .def("set_config", &EKF15::set_config)
+        .def("init", &EKF15::init)
+        .def("update", &EKF15::update)
+    ;
+}
+
