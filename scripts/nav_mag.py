@@ -77,12 +77,14 @@ class filter():
         cimu, cgps = self.python2c(imu, gps)
         self.sharedobj.init_nav(cimu, cgps, self.cnav)
         nav = self.c2python()
+        nav.time = imu.time
         return nav
 
     def update(self, imu, gps):
         cimu, cgps = self.python2c(imu, gps)
         self.sharedobj.get_nav(cimu, cgps, self.cnav)
         nav = self.c2python()
+        nav.time = imu.time
         return nav
 
     def close(self):

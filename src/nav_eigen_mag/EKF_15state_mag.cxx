@@ -183,6 +183,7 @@ NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
     tprev = imu.time;
 	
     //nav.init = 1;
+    nav.time = imu.time;
     nav.err_type = data_valid;
 
     return nav;
@@ -440,6 +441,7 @@ NAVdata EKF15mag::update(IMUdata imu, GPSdata gps) {
     om_ib(1) = imu.q;
     om_ib(2) = imu.r;
 
+    nav.time = imu.time;
     return nav;
 }
 

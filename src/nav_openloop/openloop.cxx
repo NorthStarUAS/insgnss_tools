@@ -112,5 +112,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // update ecef2ned transform with just updated position
     ecef2ned = lla2quat(lon_rad, lat_rad);
     
+    nav.time = imu.time;
+
     return nav;
 }

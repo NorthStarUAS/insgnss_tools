@@ -61,8 +61,11 @@ filter2 = nav_eigen_mag.filter()
 #filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
+# this class organizes the filter output in a way that is more
+# convenient and dirct for matplotlib
 class data_store():
     def __init__(self):
+        self.time = []
         self.psi = []
         self.the = []
         self.phi = []
@@ -87,6 +90,8 @@ class data_store():
         self.Pgb = []
 
     def append(self, insgps):
+        self.time.append(insgps.time)
+        
         self.psi.append(insgps.psi)
         self.the.append(insgps.the)
         self.phi.append(insgps.phi)
@@ -113,7 +118,7 @@ class data_store():
         
 def run_filter(filter, imu_data, gps_data, filter_data):
     data_dict = data_store()
-    t_store = []
+    # t_store = []
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
@@ -158,7 +163,7 @@ def run_filter(filter, imu_data, gps_data, filter_data):
         # navigation filter and the baseline filter
         if filter_init:
             data_dict.append(navpt)
-            t_store.append(imupt.time)
+            #t_store.append(imupt.time)
             # print imupt.time, imupt.p - insgps1.estGB[0], imupt.q - insgps1.estGB[1], imupt.r - insgps1.estGB[2], imupt.ax - insgps1.estAB[0], imupt.ay - insgps1.estAB[1], imupt.az - insgps1.estAB[2], imupt.hx, imupt.hy, imupt.hz, imupt.temp
 
         # Increment time up one step for the next iteration of the
@@ -169,7 +174,7 @@ def run_filter(filter, imu_data, gps_data, filter_data):
     filter.close()
     end_time = time.time()
     elapsed_sec = end_time - start_time
-    return t_store, data_dict, elapsed_sec
+    return data_dict, elapsed_sec
 
 
 imu_data, gps_data, filter_data = flight_data.load(args)
@@ -275,10 +280,8 @@ for f in filter_data:
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
 
-t_store, data_dict1, filter1_sec = run_filter(filter1,
-                                              imu_data, gps_data, filter_data)
-t_store2, data_dict2, filter2_sec = run_filter(filter2,
-                                               imu_data, gps_data, filter_data)
+data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
+data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data)
 
 print "filter1 time = %.4f" % filter1_sec
 print "filter2 time = %.4f" % filter2_sec
@@ -295,18 +298,19 @@ if args.flight or args.aura_flight:
         filter_post = os.path.join(args.flight, "filter-post.txt")
     elif args.aura_flight:
         filter_post = os.path.join(args.aura_flight, "filter-post.txt")
-    data_aura.save_filter_result(filter_post, t_store, data_dict2)
+    data_aura.save_filter_result(filter_post, data_dict2)
     
 if args.sentera_flight:
     import data_sentera
     file_ins = os.path.join(args.sentera_flight, "filter-post-ins.txt")
     file_mag = os.path.join(args.sentera_flight, "filter-post-mag.txt")
-    data_sentera.save_filter_result(file_ins, t_store, data_dict1)
-    data_sentera.save_filter_result(file_mag, t_store, data_dict2)
-    data_sentera.rewrite_pix4d_csv(args.sentera_flight, t_store, data_dict2)
-    data_sentera.rewrite_image_metadata_txt(args.sentera_flight, t_store, data_dict2)
+    data_sentera.save_filter_result(file_ins, data_dict1)
+    data_sentera.save_filter_result(file_mag, data_dict2)
+    data_sentera.rewrite_pix4d_csv(args.sentera_flight, data_dict2)
+    data_sentera.rewrite_image_metadata_txt(args.sentera_flight, data_dict2)
 
 nsig = 3
+t_store = data_dict1.time
 
 # Plotting
 if FLAG_PLOT_ATTITUDE:
@@ -413,7 +417,6 @@ if FLAG_PLOT_ALTITUDE:
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
-
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:

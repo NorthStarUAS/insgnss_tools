@@ -141,12 +141,12 @@ def load(flight_dir):
 
     return imu_data, gps_data, filter_data
 
-def save_filter_result(filename, t_store, data_store):
+def save_filter_result(filename, data_store):
     f = open(filename, 'w')
     size = len(t_store)
     for i in range(size):
         line = "%.3f,%.10f,%.10f,%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,0" % \
-               (t_store[i],
+               (data_store.time[i],
                 data_store.nav_lat[i]*180.0/math.pi,
                 data_store.nav_lon[i]*180.0/math.pi,
                 data_store.nav_alt[i], data_store.nav_vn[i],

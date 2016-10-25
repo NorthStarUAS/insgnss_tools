@@ -181,12 +181,12 @@ def load(flight_dir):
                 gps_data.append(gps)
     return imu_data, gps_data, filter_data
 
-def save_filter_result(filename, t_store, data_store):
+def save_filter_result(filename, data_store):
     f = open(filename, 'w')
-    size = len(t_store)
+    size = len(data_store.time)
     for i in range(size):
         line = "%.3f,%.10f,%.10f,%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,0" % \
-               (t_store[i],
+               (data_store.time[i],
                 data_store.nav_lat[i]*180.0/math.pi,
                 data_store.nav_lon[i]*180.0/math.pi,
                 data_store.nav_alt[i], data_store.nav_vn[i],
@@ -197,7 +197,7 @@ def save_filter_result(filename, t_store, data_store):
         f.write(line + '\n')
     f.close()
 
-def rewrite_image_metadata_txt(base_dir, t_store, data_store):
+def rewrite_image_metadata_txt(base_dir, data_store):
     meta_file = os.path.join(base_dir, 'image-metadata.txt')
     new_file = os.path.join(base_dir, 'image-metadata-ekf.txt')
 
@@ -212,7 +212,7 @@ def rewrite_image_metadata_txt(base_dir, t_store, data_store):
         image = tokens[0]
         (lat, lon, alt, psi, the, phi, time_orig) = map(float, tokens[1:])
         time_sec = time_orig / 1000000.0       # convert seconds
-        while t_store[i] < time_sec:
+        while data_store.time[i] < time_sec:
             i += 1
         line = "%s,%.8f,%.8f,%.4f,%.4f,%.4f,%.4f,%.0f" % \
                (image,
@@ -226,7 +226,7 @@ def rewrite_image_metadata_txt(base_dir, t_store, data_store):
         f_out.write(line + '\n');
     f_out.close()
 
-def rewrite_pix4d_csv(base_dir, t_store, data_store):
+def rewrite_pix4d_csv(base_dir, data_store):
     meta_file = os.path.join(base_dir, 'image-metadata.txt')
     pix4d_file = os.path.join(base_dir, 'pix4d-ekf.csv')
 
@@ -241,7 +241,7 @@ def rewrite_pix4d_csv(base_dir, t_store, data_store):
         image = tokens[0]
         (lat, lon, alt, psi, the, phi, time) = map(float, tokens[1:])
         time /= 1000000.0       # convert seconds
-        while t_store[i] < time:
+        while data_store.time[i] < time:
             i += 1
         line = "%s,%.8f,%.8f,%.4f,%.4f,%.4f,%.4f" % \
                (image,
