@@ -110,11 +110,7 @@ class data_store():
         self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
-# Values (Calculated by compiled test navigation filter) need to be
-# stored in python variables and they need to be in the globaldefs.c
-# and cdefs.py to allow for pulling them out and saving. These
-# python variables need to be initialized to work properly in the
-# while loop.
+# Filter results are stored in python structures...
 data_dict1 = data_store()
 data_dict2 = data_store()
 t_store = []
