@@ -78,8 +78,6 @@ AC_CONFIG_FILES([ \
         src/nav_mag/Makefile \
         src/nav_eigen/Makefile \
         src/nav_eigen_mag/Makefile \
-	src/nav_eigen_old/Makefile \
-        src/nav_eigen_mag_old/Makefile \
         src/nav_openloop/Makefile \
         src/MadgwickAHRS/Makefile \
 ])

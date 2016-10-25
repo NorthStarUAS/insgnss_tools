@@ -60,16 +60,14 @@ import nav_orig
 import nav_mag
 import nav_eigen
 import nav_eigen_mag
-import nav_eigen_old
-import nav_eigen_mag_old
 import nav_openloop
 import MadgwickAHRS
 
 #filter2 = nav_eigen_mag_old.filter()
 #filter1 = nav_orig.filter()
-#filter1 = nav_eigen.filter()
-filter1 = nav_eigen_mag.filter()
-filter2 = nav_openloop.filter()
+filter1 = nav_eigen.filter()
+filter2 = nav_eigen_mag.filter()
+#filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
 import pydefs
