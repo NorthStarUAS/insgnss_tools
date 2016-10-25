@@ -424,30 +424,30 @@ if FLAG_PLOT_ATTITUDE:
     phi_nav = data_dict1.phi
     phi_nav_mag = data_dict2.phi
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
-    att_ax[0,0].plot(t_store, r2d(phi_nav), label=filter1.name, c='red')
-    att_ax[0,0].plot(t_store, r2d(phi_nav_mag), label=filter2.name, c='blue')
-    att_ax[0,0].plot(t_flight, r2d(phi_flight), label='On Board', c='green', alpha=.5)
+    att_ax[0,0].plot(t_flight, r2d(phi_flight), label='On Board', c='g', alpha=.5)
+    att_ax[0,0].plot(t_store, r2d(phi_nav), label=filter1.name, c='r', alpha=.8)
+    att_ax[0,0].plot(t_store, r2d(phi_nav_mag), label=filter2.name, c='b', alpha=.8)
     att_ax[0,0].grid()
     
-    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
-    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='red')
-    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
-    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='blue')
+    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
+    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
+    att_ax[0,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
+    att_ax[0,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
     att_ax[0,1].set_ylabel('3*stddev', weight='bold')
 
     # Pitch PLot
     the_nav = data_dict1.the
     the_nav_mag = data_dict2.the
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
-    att_ax[1,0].plot(t_store, r2d(the_nav), label=filter1.name, c='red')
-    att_ax[1,0].plot(t_store, r2d(the_nav_mag), label=filter2.name,c='blue')
-    att_ax[1,0].plot(t_flight, r2d(the_flight), label='On Board', c='green', alpha=.5)
+    att_ax[1,0].plot(t_flight, r2d(the_flight), label='On Board', c='g', alpha=.5)
+    att_ax[1,0].plot(t_store, r2d(the_nav), label=filter1.name, c='r', alpha=.8)
+    att_ax[1,0].plot(t_store, r2d(the_nav_mag), label=filter2.name,c='b', alpha=.8)
     att_ax[1,0].grid()
 
-    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='red')
-    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='red')
-    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
-    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='blue')
+    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='r')
+    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='r')
+    att_ax[1,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='b')
+    att_ax[1,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='b')
     att_ax[1,1].set_ylabel('3*stddev', weight='bold')
 
     # Yaw Plot
@@ -455,32 +455,32 @@ if FLAG_PLOT_ATTITUDE:
     psi_nav_mag = data_dict2.psi
     att_ax[2,0].set_title(plotname, fontsize=10)
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
-    att_ax[2,0].plot(t_store, r2d(psi_nav), label=filter1.name, c='red')
-    att_ax[2,0].plot(t_store, r2d(psi_nav_mag), label=filter2.name,c='blue')
-    att_ax[2,0].plot(t_flight, r2d(psi_flight), label='On Board', c='green', alpha=.5)
+    att_ax[2,0].plot(t_flight, r2d(psi_flight), label='On Board', c='g', alpha=.5)
+    att_ax[2,0].plot(t_store, r2d(psi_nav), label=filter1.name, c='r', alpha=.8)
+    att_ax[2,0].plot(t_store, r2d(psi_nav_mag), label=filter2.name,c='b', alpha=.8)
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
     
-    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
-    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='red')
-    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
-    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='blue')
+    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='r')
+    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='r')
+    att_ax[2,1].plot(t_store,nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='b')
+    att_ax[2,1].plot(t_store,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='b')
     att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,1].set_ylabel('3*stddev', weight='bold')
 
 if FLAG_PLOT_VELOCITIES:
-    fig, [ax1, ax2, ax3] = plt.subplots(3,1)
+    fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
     vn_nav = data_dict1.nav_vn
     vn_nav_mag = data_dict2.nav_vn
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(t_gps, vn_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
-    ax1.plot(t_store, vn_nav, label=filter1.name, c='k', lw=3, alpha=.5)
-    ax1.plot(t_store, vn_nav_mag, label=filter2.name,c='blue', lw=2)
-    ax1.plot(t_flight, vn_flight, label='On Board', c='green', lw=2, alpha=.5)
+    ax1.plot(t_gps, vn_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax1.plot(t_flight, vn_flight, label='On Board', c='k', lw=2, alpha=.5)
+    ax1.plot(t_store, vn_nav, label=filter1.name, c='r', lw=2, alpha=.8)
+    ax1.plot(t_store, vn_nav_mag, label=filter2.name,c='b', lw=2, alpha=.8)
     ax1.grid()
     ax1.legend(loc=0)
 
@@ -488,20 +488,20 @@ if FLAG_PLOT_VELOCITIES:
     ve_nav = data_dict1.nav_ve
     ve_nav_mag = data_dict2.nav_ve
     ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(t_gps, ve_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
-    ax2.plot(t_store, ve_nav, label=filter1.name, c='k', lw=3, alpha=.5)
-    ax2.plot(t_store, ve_nav_mag, label=filter2.name,c='blue', lw=2)
-    ax2.plot(t_flight, ve_flight, label='On Board', c='green', lw=2, alpha=.5)
+    ax2.plot(t_gps, ve_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax2.plot(t_flight, ve_flight, label='On Board', c='k', lw=2, alpha=.5)
+    ax2.plot(t_store, ve_nav, label=filter1.name, c='r', lw=2, alpha=.8)
+    ax2.plot(t_store, ve_nav_mag, label=filter2.name,c='b', lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
     vd_nav = data_dict1.nav_vd
     vd_nav_mag = data_dict2.nav_vd
     ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(t_gps, vd_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
-    ax3.plot(t_store, vd_nav, label=filter1.name, c='k', lw=3, alpha=.5)
-    ax3.plot(t_store, vd_nav_mag, label=filter2.name, c='blue',lw=2)
-    ax3.plot(t_flight, vd_flight, label='On Board', c='green', lw=2, alpha=.5)
+    ax3.plot(t_gps, vd_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax3.plot(t_flight, vd_flight, label='On Board', c='k', lw=2, alpha=.5)
+    ax3.plot(t_store, vd_nav, label=filter1.name, c='r', lw=2, alpha=.8)
+    ax3.plot(t_store, vd_nav_mag, label=filter2.name, c='b',lw=2, alpha=.8)
     ax3.set_xlabel('TIME (SECONDS)', weight='bold')
     ax3.grid()
 
@@ -511,10 +511,10 @@ if FLAG_PLOT_ALTITUDE:
     nav_magalt = data_dict2.nav_alt
     plt.figure()
     plt.title('ALTITUDE')
-    plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='green', lw=3, alpha=.5)
-    plt.plot(t_flight, navalt_flight, label='On Board', c='green', lw=2, alpha=.5)
-    plt.plot(t_store, navalt, label=filter1.name, c='k', lw=3, alpha=.5)
-    plt.plot(t_store, nav_magalt, label=filter2.name,c='blue', lw=2)
+    plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(t_flight, navalt_flight, label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(t_store, navalt, label=filter1.name, c='r', lw=2, alpha=.8)
+    plt.plot(t_store, nav_magalt, label=filter2.name,c='b', lw=2, alpha=.8)
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
@@ -530,10 +530,10 @@ if FLAG_PLOT_GROUNDTRACK:
     plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
     plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
-    plt.plot(lon_gps, lat_gps, '*', label='GPS Sensor', c='red', lw=2, alpha=.5)
-    plt.plot(r2d(navlon_flight), r2d(navlat_flight), label='On Board', c='green', lw=1, alpha=.85)
-    plt.plot(r2d(navlon), r2d(navlat), label=filter1.name, c='k', lw=3, alpha=.5)
-    plt.plot(r2d(nav_maglon), r2d(nav_maglat), label=filter2.name, c='blue', lw=2)
+    plt.plot(lon_gps, lat_gps, '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(r2d(navlon_flight), r2d(navlat_flight), label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(r2d(navlon), r2d(navlat), label=filter1.name, c='r', lw=2, alpha=.8)
+    plt.plot(r2d(nav_maglon), r2d(nav_maglat), label=filter2.name, c='b', lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     
@@ -542,40 +542,41 @@ if FLAG_PLOT_BIASES:
 
     # Gyro Biases
     bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
-    bias_ax[0,0].plot(t_store, r2d(data_dict1.p_bias), label=filter1.name, c='red')
-    bias_ax[0,0].plot(t_store, r2d(data_dict2.p_bias), label=filter2.name, c='blue')
+    bias_ax[0,0].plot(t_store, r2d(data_dict1.p_bias), label=filter1.name, c='r')
+    bias_ax[0,0].plot(t_store, r2d(data_dict2.p_bias), label=filter2.name, c='b')
     bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,0].grid()
     
     bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
-    bias_ax[1,0].plot(t_store, r2d(data_dict1.q_bias), label=filter1.name, c='red')
-    bias_ax[1,0].plot(t_store, r2d(data_dict2.q_bias), label=filter2.name, c='blue')
+    bias_ax[1,0].plot(t_store, r2d(data_dict1.q_bias), label=filter1.name, c='r')
+    bias_ax[1,0].plot(t_store, r2d(data_dict2.q_bias), label=filter2.name, c='b')
     bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,0].grid()
     
     bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
-    bias_ax[2,0].plot(t_store, r2d(data_dict1.r_bias), label=filter1.name, c='red')
-    bias_ax[2,0].plot(t_store, r2d(data_dict2.r_bias), label=filter2.name, c='blue')
+    bias_ax[2,0].plot(t_store, r2d(data_dict1.r_bias), label=filter1.name, c='r')
+    bias_ax[2,0].plot(t_store, r2d(data_dict2.r_bias), label=filter2.name, c='b')
     bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[2,0].grid()
     
     # Accel Biases
     bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
-    bias_ax[0,1].plot(t_store, data_dict1.ax_bias, label=filter1.name, c='red')
-    bias_ax[0,1].plot(t_store, data_dict2.ax_bias, label=filter2.name, c='blue')
+    bias_ax[0,1].plot(t_store, data_dict1.ax_bias, label=filter1.name, c='r')
+    bias_ax[0,1].plot(t_store, data_dict2.ax_bias, label=filter2.name, c='b')
     bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,1].grid()
     
     bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
-    bias_ax[1,1].plot(t_store, data_dict1.ay_bias, label=filter1.name, c='red')
-    bias_ax[1,1].plot(t_store, data_dict2.ay_bias, label=filter2.name, c='blue')
+    bias_ax[1,1].plot(t_store, data_dict1.ay_bias, label=filter1.name, c='r')
+    bias_ax[1,1].plot(t_store, data_dict2.ay_bias, label=filter2.name, c='b')
     bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,1].grid()
     
     bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
-    bias_ax[2,1].plot(t_store, data_dict1.az_bias, label=filter1.name, c='red')
-    bias_ax[2,1].plot(t_store, data_dict2.az_bias, label=filter2.name, c='blue')
+    bias_ax[2,1].plot(t_store, data_dict1.az_bias, label=filter1.name, c='r')
+    bias_ax[2,1].plot(t_store, data_dict2.az_bias, label=filter2.name, c='b')
     bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[2,1].grid()
+    bias_ax[2,1].legend(loc=1)
 
 plt.show()
