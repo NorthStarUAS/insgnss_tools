@@ -110,10 +110,67 @@ class data_store():
         self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
-# Filter results are stored in python structures...
-data_dict1 = data_store()
-data_dict2 = data_store()
-t_store = []
+        
+def run_filter(filter, imu_data, gps_data, filter_data):
+    data_dict = data_store()
+    t_store = []
+    
+    # Using while loop starting at k (set to kstart) and going to end
+    # of .mat file
+    start_time = time.time()
+    gps_index = 0
+    filter_index = 0
+    new_gps = 0
+    filter_init = False
+    for k, imupt in enumerate(imu_data):
+        # walk the gps counter forward as needed
+        if imupt.time >= gps_data[gps_index].time:
+            gps_index += 1
+            new_gps = 1
+        else:
+            new_gps = 0
+        if gps_index >= len(gps_data):
+            # no more gps data, stay on the last record
+            gps_index = len(gps_data)-1
+        gpspt = gps_data[gps_index-1]
+        gpspt.newData = new_gps
+        # walk the filter counter forward as needed
+        if len(filter_data):
+            if imupt.time > filter_data[filter_index].time:
+                filter_index += 1
+            if filter_index >= len(filter_data):
+                # no more filter data, stay on the last record
+                filter_index = len(filter_data)-1
+            filterpt = filter_data[filter_index]
+        else:
+            filterpt = None
+        #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
+
+        # If k is at the initialization time init_nav else get_nav
+        if not filter_init and gps_index > 0:
+            print "init:", imupt.time, gpspt.time
+            navpt = filter.init(imupt, gpspt, filterpt)
+            filter_init = True
+        elif filter_init:
+            navpt = filter.update(imupt, gpspt, filterpt)
+
+        # Store the desired results obtained from the compiled test
+        # navigation filter and the baseline filter
+        if filter_init:
+            data_dict.append(navpt)
+            t_store.append(imupt.time)
+            # print imupt.time, imupt.p - insgps1.estGB[0], imupt.q - insgps1.estGB[1], imupt.r - insgps1.estGB[2], imupt.ax - insgps1.estAB[0], imupt.ay - insgps1.estAB[1], imupt.az - insgps1.estAB[2], imupt.hx, imupt.hy, imupt.hz, imupt.temp
+
+        # Increment time up one step for the next iteration of the
+        # while loop.
+        k += 1
+
+    # proper cleanup
+    filter.close()
+    end_time = time.time()
+    elapsed_sec = end_time - start_time
+    return t_store, data_dict, elapsed_sec
+
 
 imu_data, gps_data, filter_data = flight_data.load(args)
 print "imu records:", len(imu_data)
@@ -218,164 +275,19 @@ for f in filter_data:
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
 
-concurrent_run = False
-if concurrent_run:
-    # Using while loop starting at k (set to kstart) and going to end
-    # of .mat file
-    gps_index = 0
-    new_gps = 0
-    filter_init = False
-    for k, imupt in enumerate(imu_data):
-        # walk the gps counter forward as needed
-        if imupt.time >= gps_data[gps_index].time:
-            gps_index += 1
-            new_gps = 1
-        else:
-            new_gps = 0
-        if gps_index >= len(gps_data):
-            # no more gps data, stay on the last record
-            gps_index = len(gps_data)-1
-        gpspt = gps_data[gps_index-1]
-        gpspt.newData = new_gps
-        #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
+t_store, data_dict1, filter1_sec = run_filter(filter1,
+                                              imu_data, gps_data, filter_data)
+t_store2, data_dict2, filter2_sec = run_filter(filter2,
+                                               imu_data, gps_data, filter_data)
 
-        # If k is at the initialization time init_nav else get_nav
-        if not filter_init and gps_index > 0:
-            print "init:", imupt.time, gpspt.time
-            insgps1 = filter1.init(imupt, gpspt)
-            insgps2 = filter2.init(imupt, gpspt)
-            filter_init = True
-        elif filter_init:
-            insgps1 = filter1.update(imupt, gpspt)
-            insgps2 = filter2.update(imupt, gpspt)
-
-        # Store the desired results obtained from the compiled test
-        # navigation filter and the baseline filter
-        if filter_init:
-            data_dict1 = data_dict1.append(insgps1)
-            data_dict2 = data_dict2.append(insgps2)
-            t_store.append(imupt.time)
-
-        # Increment time up one step for the next iteration of the
-        # while loop.
-        k += 1
-
-    # proper cleanup
-    filter1.close()
-    filter2.close()
+print "filter1 time = %.4f" % filter1_sec
+print "filter2 time = %.4f" % filter2_sec
+diff_sec = filter1_sec - filter2_sec
+perc = diff_sec / filter1_sec
+if perc >= 0.0:
+    print "filter2 is %.1f%% faster" % (perc * 100.0)
 else:
-    # Using while loop starting at k (set to kstart) and going to end
-    # of .mat file
-    start_time = time.time()
-    gps_index = 0
-    filter_index = 0
-    new_gps = 0
-    filter_init = False
-    for k, imupt in enumerate(imu_data):
-        # walk the gps counter forward as needed
-        if imupt.time >= gps_data[gps_index].time:
-            gps_index += 1
-            new_gps = 1
-        else:
-            new_gps = 0
-        if gps_index >= len(gps_data):
-            # no more gps data, stay on the last record
-            gps_index = len(gps_data)-1
-        gpspt = gps_data[gps_index-1]
-        gpspt.newData = new_gps
-        # walk the filter counter forward as needed
-        if len(filter_data):
-            if imupt.time > filter_data[filter_index].time:
-                filter_index += 1
-            if filter_index >= len(filter_data):
-                # no more filter data, stay on the last record
-                filter_index = len(filter_data)-1
-            filterpt = filter_data[filter_index]
-        else:
-            filterpt = None
-        #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
-
-        # If k is at the initialization time init_nav else get_nav
-        if not filter_init and gps_index > 0:
-            print "init:", imupt.time, gpspt.time
-            insgps1 = filter1.init(imupt, gpspt, filterpt)
-            filter_init = True
-        elif filter_init:
-            insgps1 = filter1.update(imupt, gpspt, filterpt)
-
-        # Store the desired results obtained from the compiled test
-        # navigation filter and the baseline filter
-        if filter_init:
-            data_dict1.append(insgps1)
-            t_store.append(imupt.time)
-            # print imupt.time, imupt.p - insgps1.estGB[0], imupt.q - insgps1.estGB[1], imupt.r - insgps1.estGB[2], imupt.ax - insgps1.estAB[0], imupt.ay - insgps1.estAB[1], imupt.az - insgps1.estAB[2], imupt.hx, imupt.hy, imupt.hz, imupt.temp
-
-        # Increment time up one step for the next iteration of the
-        # while loop.
-        k += 1
-
-    # proper cleanup
-    filter1.close()
-    end_time = time.time()
-    filter1_sec = end_time - start_time
-
-    start_time = time.time()
-    gps_index = 0
-    filter_index = 0
-    new_gps = 0
-    filter_init = False
-    for k, imupt in enumerate(imu_data):
-        # walk the gps counter forward as needed
-        if imupt.time >= gps_data[gps_index].time:
-            gps_index += 1
-            new_gps = 1
-        else:
-            new_gps = 0
-        if gps_index >= len(gps_data):
-            # no more gps data, stay on the last record
-            gps_index = len(gps_data)-1
-        gpspt = gps_data[gps_index-1]
-        gpspt.newData = new_gps
-        if len(filter_data):
-            # walk the filter counter forward as needed
-            if imupt.time > filter_data[filter_index].time:
-                filter_index += 1
-            if filter_index >= len(filter_data):
-                # no more filter data, stay on the last record
-                filter_index = len(filter_data)-1
-            filterpt = filter_data[filter_index]
-        else:
-            filterpt = None
-        #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
-
-        # If k is at the initialization time init_nav else get_nav
-        if not filter_init and gps_index > 0:
-            insgps2 = filter2.init(imupt, gpspt, filterpt)
-            filter_init = True
-        elif filter_init:
-            insgps2 = filter2.update(imupt, gpspt, filterpt)
-
-        # Store the desired results obtained from the compiled test
-        # navigation filter and the baseline filter
-        if filter_init:
-            data_dict2.append(insgps2)
-
-        # Increment time up one step for the next iteration of the
-        # while loop.
-        k += 1
-
-    # proper cleanup
-    filter2.close()
-    end_time = time.time()
-    filter2_sec = end_time - start_time
-    print "filter1 time = %.4f" % filter1_sec
-    print "filter2 time = %.4f" % filter2_sec
-    diff_sec = filter1_sec - filter2_sec
-    perc = diff_sec / filter1_sec
-    if perc >= 0.0:
-        print "filter2 is %.1f%% faster" % (perc * 100.0)
-    else:
-        print "filter2 is %.1f%% slower" % (-perc * 100.0)
+    print "filter2 is %.1f%% slower" % (-perc * 100.0)
 
 if args.flight or args.aura_flight:
     import data_aura
