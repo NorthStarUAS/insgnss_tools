@@ -35,18 +35,16 @@ class OpenLoop {
 
 public:
 
-    OpenLoop() {}
+    OpenLoop();
     ~OpenLoop() {}
-
-    // set/get error characteristics of navigation sensors
-    //void set_config(NAVconfig config);
-    //NAVconfig get_config();
-    //void default_config();
 
     // main interface
     void init(double lat_deg, double lon_deg, double alt_m,
 	      double vn_ms, double ve_ms, double vd_ms,
 	      double phi_deg, double the_deg, double psi_deg);
+    void set_pos(double lat_deg, double lon_deg, double alt_m);
+    void set_vel(double vn_ms, double ve_ms, double vd_ms);
+    void set_att(double phi_deg, double the_deg, double psi_deg);
     void set_gyro_calib(double gxb, double gyb, double gzb,
 			double gxs, double gys, double gzs);
     void set_accel_calib(double axb, double ayb, double azb,
@@ -72,20 +70,5 @@ private:
     NAVdata nav;
 };
 
-
-// The following constructs a python interface for this class.
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(libnav_openloop)
-{
-    class_<OpenLoop>("OpenLoop")
-        .def("init", &OpenLoop::init)
-        .def("set_gyro_calib", &OpenLoop::set_gyro_calib)
-        .def("set_accel_calib", &OpenLoop::set_accel_calib)
-        .def("update", &OpenLoop::update)
-    ;
-}
 
 #endif // NAV_OPENLOOP_HXX
