@@ -129,16 +129,20 @@ def run_filter(filter, imu_data, gps_data, filter_data):
     filter_init = False
     for k, imupt in enumerate(imu_data):
         # walk the gps counter forward as needed
-        if imupt.time >= gps_data[gps_index].time:
-            gps_index += 1
-            new_gps = 1
+        if gps_index < len(gps_data) - 1:
+            # walk the gps counter forward as needed
+            if gps_data[gps_index+1].time <= imupt.time:
+                gps_index += 1
+                gpspt = gps_data[gps_index]
+                gpspt.newData = 1
+            else:
+                gpspt = gps_data[gps_index]
+                gpspt.newData = 0
         else:
-            new_gps = 0
-        if gps_index >= len(gps_data):
             # no more gps data, stay on the last record
-            gps_index = len(gps_data)-1
-        gpspt = gps_data[gps_index-1]
-        gpspt.newData = new_gps
+            gpspt = gps_data[gps_index]
+            gpspt.newData = 0
+
         # walk the filter counter forward as needed
         if len(filter_data):
             if imupt.time > filter_data[filter_index].time:
