@@ -30,6 +30,9 @@ parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 args = parser.parse_args()
 
+start_time = 300
+end_time = 450
+
 # # # # # START INPUTS # # # # #
 
 #MAT_FILENAME = 'flightdata_595.4961sec.mat'
@@ -113,13 +116,14 @@ class data_store():
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
         
-def run_filter(filter, imu_data, gps_data, filter_data, call_init=True):
+def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
+               start_time=None, end_time=None):
     data_dict = data_store()
     errors = []
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
-    start_time = time.time()
+    run_start = time.time()
     gps_index = 0
     filter_index = 0
     new_gps = 0
@@ -127,21 +131,36 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True):
         filter_init = False
     else:
         filter_init = True
-    for k, imupt in enumerate(imu_data):
+    if start_time != None:
+        for k, imu_pt in enumerate(imu_data):
+            if imu_pt.time >= start_time:
+                k_start = k
+                break
+    else:
+        k_start = 0
+    if end_time != None:
+        for k, imu_pt in enumerate(imu_data):
+            if imu_pt.time >= end_time:
+                k_end = k
+                break
+    else:
+        k_end = len(imu_data)
+    #print k_start, k_end
+    for k in range(k_start, k_end):
+        imupt = imu_data[k]
         if gps_index < len(gps_data) - 1:
             # walk the gps counter forward as needed
-            if gps_data[gps_index+1].time <= imupt.time:
+            newData = 0
+            while gps_data[gps_index+1].time <= imupt.time:
                 gps_index += 1
-                gpspt = gps_data[gps_index]
-                gpspt.newData = 1
-            else:
-                gpspt = gps_data[gps_index]
-                gpspt.newData = 0
+                newData = 1
+            gpspt = gps_data[gps_index]
+            gpspt.newData = newData
         else:
             # no more gps data, stay on the last record
             gpspt = gps_data[gps_index]
             gpspt.newData = 0
-            
+        #print gpspt.time
         # walk the filter counter forward as needed
         if len(filter_data):
             if imupt.time > filter_data[filter_index].time:
@@ -181,8 +200,8 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True):
 
     # proper cleanup
     filter.close()
-    end_time = time.time()
-    elapsed_sec = end_time - start_time
+    run_end = time.time()
+    elapsed_sec = run_end - run_start
     # print 'iteration:', elapsed_sec
     return errors, data_dict, elapsed_sec
 
@@ -294,17 +313,26 @@ def printParams(xk):
     r2d = 180.0 / math.pi
     print 'initial vel (m/s): %.2f %.2f %.2f' % (xk[0], xk[1], xk[2])
     print 'initial att (deg): %.1f %.1f %.1f' % (xk[3]*r2d, xk[4]*r2d, xk[5]*r2d)
-    print 'gyro bias (deg), scale: %.2f %.2f %.2f, %.3f %.3f %.3f' % (xk[6]*r2d, xk[7]*r2d, xk[8]*r2d, xk[9], xk[10], xk[11])
-    print 'accel bias (m/s), scale: %.2f %.2f %.2f, %.3f %.3f %.3f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
-    
+    print 'gyro bias (deg): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[6]*r2d, xk[7]*r2d, xk[8]*r2d, xk[9], xk[10], xk[11])
+    print 'accel bias (m/s): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
+
+
+# find start index to extract sane initial conditions
+for k, nav_pt in enumerate(filter_data):
+    if nav_pt.time >= start_time:
+        k_start = k
+        break
+start_lat = filter_data[k_start].lat
+start_lon = filter_data[k_start].lon
+start_alt = filter_data[k_start].alt
+
+
 # run the filter to optimize, then for each gps_record find the result
 # position and compute an error distance.  Return the list of error
 # values.
 def errorFunc(tpl, imu_data, gps_data, filter_data):
-    # start with fixed position
-    filter_opt.set_pos(filter_data[0].lat, filter_data[1].lon,
-                       filter_data[0].alt)
-
+    filter_opt.set_pos(start_lat, start_lon, start_alt)
+    
     filter_opt.set_vel(tpl[0], tpl[1], tpl[2])
     
     filter_opt.set_att(tpl[3], tpl[4], tpl[5])
@@ -314,22 +342,35 @@ def errorFunc(tpl, imu_data, gps_data, filter_data):
                                tpl[15], tpl[16], tpl[17]) # scale
 
     errors, data_dict, filter_sec = \
-        run_filter(filter_opt, imu_data, gps_data, filter_data, call_init=False)
-    sum = 0.0
-    for e in errors:
-        sum += e*e
-    return math.sqrt(sum)
+        run_filter(filter_opt, imu_data, gps_data, filter_data, call_init=False,
+                   start_time=start_time, end_time=end_time)
+    if len(errors) > 0:
+        sum = 0.0
+        for e in errors:
+            sum += e*e
+        return math.sqrt(sum) / len(errors)
+    else:
+        return 0.0
 
-initial = (filter_data[0].vn, filter_data[0].ve, filter_data[0].vd,    # vel
-           filter_data[0].phi, filter_data[0].the, filter_data[0].psi, # att
+# find start pos with fixed position
+for k, nav_pt in enumerate(filter_data):
+    if nav_pt.time >= start_time:
+        k_start = k
+        break
+filter_opt.set_pos(filter_data[k_start].lat, filter_data[k_start].lon,
+                   filter_data[k_start].alt)
+initial = (filter_data[k_start].vn, filter_data[k_start].ve,
+           filter_data[k_start].vd,    # vel
+           filter_data[k_start].phi, filter_data[k_start].the,
+           filter_data[k_start].psi, # att
            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,                               # gyro
            0.0, 0.0, 0.0, 0.0, 0.0, 0.0)                               # accel
-bounds = ( (filter_data[0].vn-2.0, filter_data[0].vn+2.0),
-           (filter_data[0].ve-2.0, filter_data[0].ve+2.0),
-           (filter_data[0].vd-2.0, filter_data[0].vd+2.0),
-           (filter_data[0].phi-0.2, filter_data[0].phi+0.2),
-           (filter_data[0].the-0.2, filter_data[0].the+0.2),
-           (filter_data[0].psi-math.pi, filter_data[0].psi+math.pi),
+bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
+           (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
+           (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
+           (filter_data[k_start].phi-0.2, filter_data[k_start].phi+0.2),
+           (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
+           (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
            (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
            (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro scale
            (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0), # accel bias
