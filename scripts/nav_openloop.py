@@ -30,6 +30,9 @@ class filter():
     def set_gyro_calib(self, gxb, gyb, gzb, gxs, gys, gzs):
         self.ekf.set_gyro_calib(gxb, gyb, gzb, gxs, gys, gzs)
         
+    # def set_G(self, x11, x12, x13, x21, x22, x23, x31, x32, x33):
+    #     self.ekf.set_G(x11, x12, x13, x21, x22, x23, x31, x32, x33)
+        
     def set_accel_calib(self, axb, ayb, azb, axs, ays, azs):
         self.ekf.set_accel_calib(axb, ayb, azb, axs, ays, azs)
         
