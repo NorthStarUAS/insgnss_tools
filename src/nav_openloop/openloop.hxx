@@ -47,6 +47,9 @@ public:
     void set_att(double phi_deg, double the_deg, double psi_deg);
     void set_gyro_calib(double gxb, double gyb, double gzb,
 			double gxs, double gys, double gzs);
+    void set_G(double x11, double x12, double x13,
+	       double x21, double x22, double x23,
+	       double x31, double x32, double x33);
     void set_accel_calib(double axb, double ayb, double azb,
 			 double axs, double ays, double azs);
     NAVdata update(IMUdata imu /*, GPSdata gps*/);
@@ -60,7 +63,8 @@ private:
     double gxs, gys, gzs;	      // gyro scale factors
     double axb, ayb, azb;	      // accel biases
     double axs, ays, azs;	      // accel scale factor
-
+    Matrix3d G;			      // g force gyro bias matrix
+    
     Vector3d pos_ecef, pos_lla;
     Quaterniond ned2body, body2ned;
     Quaterniond ecef2ned, ned2ecef;

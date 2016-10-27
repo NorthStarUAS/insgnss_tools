@@ -28,6 +28,7 @@ OpenLoop::OpenLoop() {
     tprev = 0.0;
     set_gyro_calib(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     set_accel_calib(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    G.setZero();
 }
 
 void OpenLoop::init(double lat_rad, double lon_rad, double alt_m,
@@ -80,6 +81,13 @@ void OpenLoop::set_gyro_calib(double gxb, double gyb, double gzb,
     this->gzs = gzs;
 }
 
+void OpenLoop::set_G(double x11, double x12, double x13,
+		     double x21, double x22, double x23,
+		     double x31, double x32, double x33)
+{
+    G << x11, x12, x13, x21, x22, x23, x31, x32, x33;
+}
+
 void OpenLoop::set_accel_calib(double axb, double ayb, double azb,
 			       double axs, double ays, double azs)
 {
@@ -93,17 +101,6 @@ void OpenLoop::set_accel_calib(double axb, double ayb, double azb,
 
 
 NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
-
-#if 0
-    // test section
-    Quaterniond ned2body = eul2quat(0, 0, 0.77);
-    Quaterniond body2ned = ned2body.inverse();
-    printf("ned2body %.3f %.3f %.3f %.3f\n", ned2body.w(), ned2body.x(), ned2body.y(), ned2body.z());
-    Vector3d accel_body(2.0, 0.0, -9.81);
-    Vector3d accel_ned1 = quat_transform(body2ned, accel_body);
-    printf("accel_ned: %.3f %.3f %.3f\n", accel_ned1(0), accel_ned1(1), accel_ned1(2));
-#endif
-
     // compute time-elapsed 'dt'
     double tnow = imu.time;
     double dt = tnow - tprev;
@@ -114,10 +111,14 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     //printf("dt = %.4f tnow = %.4f  tprev = %.4f\n", dt, tnow, tprev);
     tprev = tnow;
 
+    // modeling the force/accel effects on the gyros seems
+    // unproductive, so zero out Fb() for now.
+    Vector3d Fb(0, 0, 0); /* Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az); */
+    
     // update attitude from gyro
-    double p = (imu.p - gxb) * (1 + gxs);
-    double q = (imu.q - gyb) * (1 + gys);
-    double r = (imu.r - gzb) * (1 + gzs);
+    double p = (1 + gxs) * imu.p - gxb /*- Fb(0)*/;
+    double q = (1 + gys) * imu.q - gyb /*- Fb(1)*/;
+    double r = (1 + gzs) * imu.r - gzb /*- Fb(2)*/;
     Quaterniond rot_body = eul2quat(p*dt, q*dt, r*dt);
     ned2body *= rot_body;
     ned2body.normalize();
@@ -129,9 +130,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.psi = att_vec(2);
 
     // rotate accelerometer vector into ned frame
-    double ax = (imu.ax - axb) * (1 + axs);
-    double ay = (imu.ay - ayb) * (1 + ays);
-    double az = (imu.az - azb) * (1 + azs);
+    double ax = (1 + axs) * imu.ax - axb;
+    double ay = (1 + ays) * imu.ay - ayb;
+    double az = (1 + azs) * imu.az - azb;
     Vector3d accel_ned = quat_transform(body2ned, Vector3d(ax, ay, az));
 #if 0
     if ( sqrt(ax*ax + ay*ay) > 1.0 && fabs(ay) < 0.1 ) {
@@ -188,6 +189,7 @@ BOOST_PYTHON_MODULE(libnav_openloop)
         .def("set_vel", &OpenLoop::set_vel)
         .def("set_att", &OpenLoop::set_att)
         .def("set_gyro_calib", &OpenLoop::set_gyro_calib)
+        .def("set_G", &OpenLoop::set_G)
         .def("set_accel_calib", &OpenLoop::set_accel_calib)
         .def("update", &OpenLoop::update)
     ;
