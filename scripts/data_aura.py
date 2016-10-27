@@ -143,7 +143,7 @@ def load(flight_dir):
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')
-    size = len(t_store)
+    size = len(data_store.time)
     for i in range(size):
         line = "%.3f,%.10f,%.10f,%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,0" % \
                (data_store.time[i],
