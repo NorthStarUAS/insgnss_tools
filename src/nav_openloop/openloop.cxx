@@ -7,11 +7,21 @@ using std::endl;
 #include "glocal.hxx"
 #include "openloop.hxx"
 
-static Vector3d quat_transform(Quaterniond q, Vector3d v) {
+static Vector3d quat_transform1(Quaterniond q, Vector3d v) {
     Quaterniond tmp1(0.0, v(0), v(1), v(2));
     //Quaterniond tmp2 = body2ned * tmp1 * ned2body;
     Quaterniond tmp2 = q * tmp1 * q.inverse();
     return tmp2.vec();
+}
+static Vector3d quat_transform(Quaterniond q, Vector3d v) {
+    //Quaterniond tmp1(0.0, v(0), v(1), v(2));
+    //Quaterniond tmp2 = q * tmp1 * q.inverse();
+    //return tmp2.vec();
+    
+    double r = 2/q.dot(q);
+    Vector3d qimag = q.vec();
+    double qr = q.w();
+    return (r*qr*qr - 1)*v + (r*qimag.dot(v))*qimag - (r*qr)*qimag.cross(v);
 }
 
 OpenLoop::OpenLoop() {
@@ -39,6 +49,9 @@ void OpenLoop::set_pos(double lat_rad, double lon_rad, double alt_m) {
     ecef2ned = lla2quat(lon_rad, lat_rad);
     Vector3d pos_lla1 = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla1(0)/D2R, pos_lla1(1)/D2R, pos_lla1(2));
+    
+    Vector3d t1 = quat_transform(ecef2ned, pos_ecef);
+    // printf("up? %.2f %.2f %.2f\n", t1(0), t1(1), t1(2));
 }
 
 void OpenLoop::set_vel(double vn_ms, double ve_ms, double vd_ms) {
@@ -80,6 +93,17 @@ void OpenLoop::set_accel_calib(double axb, double ayb, double azb,
 
 
 NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
+
+#if 0
+    // test section
+    Quaterniond ned2body = eul2quat(0, 0, 0.77);
+    Quaterniond body2ned = ned2body.inverse();
+    printf("ned2body %.3f %.3f %.3f %.3f\n", ned2body.w(), ned2body.x(), ned2body.y(), ned2body.z());
+    Vector3d accel_body(2.0, 0.0, -9.81);
+    Vector3d accel_ned1 = quat_transform(body2ned, accel_body);
+    printf("accel_ned: %.3f %.3f %.3f\n", accel_ned1(0), accel_ned1(1), accel_ned1(2));
+#endif
+
     // compute time-elapsed 'dt'
     double tnow = imu.time;
     double dt = tnow - tprev;
@@ -98,6 +122,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     ned2body *= rot_body;
     ned2body.normalize();
     body2ned = ned2body.inverse();
+    body2ned.normalize();
     Vector3d att_vec = quat2eul(ned2body);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
@@ -107,7 +132,16 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     double ax = (imu.ax - axb) * (1 + axs);
     double ay = (imu.ay - ayb) * (1 + ays);
     double az = (imu.az - azb) * (1 + azs);
-    Vector3d accel_ned = quat_transform(ned2body, Vector3d(ax, ay, az));
+    Vector3d accel_ned = quat_transform(body2ned, Vector3d(ax, ay, az));
+#if 0
+    if ( sqrt(ax*ax + ay*ay) > 1.0 && fabs(ay) < 0.1 ) {
+	printf("heading: %.2f\n", nav.psi*180.0/3.1415);
+	double mag1 = sqrt(ax*ax + ay*ay + az*az);
+	double mag2 = sqrt(accel_ned(0)* accel_ned(0) + accel_ned(1)* accel_ned(1) + accel_ned(2)* accel_ned(2));
+	printf("accel_body: %.2f %.2f %.2f (%.2f)\n", ax, ay, az, mag1);
+	printf("accel_ned: %.2f %.2f %.2f (%.2f)\n", accel_ned(0), accel_ned(1), accel_ned(2), mag2);
+    }
+#endif
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
@@ -120,7 +154,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.ve = vel_ned(1);
     nav.vd = vel_ned(2);
     // transform to ecef frame
-    vel_ecef = quat_transform(ecef2ned, vel_ned);
+    vel_ecef = quat_transform(ecef2ned.inverse(), vel_ned);
     //printf("vel_ecef: %.2f %.2f %.2f\n", vel_ecef(0), vel_ecef(1), vel_ecef(2));
     
     // update the position
