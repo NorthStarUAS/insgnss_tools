@@ -30,14 +30,11 @@ parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 args = parser.parse_args()
 
-start_time = 300
-end_time = 450
+start_time = 400
+end_time = 500
 
 # # # # # START INPUTS # # # # #
 
-#MAT_FILENAME = 'flightdata_595.4961sec.mat'
-T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
-                        # To always keep GPS, set to: -1
 FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
@@ -313,9 +310,8 @@ def printParams(xk):
     r2d = 180.0 / math.pi
     print 'initial vel (m/s): %.2f %.2f %.2f' % (xk[0], xk[1], xk[2])
     print 'initial att (deg): %.1f %.1f %.1f' % (xk[3]*r2d, xk[4]*r2d, xk[5]*r2d)
-    print 'gyro bias (deg): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[6]*r2d, xk[7]*r2d, xk[8]*r2d, xk[9], xk[10], xk[11])
+    print 'gyro bias (deg/s): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[6]*r2d, xk[7]*r2d, xk[8]*r2d, xk[9], xk[10], xk[11])
     print 'accel bias (m/s): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
-
 
 # find start index to extract sane initial conditions
 for k, nav_pt in enumerate(filter_data):
@@ -517,19 +513,19 @@ if FLAG_PLOT_BIASES:
     bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
     # Gyro Biases
-    bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
+    bias_ax[0,0].set_ylabel('p Bias (deg/s)', weight='bold')
     bias_ax[0,0].plot(t_store, r2d(data_dict1.p_bias), label=filter1.name, c='r')
     bias_ax[0,0].plot(t_store, r2d(data_dict2.p_bias), label=filter2.name, c='b')
     bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,0].grid()
     
-    bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
+    bias_ax[1,0].set_ylabel('q Bias (deg/s)', weight='bold')
     bias_ax[1,0].plot(t_store, r2d(data_dict1.q_bias), label=filter1.name, c='r')
     bias_ax[1,0].plot(t_store, r2d(data_dict2.q_bias), label=filter2.name, c='b')
     bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,0].grid()
     
-    bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
+    bias_ax[2,0].set_ylabel('r Bias (deg/s)', weight='bold')
     bias_ax[2,0].plot(t_store, r2d(data_dict1.r_bias), label=filter1.name, c='r')
     bias_ax[2,0].plot(t_store, r2d(data_dict2.r_bias), label=filter2.name, c='b')
     bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
