@@ -5,6 +5,8 @@ import numpy as np
 import os
 import math
 
+import imucal
+
 import sys
 sys.path.append('../build/src/nav_core/.libs/')
 import libnav_core
@@ -18,7 +20,8 @@ def load(flight_dir):
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
-    imucal_file = flight_dir + "/imucal.xml"
+    imucal_json = flight_dir + "/imucal.json"
+    imucal_xml = flight_dir + "/imucal.xml"
     gps_file = flight_dir + "/gps-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
@@ -138,6 +141,15 @@ def load(flight_dir):
             filter.the = float(the)*d2r
             filter.psi = float(psi)*d2r
             filter_data.append(filter)
+
+    print 'back correcting imu data (to get original raw values)'
+    cal = imucal.Calibration()
+    if os.path.exists(imucal_json):
+        imucal_file = imucal_json
+    elif os.path.exists(imucal_xml):
+        imucal_file = imucal_xml
+    cal.load(imucal_file)
+    imu_data = cal.back_correct(imu_data)
 
     return imu_data, gps_data, filter_data
 
