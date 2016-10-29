@@ -260,5 +260,6 @@ class Calibration():
             newimu.hx = hf[0]
             newimu.hy = hf[1]
             newimu.hz = hf[2]
+            #print 'orig:', newimu.az, 'cooked:', imu.az
             imu_corrected.append(newimu)
         return imu_corrected

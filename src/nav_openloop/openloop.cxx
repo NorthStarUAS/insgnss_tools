@@ -113,12 +113,13 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 
     // modeling the force/accel effects on the gyros seems
     // unproductive, so zero out Fb() for now.
-    Vector3d Fb(0, 0, 0); /* Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az); */
+    // Vector3d Fb(0, 0, 0);
+    Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az);
     
     // update attitude from gyro
-    double p = (1 + gxs) * imu.p - gxb /*- Fb(0)*/;
-    double q = (1 + gys) * imu.q - gyb /*- Fb(1)*/;
-    double r = (1 + gzs) * imu.r - gzb /*- Fb(2)*/;
+    double p = (1 + gxs) * imu.p - gxb - Fb(0);
+    double q = (1 + gys) * imu.q - gyb - Fb(1);
+    double r = (1 + gzs) * imu.r - gzb - Fb(2);
     Quaterniond rot_body = eul2quat(p*dt, q*dt, r*dt);
     ned2body *= rot_body;
     ned2body.normalize();
@@ -134,29 +135,17 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     double ay = (1 + ays) * imu.ay - ayb;
     double az = (1 + azs) * imu.az - azb;
     Vector3d accel_ned = quat_transform(body2ned, Vector3d(ax, ay, az));
-#if 0
-    if ( sqrt(ax*ax + ay*ay) > 1.0 && fabs(ay) < 0.1 ) {
-	printf("heading: %.2f\n", nav.psi*180.0/3.1415);
-	double mag1 = sqrt(ax*ax + ay*ay + az*az);
-	double mag2 = sqrt(accel_ned(0)* accel_ned(0) + accel_ned(1)* accel_ned(1) + accel_ned(2)* accel_ned(2));
-	printf("accel_body: %.2f %.2f %.2f (%.2f)\n", ax, ay, az, mag1);
-	printf("accel_ned: %.2f %.2f %.2f (%.2f)\n", accel_ned(0), accel_ned(1), accel_ned(2), mag2);
-    }
-#endif
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
-    //printf("accel_ned: %.2f %.2f %.2f\n", accel_ned(0), accel_ned(1), accel_ned(2));
 
     // update the velocity vector
     vel_ned += accel_ned*dt;
-    //printf("vel_ned: %.2f %.2f %.2f\n", vel_ned(0), vel_ned(1), vel_ned(2));
     nav.vn = vel_ned(0);
     nav.ve = vel_ned(1);
     nav.vd = vel_ned(2);
     // transform to ecef frame
     vel_ecef = quat_transform(ecef2ned.inverse(), vel_ned);
-    //printf("vel_ecef: %.2f %.2f %.2f\n", vel_ecef(0), vel_ecef(1), vel_ecef(2));
     
     // update the position
     pos_ecef += vel_ecef*dt;
@@ -166,7 +155,15 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.lat = pos_lla(0);
     nav.lon = pos_lla(1);
     nav.alt = pos_lla(2);
-    
+
+    // populate the bias fields
+    nav.gbx = gxb / (1 + gxs);
+    nav.gby = gyb / (1 + gys);
+    nav.gbz = gzb / (1 + gzs);
+    nav.abx = axb / (1 + axs);
+    nav.aby = ayb / (1 + ays);
+    nav.abz = azb / (1 + azs);
+	
     // update ecef2ned transform with just updated position
     ecef2ned = lla2quat(lon_rad, lat_rad);
     

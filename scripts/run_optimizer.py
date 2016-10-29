@@ -30,8 +30,8 @@ parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 args = parser.parse_args()
 
-start_time = 400
-end_time = 500
+start_time = 310
+end_time = 410
 
 # # # # # START INPUTS # # # # #
 
@@ -113,8 +113,8 @@ class data_store():
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
         
-def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
-               start_time=None, end_time=None):
+def run_filter(filter, imu_data, gps_data, filter_data,
+               call_init=True, start_time=None, end_time=None):
     data_dict = data_store()
     errors = []
     
@@ -157,7 +157,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
             # no more gps data, stay on the last record
             gpspt = gps_data[gps_index]
             gpspt.newData = 0
-        #print gpspt.time
+        #print gpspt.time`
         # walk the filter counter forward as needed
         if len(filter_data):
             if imupt.time > filter_data[filter_index].time:
@@ -184,11 +184,13 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
             data_dict.append(navpt)
 
         if gpspt.newData:
+            #print gpspt.time
             #print 'gps:', gpspt.lat, gpspt.lon, gpspt.alt
             #print 'nav:', navpt.lat, navpt.lon, navpt.alt
             p1 = navpy.lla2ecef(gpspt.lat, gpspt.lon, gpspt.alt, latlon_unit='deg')
             p2 = navpy.lla2ecef(navpt.lat, navpt.lon, navpt.alt, latlon_unit='rad')
             e = np.linalg.norm(p1 - p2)
+            #print p1, p2, e
             errors.append(e)
             
         # Increment time up one step for the next iteration of the
@@ -218,53 +220,6 @@ elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
 elif args.umn_flight:
     plotname = os.path.basename(args.umn_flight)
-
-if False:
-    # quick hack estimate gyro biases
-    p_sum = 0.0
-    q_sum = 0.0
-    r_sum = 0.0
-    for imu in imu_data:
-        p_sum += imu.p
-        q_sum += imu.q
-        r_sum += imu.r
-    p_bias = p_sum / len(imu_data)
-    q_bias = q_sum / len(imu_data)
-    r_bias = r_sum / len(imu_data)
-    print "bias:", p_bias, q_bias, r_bias
-    for imu in imu_data:
-        imu.p -= p_bias
-        imu.q -= q_bias
-        imu.r -= r_bias
-
-if False:
-    # quick rough hack at a magnetometer calibration
-    x_min = 1000000.0
-    y_min = 1000000.0
-    z_min = 1000000.0
-    x_max = -1000000.0
-    y_max = -1000000.0
-    z_max = -1000000.0
-    for imu in imu_data:
-        if imu.hx < x_min: x_min = imu.hx
-        if imu.hy < y_min: y_min = imu.hy
-        if imu.hz < z_min: z_min = imu.hz
-        if imu.hx > x_max: x_max = imu.hx
-        if imu.hy > y_max: y_max = imu.hy
-        if imu.hz > z_max: z_max = imu.hz
-    print "x:", x_min, x_max
-    print "y:", y_min, y_max
-    print "z:", z_min, z_max
-    dx = x_max - x_min
-    dy = y_max - y_min
-    dz = z_max - z_min
-    cx = (x_min + x_max) * 0.5
-    cy = (y_min + y_max) * 0.5
-    cz = (z_min + z_max) * 0.5
-    for imu in imu_data:
-        imu.hx = ((imu.hx - x_min) / dx) * 2.0 - 1.0
-        imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
-        imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
 # rearrange flight data for plotting
 t_gps = []
@@ -308,43 +263,46 @@ for f in filter_data:
 # display current parameter vector
 def printParams(xk):
     r2d = 180.0 / math.pi
-    print 'initial vel (m/s): %.2f %.2f %.2f' % (xk[0], xk[1], xk[2])
-    print 'initial att (deg): %.1f %.1f %.1f' % (xk[3]*r2d, xk[4]*r2d, xk[5]*r2d)
-    print 'gyro bias (deg/s): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[6]*r2d, xk[7]*r2d, xk[8]*r2d, xk[9], xk[10], xk[11])
-    print 'accel bias (m/s): %.2f %.2f %.2f, scale: %.3f %.3f %.3f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
-
+    print 'initial vel (m/s): %.4f, %.4f, %.4f' % (xk[0], xk[1], xk[2])
+    print 'initial att (rad): %.3f, %.3f, %.3f' % (xk[3], xk[4], xk[5])
+    print 'gyro bias (rad/s): %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8])
+    print 'accel bias (m/s^2): %.4f, %.4f, %.4f' % (xk[9], xk[10], xk[11])
+    
 # find start index to extract sane initial conditions
-for k, nav_pt in enumerate(filter_data):
-    if nav_pt.time >= start_time:
+for k, gpspt in enumerate(gps_data):
+    if gpspt.time >= start_time:
         k_start = k
         break
-start_lat = filter_data[k_start].lat
-start_lon = filter_data[k_start].lon
-start_alt = filter_data[k_start].alt
+d2r = math.pi/ 180.0
+start_lat = gps_data[k_start].lat*d2r
+start_lon = gps_data[k_start].lon*d2r
+start_alt = gps_data[k_start].alt
 
 
 # run the filter to optimize, then for each gps_record find the result
 # position and compute an error distance.  Return the list of error
 # values.
-def errorFunc(tpl, imu_data, gps_data, filter_data):
+def errorFunc(xk, imu_data, gps_data, filter_data):
     filter_opt.set_pos(start_lat, start_lon, start_alt)
     
-    filter_opt.set_vel(tpl[0], tpl[1], tpl[2])
+    filter_opt.set_vel(xk[0], xk[1], xk[2])
     
-    filter_opt.set_att(tpl[3], tpl[4], tpl[5])
-    filter_opt.set_gyro_calib(tpl[6], tpl[7], tpl[8],     # bias
-                              tpl[9], tpl[10], tpl[11])   # scale
-    filter_opt.set_accel_calib(tpl[12], tpl[13], tpl[14], # bias
-                               tpl[15], tpl[16], tpl[17]) # scale
-
+    filter_opt.set_att(xk[3], xk[4], xk[5])
+    filter_opt.set_gyro_calib(xk[6], xk[7], xk[8],     # bias
+                              0.0, 0.0, 0.0)   # scale
+    filter_opt.set_accel_calib(xk[9], xk[10], xk[11], # bias
+                               0.0, 0.0, 0.0) # scale
+    filter_opt.set_G(0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0)
     errors, data_dict, filter_sec = \
-        run_filter(filter_opt, imu_data, gps_data, filter_data, call_init=False,
-                   start_time=start_time, end_time=end_time)
+        run_filter(filter_opt, imu_data, gps_data, filter_data,
+                   call_init=False, start_time=start_time, end_time=end_time)
     if len(errors) > 0:
         sum = 0.0
         for e in errors:
             sum += e*e
-        return math.sqrt(sum) / len(errors)
+        return math.sqrt(sum / len(errors))
     else:
         return 0.0
 
@@ -359,8 +317,8 @@ initial = (filter_data[k_start].vn, filter_data[k_start].ve,
            filter_data[k_start].vd,    # vel
            filter_data[k_start].phi, filter_data[k_start].the,
            filter_data[k_start].psi, # att
-           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,                               # gyro
-           0.0, 0.0, 0.0, 0.0, 0.0, 0.0)                               # accel
+           0.0, 0.0, 0.0,                               # gyro
+           0.0, 0.0, 0.0)                               # accel
 bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
            (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
            (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
@@ -368,15 +326,13 @@ bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
            (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
            (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
            (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
-           (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro scale
-           (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0), # accel bias
-           (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2)) # accel scale
-
+           (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0)) # accel bias
 res = minimize(errorFunc, initial[:], bounds=bounds,
                args=(imu_data,gps_data,filter_data),
                options={'disp': True},
                callback=printParams)
 print res
+printParams(res['x'])
 
 # quit for now ... we should rerun with the optimized parameters to
 # get the results for plotting ...

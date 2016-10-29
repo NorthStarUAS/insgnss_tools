@@ -12,6 +12,7 @@ Many updates: Curtis L. Olson
 """
 
 import argparse
+import math
 import numpy as np
 import time
 import os
@@ -303,23 +304,29 @@ for f in filter_data:
 
 data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
 
-start_time = 300
-end_time = 450
+start_time = 310
+end_time = 410
 # find start index to extract sane initial conditions
-for k, nav_pt in enumerate(filter_data):
-    if nav_pt.time >= start_time:
+for k, gpspt in enumerate(gps_data):
+    if gpspt.time >= start_time:
         k_start = k
         break
-start_lat = filter_data[k_start].lat
-start_lon = filter_data[k_start].lon
-start_alt = filter_data[k_start].alt
+d2r = math.pi/ 180.0
+start_lat = gps_data[k_start].lat*d2r
+start_lon = gps_data[k_start].lon*d2r
+start_alt = gps_data[k_start].alt
+
 filter2.set_pos(start_lat, start_lon, start_alt)
-filter2.set_vel(-1.18110069e+00,  -1.22774549e+01,  -2.98667985e-01)
-filter2.set_att(5.08811474e-02,   1.16374433e-01,  -1.84256377e+00)
-filter2.set_gyro_calib(-2.27407911e-02,  -3.04000665e-03,   4.07740347e-03,
-                       1.10919922e-02,  -8.38035352e-02,   2.42487415e-02)
-filter2.set_accel_calib(-6.01374418e-02,  -8.24880020e-02,  -5.80635698e-02,
-                        6.46853343e-03,  -1.97798463e-02,  -7.37488806e-03)
+filter2.set_vel(-1.52172793e+01,   1.86723722e+00,  -1.89935674e+00)
+filter2.set_att(-2.46311887e-02,   2.11119149e-01,  -3.10259598e+00)
+filter2.set_gyro_calib(-2.00142118e-02,  -7.52878049e-04,  -7.66567571e-04,
+                       0.0, 0.0, 0.0)
+filter2.set_accel_calib(-7.82708666e-02,  -4.79264542e-01,  -5.13373218e-02,
+                        0.0, 0.0, 0.0)
+filter2.set_G(0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0)
+
 data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data, call_init=False, start_time=start_time, end_time=end_time)
 
 print "filter1 time = %.4f" % filter1_sec
