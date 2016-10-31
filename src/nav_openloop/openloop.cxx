@@ -25,7 +25,10 @@ static Vector3d quat_transform(Quaterniond q, Vector3d v) {
 }
 
 OpenLoop::OpenLoop() {
+    tstart = -1.0;
     tprev = 0.0;
+    gxs = gys = gzs = axs = ays = azs = 0.0;
+    gxd = gyd = gzd = axd = ayd = azd = 0.0;
     set_gyro_calib(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     set_accel_calib(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     G.setZero();
@@ -71,14 +74,31 @@ void OpenLoop::set_att(double phi_rad, double the_rad, double psi_rad) {
 }
 
 void OpenLoop::set_gyro_calib(double gxb, double gyb, double gzb,
-			      double gxs, double gys, double gzs)
+			      double gxd, double gyd, double gzd)
 {
     this->gxb = gxb;
     this->gyb = gyb;
     this->gzb = gzb;
-    this->gxs = gxs;
-    this->gys = gys;
-    this->gzs = gzs;
+    // this->gxs = gxs;
+    // this->gys = gys;
+    // this->gzs = gzs;
+    // this->gxd = gxd;
+    // this->gyd = gyd;
+    // this->gzd = gzd;
+}
+
+void OpenLoop::set_accel_calib(double axb, double ayb, double azb,
+			       double axd, double ayd, double azd)
+{
+    this->axb = axb;
+    this->ayb = ayb;
+    this->azb = azb;
+    // this->axs = axs;
+    // this->ays = ays;
+    // this->azs = azs;
+    // this->axd = axd;
+    // this->ayd = ayd;
+    // this->azd = azd;
 }
 
 void OpenLoop::set_G(double x11, double x12, double x13,
@@ -88,21 +108,13 @@ void OpenLoop::set_G(double x11, double x12, double x13,
     G << x11, x12, x13, x21, x22, x23, x31, x32, x33;
 }
 
-void OpenLoop::set_accel_calib(double axb, double ayb, double azb,
-			       double axs, double ays, double azs)
-{
-    this->axb = axb;
-    this->ayb = ayb;
-    this->azb = azb;
-    this->axs = axs;
-    this->ays = ays;
-    this->azs = azs;
-}
-
 
 NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // compute time-elapsed 'dt'
     double tnow = imu.time;
+    if ( tstart < 0.0 ) {
+	tstart = tnow;
+    }
     double dt = tnow - tprev;
     if ( fabs(dt) > 0.1 ) {
 	// sanity check
@@ -110,6 +122,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     }
     //printf("dt = %.4f tnow = %.4f  tprev = %.4f\n", dt, tnow, tprev);
     tprev = tnow;
+    double elapsed = tnow - tstart;
 
     // modeling the force/accel effects on the gyros seems
     // unproductive, so zero out Fb() for now.
@@ -117,9 +130,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az);
     
     // update attitude from gyro
-    double p = (1 + gxs) * imu.p - gxb - Fb(0);
-    double q = (1 + gys) * imu.q - gyb - Fb(1);
-    double r = (1 + gzs) * imu.r - gzb - Fb(2);
+    double p = (1 + gxs) * imu.p - (gxb + elapsed*gxd) - Fb(0);
+    double q = (1 + gys) * imu.q - (gyb + elapsed*gyd) - Fb(1);
+    double r = (1 + gzs) * imu.r - (gzb + elapsed*gzd) - Fb(2);
     Quaterniond rot_body = eul2quat(p*dt, q*dt, r*dt);
     ned2body *= rot_body;
     ned2body.normalize();
@@ -131,9 +144,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.psi = att_vec(2);
 
     // rotate accelerometer vector into ned frame
-    double ax = (1 + axs) * imu.ax - axb;
-    double ay = (1 + ays) * imu.ay - ayb;
-    double az = (1 + azs) * imu.az - azb;
+    double ax = (1 + axs) * imu.ax - (axb + elapsed*axd);
+    double ay = (1 + ays) * imu.ay - (ayb + elapsed*ayd);
+    double az = (1 + azs) * imu.az - (azb + elapsed*azd);
     Vector3d accel_ned = quat_transform(body2ned, Vector3d(ax, ay, az));
 
     // add the local gravity vector.
@@ -157,12 +170,12 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.alt = pos_lla(2);
 
     // populate the bias fields
-    nav.gbx = gxb / (1 + gxs);
-    nav.gby = gyb / (1 + gys);
-    nav.gbz = gzb / (1 + gzs);
-    nav.abx = axb / (1 + axs);
-    nav.aby = ayb / (1 + ays);
-    nav.abz = azb / (1 + azs);
+    nav.gbx = gxb + elapsed*gxd;
+    nav.gby = gyb + elapsed*gyd;
+    nav.gbz = gzb + elapsed*gzd;
+    nav.abx = axb + elapsed*axd;
+    nav.aby = ayb + elapsed*ayd;
+    nav.abz = azb + elapsed*azd;
 	
     // update ecef2ned transform with just updated position
     ecef2ned = lla2quat(lon_rad, lat_rad);

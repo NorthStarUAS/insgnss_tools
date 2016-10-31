@@ -16,7 +16,6 @@ import math
 import numpy as np
 import time
 import os
-from scipy.optimize import leastsq
 from scipy.optimize import minimize
 
 import navpy
@@ -29,9 +28,6 @@ parser.add_argument('--aura-flight', help='load specified aura flight log')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 args = parser.parse_args()
-
-start_time = 310
-end_time = 410
 
 # # # # # START INPUTS # # # # #
 
@@ -66,12 +62,12 @@ class data_store():
         self.psi = []
         self.the = []
         self.phi = []
-        self.nav_lat = []
-        self.nav_lon = []
-        self.nav_alt = []
-        self.nav_vn = []
-        self.nav_ve = []
-        self.nav_vd = []
+        self.lat = []
+        self.lon = []
+        self.alt = []
+        self.vn = []
+        self.ve = []
+        self.vd = []
 
         self.ax_bias = []
         self.ay_bias = [] 
@@ -87,17 +83,18 @@ class data_store():
         self.Pgb = []
 
     def append(self, insgps):
+        r2d = 180.0 / math.pi
         self.time.append(insgps.time)
         
         self.psi.append(insgps.psi)
         self.the.append(insgps.the)
         self.phi.append(insgps.phi)
-        self.nav_lat.append(insgps.lat)
-        self.nav_lon.append(insgps.lon)
-        self.nav_alt.append(insgps.alt)
-        self.nav_vn.append(insgps.vn)
-        self.nav_ve.append(insgps.ve)
-        self.nav_vd.append(insgps.vd)
+        self.lat.append(insgps.lat*r2d)
+        self.lon.append(insgps.lon*r2d)
+        self.alt.append(insgps.alt)
+        self.vn.append(insgps.vn)
+        self.ve.append(insgps.ve)
+        self.vd.append(insgps.vd)
 
         self.ax_bias.append(insgps.abx)
         self.ay_bias.append(insgps.aby)
@@ -112,9 +109,29 @@ class data_store():
         self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
+    def append_from_filter(self, filterpt):
+        r2d = 180.0 / math.pi
+        self.time.append(filterpt.time)
+        self.psi.append(filterpt.psi)
+        self.the.append(filterpt.the)
+        self.phi.append(filterpt.phi)
+        self.lat.append(filterpt.lat*r2d)
+        self.lon.append(filterpt.lon*r2d)
+        self.alt.append(filterpt.alt)
+        self.vn.append(filterpt.vn)
+        self.ve.append(filterpt.ve)
+        self.vd.append(filterpt.vd)
         
-def run_filter(filter, imu_data, gps_data, filter_data,
-               call_init=True, start_time=None, end_time=None):
+    def append_from_gps(self, gpspt):
+        self.time.append(gpspt.time)
+        self.lat.append(gpspt.lat)
+        self.lon.append(gpspt.lon)
+        self.alt.append(gpspt.alt)
+        self.vn.append(gpspt.vn)
+        self.ve.append(gpspt.ve)
+        self.vd.append(gpspt.vd)
+        
+def run_filter(filter, imu_data, gps_data, filter_data, config=None):
     data_dict = data_store()
     errors = []
     
@@ -124,20 +141,20 @@ def run_filter(filter, imu_data, gps_data, filter_data,
     gps_index = 0
     filter_index = 0
     new_gps = 0
-    if call_init:
+    if config and config['call_init']:
         filter_init = False
     else:
         filter_init = True
-    if start_time != None:
+    if config and 'start_time' in config:
         for k, imu_pt in enumerate(imu_data):
-            if imu_pt.time >= start_time:
+            if imu_pt.time >= config['start_time']:
                 k_start = k
                 break
     else:
         k_start = 0
-    if end_time != None:
+    if config and 'end_time' in config:
         for k, imu_pt in enumerate(imu_data):
-            if imu_pt.time >= end_time:
+            if imu_pt.time >= config['end_time']:
                 k_end = k
                 break
     else:
@@ -184,14 +201,31 @@ def run_filter(filter, imu_data, gps_data, filter_data,
             data_dict.append(navpt)
 
         if gpspt.newData:
+            # compute error metric with each new gps report
+            p1 = navpy.lla2ecef(gpspt.lat, gpspt.lon, gpspt.alt,
+                                latlon_unit='deg')
+            p2 = navpy.lla2ecef(navpt.lat, navpt.lon, navpt.alt,
+                                latlon_unit='rad')
+            pe = np.linalg.norm(p1 - p2)
             #print gpspt.time
             #print 'gps:', gpspt.lat, gpspt.lon, gpspt.alt
             #print 'nav:', navpt.lat, navpt.lon, navpt.alt
-            p1 = navpy.lla2ecef(gpspt.lat, gpspt.lon, gpspt.alt, latlon_unit='deg')
-            p2 = navpy.lla2ecef(navpt.lat, navpt.lon, navpt.alt, latlon_unit='rad')
-            e = np.linalg.norm(p1 - p2)
-            #print p1, p2, e
-            errors.append(e)
+            #print p1, p2, pe
+
+            # it is always tempting to fit to the velocity vector
+            # (especially when seeing some of the weird velocity fits
+            # that the optimizer spews out), but it never helps
+            # ... seems to make the solution convergence much more
+            # shallow, ultimately never seems to produce a better fit
+            # than using position directly.  Weird fits happen when
+            # the inertial errors just don't fit the gps errors.
+            # Fitting to velocity doesn't seem to improve that
+            # problem.
+            v1 = np.array( [gpspt.vn, gpspt.ve, gpspt.vd] )
+            v2 = np.array( [navpt.vn, navpt.ve, navpt.vd] )
+            ve = np.linalg.norm(v1 - v2)
+            
+            errors.append(pe)   # 3d position error
             
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -203,6 +237,150 @@ def run_filter(filter, imu_data, gps_data, filter_data,
     elapsed_sec = run_end - run_start
     # print 'iteration:', elapsed_sec
     return errors, data_dict, elapsed_sec
+
+att_fig, att_ax = plt.subplots(3,1, sharex=True)
+att_ax[0].grid()
+att_ax[1].grid()
+att_ax[2].grid()
+att_ax[2].set_xlabel('Time (sec)', weight='bold')
+
+vel_fig, vel_ax = plt.subplots(3,1, sharex=True)
+vel_ax[0].grid()
+vel_ax[1].grid()
+vel_ax[2].grid()
+vel_ax[2].set_xlabel('Time (sec)', weight='bold')
+
+pos_fig, pos_ax = plt.subplots(3,1, sharex=True)
+pos_ax[0].grid()
+pos_ax[1].grid()
+pos_ax[2].grid()
+pos_ax[2].set_xlabel('Time (sec)', weight='bold')
+
+bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
+
+def update_plot(data_dict, label='Unknown', ls='-', marker=' ', c='g', alpha=0.5):
+    plt.ion()
+    r2d = np.rad2deg
+    nsig = 3
+    
+    t_flight = data_dict.time
+    
+    # Roll Plot
+    if len(data_dict.phi):
+        phi = data_dict.phi
+        att_ax[0].set_ylabel('Roll (deg)', weight='bold')
+        att_ax[0].plot(t_flight, r2d(phi), label=label, ls=ls, c=c, alpha=alpha)
+
+    # Pitch Plot
+    if len(data_dict.the):
+        the = data_dict.the
+        att_ax[1].set_ylabel('Pitch (deg)', weight='bold')
+        att_ax[1].plot(t_flight, r2d(the), label=label, ls=ls, c=c, alpha=alpha)
+
+    # Yaw Plot
+    if len(data_dict.psi):
+        psi = data_dict.psi
+        att_ax[2].set_title(plotname, fontsize=10)
+        att_ax[2].set_ylabel('Yaw (deg)', weight='bold')
+        att_ax[2].plot(t_flight, r2d(psi), label=label, ls=ls, c=c, alpha=alpha)
+
+    att_ax[2].legend(loc=1)
+    att_fig.canvas.draw()
+
+    # vn Plot
+    print label, len(data_dict.vn)
+    vn = data_dict.vn
+    vel_ax[0].set_title(plotname, fontsize=10)
+    vel_ax[0].set_ylabel('vn (mps)', weight='bold')
+    vel_ax[0].plot(t_flight, vn, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+    vel_ax[0].legend(loc=0)
+
+    # ve Plot
+    ve = data_dict.ve
+    vel_ax[1].set_ylabel('ve (mps)', weight='bold')
+    vel_ax[1].plot(t_flight, ve, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+
+    # vd Plot
+    vd = data_dict.vd
+    vel_ax[2].set_ylabel('vd (mps)', weight='bold')
+    vel_ax[2].plot(t_flight, vd, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+
+    vel_fig.canvas.draw()
+    
+    # lat plot
+    lat = data_dict.lat
+    pos_ax[0].set_title('Position')
+    pos_ax[0].set_ylabel('Lat (deg)', weight='bold')
+    pos_ax[0].plot(t_flight, lat, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+    pos_ax[0].legend(loc=0)
+
+    # lon plot
+    lon = data_dict.lon
+    pos_ax[1].set_ylabel('Lon (deg)', weight='bold')
+    pos_ax[1].plot(t_flight, lon, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+
+    # alt plot
+    alt = data_dict.alt
+    pos_ax[2].set_ylabel('Alt (m)', weight='bold')
+    pos_ax[2].plot(t_flight, alt, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+
+    pos_fig.canvas.draw()
+
+    # Top View (Longitude vs. Latitude) Plot
+    # if FLAG_PLOT_GROUNDTRACK:
+    #     navlat = data_dict1.lat
+    #     navlon = data_dict1.lon
+    #     nav_maglat = data_dict2.lat
+    #     nav_maglon = data_dict2.lon
+    #     plt.figure()
+    #     plt.title(plotname, fontsize=10)
+    #     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
+    #     plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
+    #     plt.plot(lon_gps, lat_gps, '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    #     plt.plot(r2d(navlon_flight), r2d(navlat_flight), label='On Board', c='k', lw=2, alpha=.5)
+    #     plt.plot(r2d(navlon), r2d(navlat), label=filter1.name, c='r', lw=2, alpha=.8)
+    #     plt.plot(r2d(nav_maglon), r2d(nav_maglat), label=filter2.name, c='b', lw=2, alpha=.8)
+    #     plt.grid()
+    #     plt.legend(loc=0)
+
+    if len(data_dict.p_bias) and len(data_dict.q_bias) and len(data_dict.r_bias):
+        # Gyro Biases
+        bias_ax[0,0].set_ylabel('p Bias (deg/s)', weight='bold')
+        bias_ax[0,0].plot(t_flight, r2d(data_dict.p_bias), label=label, c=c)
+        bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[0,0].grid()
+
+        bias_ax[1,0].set_ylabel('q Bias (deg/s)', weight='bold')
+        bias_ax[1,0].plot(t_flight, r2d(data_dict.q_bias), label=label, c=c)
+        bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[1,0].grid()
+
+        bias_ax[2,0].set_ylabel('r Bias (deg/s)', weight='bold')
+        bias_ax[2,0].plot(t_flight, r2d(data_dict.r_bias), label=label, c=c)
+        bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[2,0].grid()
+
+    if len(data_dict.ax_bias) and len(data_dict.ay_bias) and len(data_dict.az_bias):
+        # Accel Biases
+        bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
+        bias_ax[0,1].plot(t_flight, data_dict.ax_bias, label=label, c=c)
+        bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[0,1].grid()
+
+        bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
+        bias_ax[1,1].plot(t_flight, data_dict.ay_bias, label=label, c=c)
+        bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[1,1].grid()
+
+        bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
+        bias_ax[2,1].plot(t_flight, data_dict.az_bias, label=label, c=c)
+        bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
+        bias_ax[2,1].grid()
+        bias_ax[2,1].legend(loc=1)
+    
+    bias_fig.canvas.draw()
+
+    plt.pause(0.25)
 
 imu_data, gps_data, filter_data = flight_data.load(args)
 print "imu records:", len(imu_data)
@@ -220,7 +398,19 @@ elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
 elif args.umn_flight:
     plotname = os.path.basename(args.umn_flight)
-        
+
+# plot onboard filter
+data_ob = data_store()
+for filterpt in filter_data:
+    data_ob.append_from_filter(filterpt)
+update_plot(data_ob, 'On Board', c='g', alpha=0.5)
+
+# plot gps
+data_gps = data_store()
+for gpspt in gps_data:
+    data_gps.append_from_gps(gpspt)
+update_plot(data_gps, 'GPS', marker='*', c='g', alpha=0.5)
+
 # rearrange flight data for plotting
 t_gps = []
 lat_gps = []
@@ -260,44 +450,51 @@ for f in filter_data:
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
 
+# find the range of gps time stamps (starting with the first point
+# with some significant velocity
+k_start = 0
+for k, gpspt in enumerate(gps_data):
+    gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve + gpspt.vd*gpspt.vd)
+    if gps_vel > 2.0:
+        k_start = k
+        break
+gps_begin = gps_data[k_start].time
+gps_end = gps_data[len(gps_data)-1].time
+print "gps time span:", gps_begin, gps_end
+
 # display current parameter vector
 def printParams(xk):
     r2d = 180.0 / math.pi
     print 'initial vel (m/s): %.4f, %.4f, %.4f' % (xk[0], xk[1], xk[2])
     print 'initial att (rad): %.3f, %.3f, %.3f' % (xk[3], xk[4], xk[5])
-    print 'gyro bias (rad/s): %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8])
-    print 'accel bias (m/s^2): %.4f, %.4f, %.4f' % (xk[9], xk[10], xk[11])
+    print 'gyro bias (rad/s): %.4f, %.4f, %.4f, delta: %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8], xk[9], xk[10], xk[11])
+    print 'accel bias (m/s^2): %.4f, %.4f, %.4f, delta: %.4f, %.4f, %.4f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
     
-# find start index to extract sane initial conditions
-for k, gpspt in enumerate(gps_data):
-    if gpspt.time >= start_time:
-        k_start = k
-        break
-d2r = math.pi/ 180.0
-start_lat = gps_data[k_start].lat*d2r
-start_lon = gps_data[k_start].lon*d2r
-start_alt = gps_data[k_start].alt
-
-
 # run the filter to optimize, then for each gps_record find the result
 # position and compute an error distance.  Return the list of error
 # values.
-def errorFunc(xk, imu_data, gps_data, filter_data):
-    filter_opt.set_pos(start_lat, start_lon, start_alt)
+data_opt = None
+def errorFunc(xk, config, imu_data, gps_data, filter_data):
+    global data_opt
     
+    filter_opt.set_pos(config['start_lat'],
+                       config['start_lon'],
+                       config['start_alt'])
+
     filter_opt.set_vel(xk[0], xk[1], xk[2])
     
     filter_opt.set_att(xk[3], xk[4], xk[5])
     filter_opt.set_gyro_calib(xk[6], xk[7], xk[8],     # bias
-                              0.0, 0.0, 0.0)   # scale
-    filter_opt.set_accel_calib(xk[9], xk[10], xk[11], # bias
-                               0.0, 0.0, 0.0) # scale
+                              xk[9], xk[10], xk[11])   # delta
+    filter_opt.set_accel_calib(xk[12], xk[13], xk[14], # bias
+                               xk[15], xk[16], xk[17]) # delta
     filter_opt.set_G(0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0)
     errors, data_dict, filter_sec = \
         run_filter(filter_opt, imu_data, gps_data, filter_data,
-                   call_init=False, start_time=start_time, end_time=end_time)
+                   config)
+    data_opt = data_dict
     if len(errors) > 0:
         sum = 0.0
         for e in errors:
@@ -306,33 +503,81 @@ def errorFunc(xk, imu_data, gps_data, filter_data):
     else:
         return 0.0
 
-# find start pos with fixed position
-for k, nav_pt in enumerate(filter_data):
-    if nav_pt.time >= start_time:
-        k_start = k
-        break
-filter_opt.set_pos(filter_data[k_start].lat, filter_data[k_start].lon,
-                   filter_data[k_start].alt)
-initial = (filter_data[k_start].vn, filter_data[k_start].ve,
-           filter_data[k_start].vd,    # vel
-           filter_data[k_start].phi, filter_data[k_start].the,
-           filter_data[k_start].psi, # att
-           0.0, 0.0, 0.0,                               # gyro
-           0.0, 0.0, 0.0)                               # accel
-bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
-           (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
-           (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
-           (filter_data[k_start].phi-0.2, filter_data[k_start].phi+0.2),
-           (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
-           (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
-           (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
-           (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0)) # accel bias
-res = minimize(errorFunc, initial[:], bounds=bounds,
-               args=(imu_data,gps_data,filter_data),
-               options={'disp': True},
-               callback=printParams)
-print res
-printParams(res['x'])
+segment_length = 100
+start_time = gps_begin
+biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+while start_time < gps_end:
+    # define time span for this iteration
+    end_time = start_time + segment_length
+    if end_time > gps_end:
+        end_time = gps_end
+        
+    # find starting position
+    for k, gpspt in enumerate(gps_data):
+        if gpspt.time >= start_time:
+            k_start = k
+            break
+    d2r = math.pi/ 180.0
+    config = {}
+    config['start_lat'] = gps_data[k_start].lat*d2r
+    config['start_lon'] = gps_data[k_start].lon*d2r
+    config['start_alt'] = gps_data[k_start].alt
+
+    config['start_time'] = start_time
+    config['end_time'] = end_time
+    config['call_init'] = False
+    
+    # use filter solution to estimate intial attitude and velocity
+    for k, filterpt in enumerate(filter_data):
+        if filterpt.time >= start_time:
+            k_start = k
+            break
+    initial = (filter_data[k_start].vn, filter_data[k_start].ve,
+               filter_data[k_start].vd,    # vel
+               filter_data[k_start].phi, filter_data[k_start].the,
+               filter_data[k_start].psi, # att
+               biases[0], biases[1], biases[2], # gyro
+               0.0, 0.0, 0.0,                   # gyro delta
+               biases[3], biases[4], biases[5], # accel
+               0.0, 0.0, 0.0)                   # accel delta
+    bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
+               (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
+               (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
+               (filter_data[k_start].phi-0.2, filter_data[k_start].phi+0.2),
+               (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
+               (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
+               (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
+               (-0.01, 0.01), (-0.01, 0.01), (-0.01, 0.01), # gyro delta
+               (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0), # accel bias
+               (-0.01, 0.01), (-0.01, 0.01), (-0.01, 0.01)) # accel delta
+
+    from scipy.optimize import minimize
+    res = minimize(errorFunc, initial[:], bounds=bounds,
+                   args=(config,imu_data,gps_data,filter_data),
+                   options={'disp': True},
+                   callback=printParams)
+    print res
+    print "time span:", start_time, end_time
+    printParams(res['x'])
+
+    if res['success'] or res['nit'] > 5:
+        # we either succeeded or tried real hard
+        label = "%.0f-%.0f" % (start_time, end_time)
+        update_plot(data_opt, label=label, c='b')
+    
+        # advance to next segment
+        start_time += (segment_length * 0.9)
+        # don't carry biases forward to next segment for now ...
+        biases = res['x'][6:12]     # or do carry them forward ...
+    else:
+        # let's rerun the segment and see if we have better luck on
+        # the next try ...
+        pass
+
+print "Finished fitting all segments, you may now explore the plots."
+plt.ioff()    
+plt.show()
 
 # quit for now ... we should rerun with the optimized parameters to
 # get the results for plotting ...
@@ -402,8 +647,8 @@ if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
-    vn_nav = data_dict1.nav_vn
-    vn_nav_mag = data_dict2.nav_vn
+    vn_nav = data_dict1.vn
+    vn_nav_mag = data_dict2.vn
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
     ax1.plot(t_gps, vn_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -414,8 +659,8 @@ if FLAG_PLOT_VELOCITIES:
     ax1.legend(loc=0)
 
     # ve Plot
-    ve_nav = data_dict1.nav_ve
-    ve_nav_mag = data_dict2.nav_ve
+    ve_nav = data_dict1.ve
+    ve_nav_mag = data_dict2.ve
     ax2.set_ylabel('ve (mps)', weight='bold')
     ax2.plot(t_gps, ve_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax2.plot(t_flight, ve_flight, label='On Board', c='k', lw=2, alpha=.5)
@@ -424,8 +669,8 @@ if FLAG_PLOT_VELOCITIES:
     ax2.grid()
 
     # vd Plot
-    vd_nav = data_dict1.nav_vd
-    vd_nav_mag = data_dict2.nav_vd
+    vd_nav = data_dict1.vd
+    vd_nav_mag = data_dict2.vd
     ax3.set_ylabel('vd (mps)', weight='bold')
     ax3.plot(t_gps, vd_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax3.plot(t_flight, vd_flight, label='On Board', c='k', lw=2, alpha=.5)
@@ -436,8 +681,8 @@ if FLAG_PLOT_VELOCITIES:
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-    navalt = data_dict1.nav_alt
-    nav_magalt = data_dict2.nav_alt
+    navalt = data_dict1.alt
+    nav_magalt = data_dict2.alt
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -450,10 +695,10 @@ if FLAG_PLOT_ALTITUDE:
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-    navlat = data_dict1.nav_lat
-    navlon = data_dict1.nav_lon
-    nav_maglat = data_dict2.nav_lat
-    nav_maglon = data_dict2.nav_lon
+    navlat = data_dict1.lat
+    navlon = data_dict1.lon
+    nav_maglat = data_dict2.lat
+    nav_maglon = data_dict2.lon
     plt.figure()
     plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')
