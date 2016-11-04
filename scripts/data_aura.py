@@ -13,7 +13,7 @@ import libnav_core
 
 d2r = math.pi / 180.0
 
-def load(flight_dir):
+def load(flight_dir, recalibrate=None):
     imu_data = []
     gps_data = []
     filter_data = []
@@ -150,6 +150,12 @@ def load(flight_dir):
         imucal_file = imucal_xml
     cal.load(imucal_file)
     imu_data = cal.back_correct(imu_data)
+
+    if recalibrate:
+        print 'recalibrating imu data using alternate calibration file:', recalibrate
+        rcal = imucal.Calibration()
+        rcal.load(recalibrate)
+        imu_data = rcal.correct(imu_data)
 
     return imu_data, gps_data, filter_data
 

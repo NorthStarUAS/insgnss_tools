@@ -47,6 +47,7 @@ def load(mat_filename):
 
     # Fill in time data
     t = flight_data.time
+    print 't:', t
 
     # Magnetometer data - not used hence don't trust
     hm  = np.vstack((flight_data.hx, -flight_data.hy, -flight_data.hz)).T
@@ -136,47 +137,47 @@ def load(mat_filename):
         hf = s
 
         imu_pt = libnav_core.IMUdata()
-        imu_pt.time = t[k]
-        imu_pt.p = p
-        imu_pt.q = q
-        imu_pt.r = r
-        imu_pt.ax = ax
-        imu_pt.ay = ay
-        imu_pt.az = az
+        imu_pt.time = float(t[k])
+        imu_pt.p = float(p)
+        imu_pt.q = float(q)
+        imu_pt.r = float(r)
+        imu_pt.ax = float(ax)
+        imu_pt.ay = float(ay)
+        imu_pt.az = float(az)
         #imu_pt.hx = hx
         #imu_pt.hy = hy
         #imu_pt.hz = hz
-        imu_pt.hx = hf[0]
-        imu_pt.hy = hf[1]
-        imu_pt.hz = hf[2]
+        imu_pt.hx = float(hf[0])
+        imu_pt.hy = float(hf[1])
+        imu_pt.hz = float(hf[2])
         imu_pt.temp = 15.0
         imu_data.append(imu_pt)
 
         if abs(alt[k] - last_gps_alt) > 0.0001:
             last_gps_alt = alt[k]
             gps_pt = libnav_core.GPSdata()
-            gps_pt.time = t[k]
+            gps_pt.time = float(t[k])
             #gps_pt.status = int(status)
-            gps_pt.unix_sec = t[k]
-            gps_pt.lat = lat[k]
-            gps_pt.lon = lon[k]
-            gps_pt.alt = alt[k]
-            gps_pt.vn = vn[k]
-            gps_pt.ve = ve[k]
-            gps_pt.vd = vd[k]
+            gps_pt.unix_sec = float(t[k])
+            gps_pt.lat = float(lat[k])
+            gps_pt.lon = float(lon[k])
+            gps_pt.alt = float(alt[k])
+            gps_pt.vn = float(vn[k])
+            gps_pt.ve = float(ve[k])
+            gps_pt.vd = float(vd[k])
             gps_data.append(gps_pt)
 
         fd_pt = libnav_core.Filterdata()
-        fd_pt.time = t[k]
-        fd_pt.lat = flight_data.navlat[k]
-        fd_pt.lon = flight_data.navlon[k]
-        fd_pt.alt = flight_data.navalt[k]
-        fd_pt.vn = flight_data.navvn[k]
-        fd_pt.ve = flight_data.navve[k]
-        fd_pt.vd = flight_data.navvd[k]
-        fd_pt.phi = flight_data.phi[k]
-        fd_pt.the = flight_data.theta[k]
-        fd_pt.psi = flight_data.psi[k]
+        fd_pt.time = float(t[k])
+        fd_pt.lat = float(flight_data.navlat[k])
+        fd_pt.lon = float(flight_data.navlon[k])
+        fd_pt.alt = float(flight_data.navalt[k])
+        fd_pt.vn = float(flight_data.navvn[k])
+        fd_pt.ve = float(flight_data.navve[k])
+        fd_pt.vd = float(flight_data.navvd[k])
+        fd_pt.phi = float(flight_data.phi[k])
+        fd_pt.the = float(flight_data.theta[k])
+        fd_pt.psi = float(flight_data.psi[k])
         filter_data.append(fd_pt)
 
         k += 1

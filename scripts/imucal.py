@@ -193,28 +193,28 @@ class Calibration():
         ay_scale_func = np.poly1d(self.ay_scale)
         az_scale_func = np.poly1d(self.az_scale)
         for imu in imu_data:
-            time = imu[0]
-            temp = imu[10]
-            status = imu[11]
+            newimu = libnav_core.IMUdata()
+            newimu.time = imu.time
+            temp = imu.temp
+            newimu.temp = temp
+            #newimu.status = imu.status
             if temp < self.min_temp:
                 temp = self.min_temp
             if temp > self.max_temp:
                 temp = self.max_temp    
-            p = (imu[1] - p_bias_func(temp)) * p_scale_func(temp)
-            q = (imu[2] - q_bias_func(temp)) * q_scale_func(temp)
-            r = (imu[3] - r_bias_func(temp)) * r_scale_func(temp)
-            ax = (imu[4] - ax_bias_func(temp)) * ax_scale_func(temp)
-            ay = (imu[5] - ay_bias_func(temp)) * ay_scale_func(temp)
-            az = (imu[6] - az_bias_func(temp)) * az_scale_func(temp)
-            hs = [imu[7], imu[8], imu[9], 1.0]
+            newimu.p = (imu.p - p_bias_func(temp)) * p_scale_func(temp)
+            newimu.q = (imu.q - q_bias_func(temp)) * q_scale_func(temp)
+            newimu.r = (imu.r - r_bias_func(temp)) * r_scale_func(temp)
+            newimu.ax = (imu.ax - ax_bias_func(temp)) * ax_scale_func(temp)
+            newimu.ay = (imu.ay - ay_bias_func(temp)) * ay_scale_func(temp)
+            newimu.az = (imu.az - az_bias_func(temp)) * az_scale_func(temp)
+            hs = [imu.hx, imu.hy, imu.hz, 1.0]
             hf = np.dot(self.mag_affine, hs)
             norm = np.linalg.norm(hf[:3])
             #hf[:3] /= norm
-            hx = hf[0]
-            hy = hf[1]
-            hz = hf[2]
-            # imu[10] is measured temp, not clipped temp
-            newimu = [ time, p, q, r, ax, ay, az, hx, hy, hz, imu[10], status ]
+            newimu.hx = hf[0]
+            newimu.hy = hf[1]
+            newimu.hz = hf[2]
             imu_corrected.append(newimu)
         return imu_corrected
     

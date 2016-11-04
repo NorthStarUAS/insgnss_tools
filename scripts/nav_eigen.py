@@ -10,6 +10,9 @@ class filter():
         self.ekf = libnav_eigen.EKF15()
         self.name = 'EKF15'
 
+    def set_config(self, config):
+        self.ekf.set_config(config)
+        
     def init(self, imu, gps, filterpt=None):
         nav = self.ekf.init(imu, gps)
         return nav

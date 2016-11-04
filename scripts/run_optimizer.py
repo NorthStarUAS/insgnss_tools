@@ -27,6 +27,7 @@ parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
+parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -396,6 +397,8 @@ elif args.aura_flight:
     plotname = os.path.basename(args.aura_flight)
 elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
+elif args.sentera2_flight:
+    plotname = os.path.basename(args.sentera2_flight)
 elif args.umn_flight:
     plotname = os.path.basename(args.umn_flight)
 
@@ -455,7 +458,7 @@ for f in filter_data:
 k_start = 0
 for k, gpspt in enumerate(gps_data):
     gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve + gpspt.vd*gpspt.vd)
-    if gps_vel > 2.0:
+    if gps_vel > 3.0:
         k_start = k
         break
 gps_begin = gps_data[k_start].time
@@ -467,8 +470,8 @@ def printParams(xk):
     r2d = 180.0 / math.pi
     print 'initial vel (m/s): %.4f, %.4f, %.4f' % (xk[0], xk[1], xk[2])
     print 'initial att (rad): %.3f, %.3f, %.3f' % (xk[3], xk[4], xk[5])
-    print 'gyro bias (rad/s): %.4f, %.4f, %.4f, delta: %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8], xk[9], xk[10], xk[11])
-    print 'accel bias (m/s^2): %.4f, %.4f, %.4f, delta: %.4f, %.4f, %.4f' % (xk[12], xk[13], xk[14], xk[15], xk[16], xk[17])
+    print 'gyro bias (rad/s): %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8])
+    print 'accel bias (m/s^2): %.4f, %.4f, %.4f' % (xk[9], xk[10], xk[11])
     
 # run the filter to optimize, then for each gps_record find the result
 # position and compute an error distance.  Return the list of error
@@ -485,9 +488,9 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     
     filter_opt.set_att(xk[3], xk[4], xk[5])
     filter_opt.set_gyro_calib(xk[6], xk[7], xk[8],     # bias
-                              xk[9], xk[10], xk[11])   # delta
-    filter_opt.set_accel_calib(xk[12], xk[13], xk[14], # bias
-                               xk[15], xk[16], xk[17]) # delta
+                              0.0, 0.0, 0.0)   # delta
+    filter_opt.set_accel_calib(xk[9], xk[10], xk[11], # bias
+                               0.0, 0.0, 0.0) # delta
     filter_opt.set_G(0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0)
@@ -503,7 +506,7 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     else:
         return 0.0
 
-segment_length = 100
+segment_length = 25
 start_time = gps_begin
 biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
@@ -538,9 +541,7 @@ while start_time < gps_end:
                filter_data[k_start].phi, filter_data[k_start].the,
                filter_data[k_start].psi, # att
                biases[0], biases[1], biases[2], # gyro
-               0.0, 0.0, 0.0,                   # gyro delta
-               biases[3], biases[4], biases[5], # accel
-               0.0, 0.0, 0.0)                   # accel delta
+               biases[3], biases[4], biases[5]) # accel
     bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
                (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
                (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
@@ -548,9 +549,7 @@ while start_time < gps_end:
                (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
                (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
                (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
-               (-0.01, 0.01), (-0.01, 0.01), (-0.01, 0.01), # gyro delta
-               (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0), # accel bias
-               (-0.01, 0.01), (-0.01, 0.01), (-0.01, 0.01)) # accel delta
+               (-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0)) # accel bias
 
     from scipy.optimize import minimize
     res = minimize(errorFunc, initial[:], bounds=bounds,

@@ -17,6 +17,10 @@ import numpy as np
 import time
 import os
 
+import sys
+sys.path.append('../build/src/nav_core/.libs/')
+import libnav_core
+
 import flight_data
 
 parser = argparse.ArgumentParser(description='nav filter')
@@ -24,6 +28,8 @@ parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
+parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
+parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -55,11 +61,11 @@ import nav_eigen_mag
 import nav_openloop
 import MadgwickAHRS
 
-#filter1 = nav_orig.filter()
-#filter1 = nav_mag.filter()
 filter1 = nav_eigen.filter()
-#filter2 = nav_eigen_mag.filter()
-filter2 = nav_openloop.filter()
+#filter1 = nav_mag.filter()
+#filter1 = nav_eigen.filter()
+filter2 = nav_eigen_mag.filter()
+#filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
 # this class organizes the filter output in a way that is more
@@ -213,8 +219,12 @@ elif args.aura_flight:
     plotname = os.path.basename(args.aura_flight)
 elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
+elif args.sentera2_flight:
+    plotname = os.path.basename(args.sentera2_flight)
 elif args.umn_flight:
     plotname = os.path.basename(args.umn_flight)
+else:
+    plotname = "plotname not set correctly"
 
 if False:
     # quick hack estimate gyro biases
@@ -301,7 +311,7 @@ for f in filter_data:
     vn_flight.append(f.vn)
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
-
+    
 data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
 
 start_time = 310
@@ -316,18 +326,45 @@ start_lat = gps_data[k_start].lat*d2r
 start_lon = gps_data[k_start].lon*d2r
 start_alt = gps_data[k_start].alt
 
-filter2.set_pos(start_lat, start_lon, start_alt)
-filter2.set_vel(-1.52172793e+01,   1.86723722e+00,  -1.89935674e+00)
-filter2.set_att(-2.46311887e-02,   2.11119149e-01,  -3.10259598e+00)
-filter2.set_gyro_calib(-2.00142118e-02,  -7.52878049e-04,  -7.66567571e-04,
-                       0.0, 0.0, 0.0)
-filter2.set_accel_calib(-7.82708666e-02,  -4.79264542e-01,  -5.13373218e-02,
-                        0.0, 0.0, 0.0)
-filter2.set_G(0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0)
+# almost no trust in IMU ...
+# config = libnav_core.NAVconfig()
+# config.sig_w_ax = 2.0
+# config.sig_w_ay = 2.0
+# config.sig_w_az = 2.0
+# config.sig_w_gx = 0.1
+# config.sig_w_gy = 0.1
+# config.sig_w_gz = 0.1
+# config.sig_a_d  = 0.1
+# config.tau_a    = 100.0
+# config.sig_g_d  = 0.00873
+# config.tau_g    = 50.0
+# config.sig_gps_p_ne = 3.0
+# config.sig_gps_p_d  = 5.0
+# config.sig_gps_v_ne = 0.5
+# config.sig_gps_v_d  = 1.0
+# config.sig_mag      = 0.2
+# filter2.set_config(config)
 
-data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data, call_init=False, start_time=start_time, end_time=end_time)
+# too high trust in IMU ...
+config = libnav_core.NAVconfig()
+config.sig_w_ax = 0.02
+config.sig_w_ay = 0.02
+config.sig_w_az = 0.02
+config.sig_w_gx = 0.001
+config.sig_w_gy = 0.001
+config.sig_w_gz = 0.001
+config.sig_a_d  = 0.1
+config.tau_a    = 100.0
+config.sig_g_d  = 0.00873
+config.tau_g    = 50.0
+config.sig_gps_p_ne = 5.0
+config.sig_gps_p_d  = 10.0
+config.sig_gps_v_ne = 2.0
+config.sig_gps_v_d  = 4.0
+config.sig_mag      = 0.05
+filter2.set_config(config)
+
+data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data)
 
 print "filter1 time = %.4f" % filter1_sec
 print "filter2 time = %.4f" % filter2_sec
