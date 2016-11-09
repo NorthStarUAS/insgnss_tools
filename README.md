@@ -22,8 +22,19 @@ Mechanics Deptarment, University of Minnesota.
 * 15 state EKF using only gyro, accels, and gps for input.  Converges
   to true heading without needing magnetometers.
 
-* 15 state EKF that include magnetometers in the measurement update.
+* 15 state EKF that includes magnetometers in the measurement update.
   More stable in attitude, but assumes a quality magnetometer
   calibration.
 
 * Piece-wise segment optimizer.
+
+# Features:
+
+* Run two filters (or the same filter with different noise settings)
+  and plot the results side by side.
+
+* Core filters are written in C/C++ but the infrastructure, data
+  loading, and plotting is handled in python.
+
+* Uses boost/python to create loadable python modules from the C/C++
+  code.
