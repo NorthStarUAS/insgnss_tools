@@ -21,6 +21,7 @@ from scipy.optimize import minimize
 
 import navpy
 
+import data_store
 import flight_data
 import plots
 
@@ -43,85 +44,8 @@ args = parser.parse_args()
 filter_ref = nav_eigen_mag.filter()
 filter_opt = nav_openloop.filter()
 
-# this class organizes the filter output in a way that is more
-# convenient and dirct for matplotlib
-class data_store():
-    def __init__(self):
-        self.time = []
-        self.psi = []
-        self.the = []
-        self.phi = []
-        self.lat = []
-        self.lon = []
-        self.alt = []
-        self.vn = []
-        self.ve = []
-        self.vd = []
-
-        self.ax_bias = []
-        self.ay_bias = [] 
-        self.az_bias = []
-        self.p_bias = []
-        self.q_bias = []
-        self.r_bias = []
-
-        self.Pp = []
-        self.Pvel = []
-        self.Patt = []
-        self.Pab = []
-        self.Pgb = []
-
-    def append(self, insgps):
-        r2d = 180.0 / math.pi
-        self.time.append(insgps.time)
-        
-        self.psi.append(insgps.psi)
-        self.the.append(insgps.the)
-        self.phi.append(insgps.phi)
-        self.lat.append(insgps.lat*r2d)
-        self.lon.append(insgps.lon*r2d)
-        self.alt.append(insgps.alt)
-        self.vn.append(insgps.vn)
-        self.ve.append(insgps.ve)
-        self.vd.append(insgps.vd)
-
-        self.ax_bias.append(insgps.abx)
-        self.ay_bias.append(insgps.aby)
-        self.az_bias.append(insgps.abz)
-        self.p_bias.append(insgps.gbx)
-        self.q_bias.append(insgps.gby)
-        self.r_bias.append(insgps.gbz)
-        
-        self.Pp.append( np.array([insgps.Pp0, insgps.Pp1, insgps.Pp2]) )
-        self.Pvel.append( np.array([insgps.Pv0, insgps.Pv1, insgps.Pv2]) )
-        self.Patt.append( np.array([insgps.Pa0, insgps.Pa1, insgps.Pa2]) )
-        self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
-        self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
-
-    def append_from_filter(self, filterpt):
-        r2d = 180.0 / math.pi
-        self.time.append(filterpt.time)
-        self.psi.append(filterpt.psi)
-        self.the.append(filterpt.the)
-        self.phi.append(filterpt.phi)
-        self.lat.append(filterpt.lat*r2d)
-        self.lon.append(filterpt.lon*r2d)
-        self.alt.append(filterpt.alt)
-        self.vn.append(filterpt.vn)
-        self.ve.append(filterpt.ve)
-        self.vd.append(filterpt.vd)
-        
-    def append_from_gps(self, gpspt):
-        self.time.append(gpspt.time)
-        self.lat.append(gpspt.lat)
-        self.lon.append(gpspt.lon)
-        self.alt.append(gpspt.alt)
-        self.vn.append(gpspt.vn)
-        self.ve.append(gpspt.ve)
-        self.vd.append(gpspt.vd)
-        
 def run_filter(filter, imu_data, gps_data, filter_data, config=None):
-    data_dict = data_store()
+    data_dict = data_store.data_store()
     errors = []
     
     # Using while loop starting at k (set to kstart) and going to end
@@ -223,96 +147,6 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
     filter.close()
     return errors, data_dict
 
-imu_data, gps_data, filter_data = flight_data.load(args)
-print "imu records:", len(imu_data)
-print "gps records:", len(gps_data)
-print "filter records:", len(filter_data)
-if len(imu_data) == 0 and len(gps_data) == 0:
-    print "not enough data loaded to continue."
-    quit()
-
-if args.flight:
-    plotname = os.path.basename(args.flight)    
-elif args.aura_flight:
-    plotname = os.path.basename(args.aura_flight)
-elif args.sentera_flight:
-    plotname = os.path.basename(args.sentera_flight)
-elif args.sentera2_flight:
-    plotname = os.path.basename(args.sentera2_flight)
-elif args.umn_flight:
-    plotname = os.path.basename(args.umn_flight)
-
-# plots
-plt = plots.Plots(plotname)
-
-# plot onboard filter
-data_ob = data_store()
-for filterpt in filter_data:
-    data_ob.append_from_filter(filterpt)
-plt.update(data_ob, 'On Board', c='g', alpha=0.5)
-
-# plot gps
-data_gps = data_store()
-for gpspt in gps_data:
-    data_gps.append_from_gps(gpspt)
-plt.update(data_gps, 'GPS', marker='*', c='g', alpha=0.5)
-
-# rearrange flight data for plotting
-t_gps = []
-lat_gps = []
-lon_gps = []
-alt_gps = []
-vn_gps = []
-ve_gps = []
-vd_gps = []
-for g in gps_data:
-    t_gps.append(g.time)
-    lat_gps.append(g.lat)
-    lon_gps.append(g.lon)
-    alt_gps.append(g.alt)
-    vn_gps.append(g.vn)
-    ve_gps.append(g.ve)
-    vd_gps.append(g.vd)
-
-t_flight = []
-psi_flight = []
-the_flight = []
-phi_flight = []
-navlat_flight = []
-navlon_flight = []
-navalt_flight = []
-vn_flight = []
-ve_flight = []
-vd_flight = []
-for f in filter_data:
-    t_flight.append(f.time)
-    psi_flight.append(f.psi)
-    the_flight.append(f.the)
-    phi_flight.append(f.phi)
-    navlat_flight.append(f.lat)
-    navlon_flight.append(f.lon)
-    navalt_flight.append(f.alt)
-    vn_flight.append(f.vn)
-    ve_flight.append(f.ve)
-    vd_flight.append(f.vd)
-
-# find the range of gps time stamps (starting with the first point
-# with some significant velocity
-k_start = 0
-for k, gpspt in enumerate(gps_data):
-    gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
-    if gps_vel > 5.0:
-        k_start = k
-        break
-gps_begin = gps_data[k_start].time
-k_end = 0
-for k, gpspt in enumerate(gps_data):
-    gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
-    if gps_vel > 5.0:
-        k_end = k
-gps_end = gps_data[k_end].time
-print "gps time span:", gps_begin, gps_end
-
 # display current parameter vector
 def printParams(xk):
     r2d = 180.0 / math.pi
@@ -353,6 +187,96 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
         return math.sqrt(sum / len(errors))
     else:
         return 0.0
+
+imu_data, gps_data, filter_data = flight_data.load(args)
+print "imu records:", len(imu_data)
+print "gps records:", len(gps_data)
+print "filter records:", len(filter_data)
+if len(imu_data) == 0 and len(gps_data) == 0:
+    print "not enough data loaded to continue."
+    quit()
+
+if args.flight:
+    plotname = os.path.basename(args.flight)    
+elif args.aura_flight:
+    plotname = os.path.basename(args.aura_flight)
+elif args.sentera_flight:
+    plotname = os.path.basename(args.sentera_flight)
+elif args.sentera2_flight:
+    plotname = os.path.basename(args.sentera2_flight)
+elif args.umn_flight:
+    plotname = os.path.basename(args.umn_flight)
+
+# plots
+plt = plots.Plots(plotname)
+
+# plot onboard filter
+data_ob = data_store.data_store()
+for filterpt in filter_data:
+    data_ob.append_from_filter(filterpt)
+plt.update(data_ob, 'On Board', c='g', alpha=0.5)
+
+# plot gps
+data_gps = data_store.data_store()
+for gpspt in gps_data:
+    data_gps.append_from_gps(gpspt)
+plt.update(data_gps, 'GPS', marker='*', c='g', alpha=0.5)
+
+# # rearrange flight data for plotting
+# t_gps = []
+# lat_gps = []
+# lon_gps = []
+# alt_gps = []
+# vn_gps = []
+# ve_gps = []
+# vd_gps = []
+# for g in gps_data:
+#     t_gps.append(g.time)
+#     lat_gps.append(g.lat)
+#     lon_gps.append(g.lon)
+#     alt_gps.append(g.alt)
+#     vn_gps.append(g.vn)
+#     ve_gps.append(g.ve)
+#     vd_gps.append(g.vd)
+
+# t_flight = []
+# psi_flight = []
+# the_flight = []
+# phi_flight = []
+# navlat_flight = []
+# navlon_flight = []
+# navalt_flight = []
+# vn_flight = []
+# ve_flight = []
+# vd_flight = []
+# for f in filter_data:
+#     t_flight.append(f.time)
+#     psi_flight.append(f.psi)
+#     the_flight.append(f.the)
+#     phi_flight.append(f.phi)
+#     navlat_flight.append(f.lat)
+#     navlon_flight.append(f.lon)
+#     navalt_flight.append(f.alt)
+#     vn_flight.append(f.vn)
+#     ve_flight.append(f.ve)
+#     vd_flight.append(f.vd)
+
+# find the range of gps time stamps (starting with the first point
+# with some significant velocity
+k_start = 0
+for k, gpspt in enumerate(gps_data):
+    gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
+    if gps_vel > 5.0:
+        k_start = k
+        break
+gps_begin = gps_data[k_start].time
+k_end = 0
+for k, gpspt in enumerate(gps_data):
+    gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
+    if gps_vel > 5.0:
+        k_end = k
+gps_end = gps_data[k_end].time
+print "gps time span:", gps_begin, gps_end
 
 segment_length = 60
 start_time = gps_begin
@@ -433,6 +357,11 @@ while start_time < gps_end:
 
 print segments
 
+for segment in segments:
+    xk = segment['results']['x']
+    config = segment['config']
+    errorFunc(xk, config, imu_data, gps_data, filter_data)
+    
 print "Finished fitting all segments, you may now explore the plots."
 plt.explore()
 
