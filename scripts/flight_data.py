@@ -5,10 +5,17 @@ import data_umn
 
 def load(args):
     # aura_flight=None, sentera_flight=None, umn_flight=None)
+    if 'recalibrate' in args:
+        recal_file = args.recalibrate
+    else:
+        recal_file = None
+        
     if args.flight:
-        imu_data, gps_data, filter_data = data_aura.load(args.flight, args.recalibrate)
+        imu_data, gps_data, filter_data = data_aura.load(args.flight,
+                                                         recal_file)
     elif args.aura_flight:
-        imu_data, gps_data, filter_data = data_aura.load(args.aura_flight, args.recalibrate)
+        imu_data, gps_data, filter_data = data_aura.load(args.aura_flight,
+                                                         recal_file)
     elif args.sentera_flight:
         imu_data, gps_data, filter_data = data_sentera.load(args.sentera_flight)
     elif args.sentera2_flight:
