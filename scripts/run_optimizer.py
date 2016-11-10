@@ -222,47 +222,8 @@ for gpspt in gps_data:
     data_gps.append_from_gps(gpspt)
 plt.update(data_gps, 'GPS', marker='*', c='g', alpha=0.5)
 
-# # rearrange flight data for plotting
-# t_gps = []
-# lat_gps = []
-# lon_gps = []
-# alt_gps = []
-# vn_gps = []
-# ve_gps = []
-# vd_gps = []
-# for g in gps_data:
-#     t_gps.append(g.time)
-#     lat_gps.append(g.lat)
-#     lon_gps.append(g.lon)
-#     alt_gps.append(g.alt)
-#     vn_gps.append(g.vn)
-#     ve_gps.append(g.ve)
-#     vd_gps.append(g.vd)
-
-# t_flight = []
-# psi_flight = []
-# the_flight = []
-# phi_flight = []
-# navlat_flight = []
-# navlon_flight = []
-# navalt_flight = []
-# vn_flight = []
-# ve_flight = []
-# vd_flight = []
-# for f in filter_data:
-#     t_flight.append(f.time)
-#     psi_flight.append(f.psi)
-#     the_flight.append(f.the)
-#     phi_flight.append(f.phi)
-#     navlat_flight.append(f.lat)
-#     navlon_flight.append(f.lon)
-#     navalt_flight.append(f.alt)
-#     vn_flight.append(f.vn)
-#     ve_flight.append(f.ve)
-#     vd_flight.append(f.vd)
-
-# find the range of gps time stamps (starting with the first point
-# with some significant velocity
+# find the range of gps time stamps that represent some significant
+# amount of velocity
 k_start = 0
 for k, gpspt in enumerate(gps_data):
     gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
@@ -278,13 +239,13 @@ for k, gpspt in enumerate(gps_data):
 gps_end = gps_data[k_end].time
 print "gps time span:", gps_begin, gps_end
 
-segment_length = 60
-start_time = gps_begin
-biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
+segment_length = 60
+
+start_time = gps_begin
+biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 while start_time < gps_end:
     # define time span for this iteration
