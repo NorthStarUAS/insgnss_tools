@@ -126,7 +126,6 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
-    run_start = time.time()
     gps_index = 0
     filter_index = 0
     new_gps = 0
@@ -222,10 +221,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
 
     # proper cleanup
     filter.close()
-    run_end = time.time()
-    elapsed_sec = run_end - run_start
-    # print 'iteration:', elapsed_sec
-    return errors, data_dict, elapsed_sec
+    return errors, data_dict
 
 imu_data, gps_data, filter_data = flight_data.load(args)
 print "imu records:", len(imu_data)
@@ -346,7 +342,7 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     filter_opt.set_G(0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0)
-    errors, data_dict, filter_sec = \
+    errors, data_dict = \
         run_filter(filter_opt, imu_data, gps_data, filter_data,
                    config)
     data_opt = data_dict

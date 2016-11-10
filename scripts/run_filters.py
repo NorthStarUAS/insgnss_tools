@@ -357,11 +357,11 @@ config.sig_a_d  = 0.1
 config.tau_a    = 100.0
 config.sig_g_d  = 0.00873
 config.tau_g    = 50.0
-config.sig_gps_p_ne = 5.0
+config.sig_gps_p_ne = 10.0
 config.sig_gps_p_d  = 10.0
 config.sig_gps_v_ne = 2.0
 config.sig_gps_v_d  = 4.0
-config.sig_mag      = 0.05
+config.sig_mag      = 0.1
 filter2.set_config(config)
 
 data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data)
