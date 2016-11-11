@@ -320,6 +320,7 @@ while start_time < gps_end:
         # the next try ...
         pass
 
+result_opt = data_store.data_store()
 for i in range(0, len(segments)):
     #xk = segment['results']['x']
     #errorFunc(xk, config, imu_data, gps_data, filter_data)
@@ -330,6 +331,7 @@ for i in range(0, len(segments)):
         data1 = s1['data']
         t1 = data1.find_index(config['start_time'])
         n1 = data1.data[t1]
+        start_k = t1
         start_err = data_store.diff_split(n1, n1) # should be all zeros
     else:
         s0 = segments[i-1]
@@ -341,13 +343,16 @@ for i in range(0, len(segments)):
         data1 = s1['data']
         t1 = data1.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
         n1 = data1.data[t1]
+
+        start_k = t1
+        start_err = data_store.diff_split(n0, n1)
         
-        start_err = data_store.diff_split(n0, n1)        
     if i == len(segments) - 1:
         s1 = segments[i]
         data1 = s1['data']
         t1 = data1.find_index(config['end_time'])
         n1 = data1.data[t1]
+        end_k = t1
         end_err = data_store.diff_split(n1, n1) # should be all zeros
     else:
         s1 = segments[i]
@@ -359,10 +364,20 @@ for i in range(0, len(segments)):
         data2 = s2['data']
         t2 = data2.find_index(config['end_time'] - segment_length * (segment_overlap * 0.5))
         n2 = data2.data[t2]
-        
-        end_err = data_store.diff_split(n1, n2)        
-    print 't1:', t1, 't2:', t2
 
+        end_k = t1
+        end_err = data_store.diff_split(n2, n1)        
+    print 'start_k:', start_k, 'end_k:', end_k
+
+    for k in range(start_k, end_k):
+        perc = float(k - start_k) / float(end_k - start_k)
+        err = data_store.weighted_avg(start_err, end_err, 1-perc)
+        joined = data_store.sum(data1.data[k], err)
+        result_opt.append(joined)
+
+# plot final result
+plt.update(result_opt, 'Optimized', c='r', alpha=0.5)
+        
 print "Finished fitting all segments, you may now explore the plots."
 plt.explore()
 

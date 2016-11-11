@@ -101,7 +101,7 @@ def diff_split(nav1, nav2):
     diff = libnav_core.NAVdata()
     
     diff.time = nav1.time
-    print ' t =', diff.time
+    print ' err t =', diff.time
     diff.psi = (nav1.psi - nav2.psi) * 0.5
     diff.the = (nav1.the - nav2.the) * 0.5
     diff.phi = (nav1.phi - nav2.phi) * 0.5
@@ -129,3 +129,65 @@ def diff_split(nav1, nav2):
     # [insgps.Pa0, insgps.Pa1, insgps.Pa2]
     # [insgps.Pabx, insgps.Paby, insgps.Pabz]
     # [insgps.Pgbx, insgps.Pgby, insgps.Pgbz]
+    return diff
+
+# return a weighted average of the two records
+def weighted_avg(nav1, nav2, w):
+    avg = libnav_core.NAVdata()
+
+    a = w
+    b = 1 - w
+    
+    avg.time = nav1.time
+    print ' avg t =', avg.time
+    avg.psi = a*nav1.psi + b*nav2.psi
+    avg.the = a*nav1.the + b*nav2.the
+    avg.phi = a*nav1.phi + b*nav2.phi
+    print ' att:', avg.phi, avg.the, avg.psi
+    avg.lat = a*nav1.lat + b*nav2.lat
+    avg.lon = a*nav1.lon + b*nav2.lon
+    avg.alt = a*nav1.alt + b*nav2.alt
+    print ' pos:', avg.lat, avg.lon, avg.alt
+    avg.vn = a*nav1.vn + b*nav2.vn
+    avg.ve = a*nav1.ve + b*nav2.ve
+    avg.vd = a*nav1.vd + b*nav2.vd
+    print ' vel:', avg.vn, avg.ve, avg.vd
+
+    avg.abx = a*nav1.abx + b*nav2.abx
+    avg.aby = a*nav1.aby + b*nav2.aby
+    avg.abz = a*nav1.abz + b*nav2.abz
+    print ' accel bias:', avg.abx, avg.aby, avg.abz
+    avg.gbx = a*nav1.gbx + b*nav2.gbx
+    avg.gby = a*nav1.gby + b*nav2.gby
+    avg.gbz = a*nav1.gbz + b*nav2.gbz
+    print ' gyro bias:', avg.gbx, avg.gby, avg.gbz
+    return avg
+    
+# return a weighted average of the two records
+def sum(nav1, nav2):
+    result = libnav_core.NAVdata()
+
+    result.time = nav1.time
+    print ' sum t =', result.time
+    result.psi = nav1.psi + nav2.psi
+    result.the = nav1.the + nav2.the
+    result.phi = nav1.phi + nav2.phi
+    print ' att:', result.phi, result.the, result.psi
+    result.lat = nav1.lat + nav2.lat
+    result.lon = nav1.lon + nav2.lon
+    result.alt = nav1.alt + nav2.alt
+    print ' pos:', result.lat, result.lon, result.alt
+    result.vn = nav1.vn + nav2.vn
+    result.ve = nav1.ve + nav2.ve
+    result.vd = nav1.vd + nav2.vd
+    print ' vel:', result.vn, result.ve, result.vd
+
+    result.abx = nav1.abx + nav2.abx
+    result.aby = nav1.aby + nav2.aby
+    result.abz = nav1.abz + nav2.abz
+    print ' accel bias:', result.abx, result.aby, result.abz
+    result.gbx = nav1.gbx + nav2.gbx
+    result.gby = nav1.gby + nav2.gby
+    result.gbz = nav1.gbz + nav2.gbz
+    print ' gyro bias:', result.gbx, result.gby, result.gbz
+    return result
