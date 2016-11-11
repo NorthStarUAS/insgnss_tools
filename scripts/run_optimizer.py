@@ -321,33 +321,46 @@ while start_time < gps_end:
         pass
 
 for i in range(0, len(segments)):
-    s1 = segments[i]
     #xk = segment['results']['x']
     #errorFunc(xk, config, imu_data, gps_data, filter_data)
-    config = s1['config']
-    data = s1['data']
-    if i == 0:
-        t1 = data.find_index(config['start_time'])
-        n1 = s1['data'].data[t1]
-        e1 = data_store.diff_split(n1, n1) # should be all zeros
-    else:
-        t1 = data.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
-        s0 = segments[i-1]
-        n0 = s0['data'].data[t1]
-        n1 = s1['data'].data[t1]
-        e1 = data_store.diff_split(n0, n1)        
-    if i == len(segments) - 1:
-        t2 = data.find_index(config['end_time'])
-        n2 = s1['data'].data[t2]
-        e2 = data_store.diff_split(n2, n2) # should be all zeros
-    else:
-        t2 = data.find_index(config['end_time'] - segment_length * (segment_overlap * 0.5))
-        s2 = segments[i+1]
-        n1 = s1['data'].data[t2]
-        n2 = s2['data'].data[t2]
-        e2 = data_store.diff_split(n1, n2)        
-    print 'len:', len(s1['data'].data)
+    config = segments[i]['config']
     print 'start:', config['start_time'], 'end:', config['end_time']
+    if i == 0:
+        s1 = segments[i]
+        data1 = s1['data']
+        t1 = data1.find_index(config['start_time'])
+        n1 = data1.data[t1]
+        start_err = data_store.diff_split(n1, n1) # should be all zeros
+    else:
+        s0 = segments[i-1]
+        data0 = s0['data']
+        t0 = data0.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
+        n0 = data0.data[t0]
+        
+        s1 = segments[i]
+        data1 = s1['data']
+        t1 = data1.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
+        n1 = data1.data[t1]
+        
+        start_err = data_store.diff_split(n0, n1)        
+    if i == len(segments) - 1:
+        s1 = segments[i]
+        data1 = s1['data']
+        t1 = data1.find_index(config['end_time'])
+        n1 = data1.data[t1]
+        end_err = data_store.diff_split(n1, n1) # should be all zeros
+    else:
+        s1 = segments[i]
+        data1 = s1['data']
+        t1 = data1.find_index(config['end_time'] - segment_length * (segment_overlap * 0.5))
+        n1 = data1.data[t1]
+
+        s2 = segments[i+1]
+        data2 = s2['data']
+        t2 = data2.find_index(config['end_time'] - segment_length * (segment_overlap * 0.5))
+        n2 = data2.data[t2]
+        
+        end_err = data_store.diff_split(n1, n2)        
     print 't1:', t1, 't2:', t2
 
 print "Finished fitting all segments, you may now explore the plots."
