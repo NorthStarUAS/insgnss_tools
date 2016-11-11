@@ -1,12 +1,18 @@
 import math
 import numpy as np
 
+import sys
+sys.path.append('../build/src/nav_core/.libs/')
+import libnav_core
+
 r2d = 180.0 / math.pi
 
 # this class organizes the filter output in a way that is more
 # convenient and direct for matplotlib
 class data_store():
     def __init__(self):
+        self.data = []
+        
         self.time = []
         self.psi = []
         self.the = []
@@ -32,6 +38,8 @@ class data_store():
         self.Pgb = []
 
     def append(self, insgps):
+        self.data.append(insgps)
+        
         self.time.append(insgps.time)
         
         self.psi.append(insgps.psi)
@@ -77,3 +85,47 @@ class data_store():
         self.vn.append(gpspt.vn)
         self.ve.append(gpspt.ve)
         self.vd.append(gpspt.vd)
+
+    # return the index corresponding to the given time (or the next
+    # index if there is no exact match
+    def find_index(self, time):
+        for k, t in enumerate(self.time):
+            if t >= time:
+                return k
+        # every time in the set is earlier than the given time, so
+        # return the index of the last entry.
+        return len(self.time) - 1
+
+# return a record filled in with half the difference between 
+def diff_split(nav1, nav2):
+    diff = libnav_core.NAVdata()
+    
+    diff.time = nav1.time
+    print ' t =', diff.time
+    diff.psi = (nav1.psi - nav2.psi) * 0.5
+    diff.the = (nav1.the - nav2.the) * 0.5
+    diff.phi = (nav1.phi - nav2.phi) * 0.5
+    print ' att:', diff.phi, diff.the, diff.psi
+    diff.lat = (nav1.lat - nav2.lat) * 0.5
+    diff.lon = (nav1.lon - nav2.lon) * 0.5
+    diff.alt = (nav1.alt - nav2.alt) * 0.5
+    print ' pos:', diff.lat, diff.lon, diff.alt
+    diff.vn = (nav1.vn - nav2.vn) * 0.5
+    diff.ve = (nav1.ve - nav2.ve) * 0.5
+    diff.vd = (nav1.vd - nav2.vd) * 0.5
+    print ' vel:', diff.vn, diff.ve, diff.vd
+
+    diff.abx = (nav1.abx - nav2.abx) * 0.5
+    diff.aby = (nav1.aby - nav2.aby) * 0.5
+    diff.abz = (nav1.abz - nav2.abz) * 0.5
+    print ' accel bias:', diff.abx, diff.aby, diff.abz
+    diff.gbx = (nav1.gbx - nav2.gbx) * 0.5
+    diff.gby = (nav1.gby - nav2.gby) * 0.5
+    diff.gbz = (nav1.gbz - nav2.gbz) * 0.5
+    print ' gyro bias:', diff.gbx, diff.gby, diff.gbz
+        
+    # [insgps.Pp0, insgps.Pp1, insgps.Pp2]
+    # [insgps.Pv0, insgps.Pv1, insgps.Pv2]
+    # [insgps.Pa0, insgps.Pa1, insgps.Pa2]
+    # [insgps.Pabx, insgps.Paby, insgps.Pabz]
+    # [insgps.Pgbx, insgps.Pgby, insgps.Pgbz]

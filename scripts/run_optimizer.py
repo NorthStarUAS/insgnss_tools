@@ -12,6 +12,7 @@ Many updates: Curtis L. Olson
 """
 
 import argparse
+import copy
 import csv
 import math
 import numpy as np
@@ -176,10 +177,9 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     filter_opt.set_G(0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0,
                      0.0, 0.0, 0.0)
-    errors, data_dict = \
+    errors, data_opt = \
         run_filter(filter_opt, imu_data, gps_data, filter_data,
                    config)
-    data_opt = data_dict
     if len(errors) > 0:
         sum = 0.0
         for e in errors:
@@ -242,7 +242,8 @@ print "gps time span:", gps_begin, gps_end
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 60
+segment_length = 60             # seconds
+segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
 biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -292,7 +293,7 @@ while start_time < gps_end:
     from scipy.optimize import minimize
     res = minimize(errorFunc, initial[:], bounds=bounds,
                    args=(config,imu_data,gps_data,filter_data),
-                   options={'disp': True, 'maxiter': 6},
+                   options={'disp': True, 'maxiter': 5},
                    callback=printParams)
     print res
     printParams(res['x'])
@@ -302,27 +303,53 @@ while start_time < gps_end:
         segment = dict()
         segment['config'] = config.copy()
         segment['results'] = res.copy()
+        segment['data'] = data_opt
         segments.append(segment)
         
         label = "%.0f-%.0f" % (start_time, end_time)
         plt.update(data_opt, label=label, c='b')
     
         # advance to next segment
-        start_time += (segment_length * 0.9)
-        # don't carry biases forward to next segment for now ...
-        biases = res['x'][6:12]     # or do carry them forward ...
+        start_time += (segment_length * (1 - segment_overlap))
+
+        # carry biases forward as the starting value for the next
+        # segment optimization.
+        biases = res['x'][6:12]
     else:
         # let's rerun the segment and see if we have better luck on
         # the next try ...
         pass
 
-print segments
+for i in range(0, len(segments)):
+    s1 = segments[i]
+    #xk = segment['results']['x']
+    #errorFunc(xk, config, imu_data, gps_data, filter_data)
+    config = s1['config']
+    data = s1['data']
+    if i == 0:
+        t1 = data.find_index(config['start_time'])
+        n1 = s1['data'].data[t1]
+        e1 = data_store.diff_split(n1, n1) # should be all zeros
+    else:
+        t1 = data.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
+        s0 = segments[i-1]
+        n0 = s0['data'].data[t1]
+        n1 = s1['data'].data[t1]
+        e1 = data_store.diff_split(n0, n1)        
+    if i == len(segments) - 1:
+        t2 = data.find_index(config['end_time'])
+        n2 = s1['data'].data[t2]
+        e2 = data_store.diff_split(n2, n2) # should be all zeros
+    else:
+        t2 = data.find_index(config['end_time'] - segment_length * (segment_overlap * 0.5))
+        s2 = segments[i+1]
+        n1 = s1['data'].data[t2]
+        n2 = s2['data'].data[t2]
+        e2 = data_store.diff_split(n1, n2)        
+    print 'len:', len(s1['data'].data)
+    print 'start:', config['start_time'], 'end:', config['end_time']
+    print 't1:', t1, 't2:', t2
 
-for segment in segments:
-    xk = segment['results']['x']
-    config = segment['config']
-    errorFunc(xk, config, imu_data, gps_data, filter_data)
-    
 print "Finished fitting all segments, you may now explore the plots."
 plt.explore()
 
