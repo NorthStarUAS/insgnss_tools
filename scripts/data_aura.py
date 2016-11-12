@@ -165,10 +165,12 @@ def save_filter_result(filename, data_store):
     for i in range(size):
         line = "%.3f,%.10f,%.10f,%.2f,%.4f,%.4f,%.4f,%.2f,%.2f,%.2f,0" % \
                (data_store.time[i],
-                data_store.nav_lat[i]*180.0/math.pi,
-                data_store.nav_lon[i]*180.0/math.pi,
-                data_store.nav_alt[i], data_store.nav_vn[i],
-                data_store.nav_ve[i], data_store.nav_vd[i],
+                data_store.lat[i]*180.0/math.pi,
+                data_store.lon[i]*180.0/math.pi,
+                data_store.alt[i],
+                data_store.vn[i],
+                data_store.ve[i],
+                data_store.vd[i],
                 data_store.phi[i]*180.0/math.pi,
                 data_store.the[i]*180.0/math.pi,
                 data_store.psi[i]*180.0/math.pi)
