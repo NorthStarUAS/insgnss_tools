@@ -115,15 +115,23 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
 
         if gpspt.newData:
             # compute error metric with each new gps report
+            # full 3d distance error (in ecef)
             p1 = navpy.lla2ecef(gpspt.lat, gpspt.lon, gpspt.alt,
                                 latlon_unit='deg')
             p2 = navpy.lla2ecef(navpt.lat, navpt.lon, navpt.alt,
                                 latlon_unit='rad')
             pe = np.linalg.norm(p1 - p2)
-            #print gpspt.time
-            #print 'gps:', gpspt.lat, gpspt.lon, gpspt.alt
-            #print 'nav:', navpt.lat, navpt.lon, navpt.alt
-            #print p1, p2, pe
+            
+            # weight horizontal error more highly than vertical error
+            ref = gps_data[0]
+            n1 = navpy.lla2ned(gpspt.lat, gpspt.lon, gpspt.alt,
+                               ref.lat, ref.lon, 0.0,
+                               latlon_unit='deg')
+            n2 = navpy.lla2ned(navpt.lat*r2d, navpt.lon*r2d, navpt.alt,
+                               ref.lat, ref.lon, 0.0,
+                               latlon_unit='deg')
+            dn = n2 - n1
+            ne = math.sqrt(dn[0]*dn[0] + dn[1]*dn[1] + dn[2]*dn[2]*0.5)
 
             # it is always tempting to fit to the velocity vector
             # (especially when seeing some of the weird velocity fits
@@ -138,7 +146,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
             v2 = np.array( [navpt.vn, navpt.ve, navpt.vd] )
             ve = np.linalg.norm(v1 - v2)
             
-            errors.append(pe)   # 3d position error
+            errors.append(ne)   # ned error weighted towards horizontal
             
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -242,12 +250,15 @@ print "gps time span:", gps_begin, gps_end
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 60             # seconds
+segment_length = 30             # seconds
 segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
 biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
+d2r = math.pi/ 180.0
+r2d = 180.0 / math.pi
+                
 while start_time < gps_end:
     # define time span for this iteration
     end_time = start_time + segment_length
@@ -260,7 +271,6 @@ while start_time < gps_end:
             k_start = k
             break
     print "segment time span:", start_time, end_time
-    d2r = math.pi/ 180.0
     config = {}
     config['start_lat'] = gps_data[k_start].lat*d2r
     config['start_lon'] = gps_data[k_start].lon*d2r
@@ -293,7 +303,8 @@ while start_time < gps_end:
     from scipy.optimize import minimize
     res = minimize(errorFunc, initial[:], bounds=bounds,
                    args=(config,imu_data,gps_data,filter_data),
-                   options={'disp': True, 'maxiter': 5},
+                   #options={'disp': True, 'maxiter': 5},
+                   options={'disp': True},
                    callback=printParams)
     print res
     printParams(res['x'])
@@ -374,6 +385,15 @@ for i in range(0, len(segments)):
         err = data_store.weighted_avg(start_err, end_err, 1-perc)
         joined = data_store.sum(data1.data[k], err)
         result_opt.append(joined)
+
+# write out 'filter-post.txt' based on optimized result
+if args.flight or args.aura_flight:
+    import data_aura
+    if args.flight:
+        filter_post = os.path.join(args.flight, "filter-post.txt")
+    elif args.aura_flight:
+        filter_post = os.path.join(args.aura_flight, "filter-post.txt")
+    data_aura.save_filter_result(filter_post, result_opt)
 
 # plot final result
 plt.update(result_opt, 'Optimized', c='r', alpha=0.5)
