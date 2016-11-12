@@ -80,13 +80,13 @@ class Plots():
         lat = data_dict.lat
         self.pos_ax[0].set_title('Position')
         self.pos_ax[0].set_ylabel('Lat (deg)', weight='bold')
-        self.pos_ax[0].plot(t_flight, lat, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+        self.pos_ax[0].plot(t_flight, r2d(lat), ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
         self.pos_ax[0].legend(loc=0)
 
         # lon plot
         lon = data_dict.lon
         self.pos_ax[1].set_ylabel('Lon (deg)', weight='bold')
-        self.pos_ax[1].plot(t_flight, lon, ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
+        self.pos_ax[1].plot(t_flight, r2d(lon), ls=ls, marker=marker, label=label, c=c, lw=2, alpha=alpha)
 
         # alt plot
         alt = data_dict.alt
