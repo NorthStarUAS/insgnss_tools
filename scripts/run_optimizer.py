@@ -42,6 +42,9 @@ parser.add_argument('--sentera-flight', help='load specified sentera flight log'
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
 args = parser.parse_args()
 
+# This could be an important parameter to pay attention to:
+gps_latency = 0.4               # seconds
+
 filter_ref = nav_eigen_mag.filter()
 filter_opt = nav_openloop.filter()
 
@@ -78,7 +81,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
         if gps_index < len(gps_data) - 1:
             # walk the gps counter forward as needed
             newData = 0
-            while gps_data[gps_index+1].time <= imupt.time:
+            while gps_data[gps_index+1].time - gps_latency <= imupt.time:
                 gps_index += 1
                 newData = 1
             gpspt = gps_data[gps_index]
@@ -238,19 +241,19 @@ for k, gpspt in enumerate(gps_data):
     if gps_vel > 5.0:
         k_start = k
         break
-gps_begin = gps_data[k_start].time
+gps_begin = gps_data[k_start].time + gps_latency
 k_end = 0
 for k, gpspt in enumerate(gps_data):
     gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
     if gps_vel > 5.0:
         k_end = k
-gps_end = gps_data[k_end].time
+gps_end = gps_data[k_end].time + gps_latency
 print "gps time span:", gps_begin, gps_end
 
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 30             # seconds
+segment_length = 60             # seconds
 segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
@@ -267,7 +270,7 @@ while start_time < gps_end:
         
     # find starting position
     for k, gpspt in enumerate(gps_data):
-        if gpspt.time >= start_time:
+        if gpspt.time - gps_latency >= start_time:
             k_start = k
             break
     print "segment time span:", start_time, end_time

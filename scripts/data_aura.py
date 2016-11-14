@@ -17,6 +17,7 @@ def load(flight_dir, recalibrate=None):
     imu_data = []
     gps_data = []
     filter_data = []
+    air_data = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
@@ -25,6 +26,7 @@ def load(flight_dir, recalibrate=None):
     gps_file = flight_dir + "/gps-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
+    airdata_file = flight_dir + "/air-0.txt"
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
     # not raw magnetometer, so we don't need to correct here.  We
