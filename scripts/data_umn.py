@@ -14,6 +14,8 @@ import sys
 sys.path.append('../build/src/nav_core/.libs/')
 import libnav_core
 
+mps2kt = 1.94384
+
 class dict2struct():
   pass
 
@@ -124,6 +126,7 @@ def load(mat_filename):
     # create data structures for ekf processing
     imu_data = []
     gps_data = []
+    air_data = []
     filter_data = []
     
     k = kstart
@@ -167,6 +170,12 @@ def load(mat_filename):
             gps_pt.vd = float(vd[k])
             gps_data.append(gps_pt)
 
+        air_pt = libnav_core.Airdata()
+        air_pt.time = float(t[k])
+        air_pt.airspeed = float(flight_data.ias[k]*mps2kt)
+        air_pt.altitude = float(flight_data.h[k])
+        air_data.append(air_pt)
+        
         fd_pt = libnav_core.Filterdata()
         fd_pt.time = float(t[k])
         fd_pt.lat = float(flight_data.navlat[k])
@@ -204,4 +213,4 @@ def load(mat_filename):
         line = [ '%.5f' % filtpt.time, '%.10f' % filtpt.lat, '%.10f' % filtpt.lon, '%.4f' % filtpt.alt, '%.4f' % filtpt.vn, '%.4f' % filtpt.ve, '%.4f' % filtpt.vd, '%.4f' % (filtpt.phi*r2d), '%.4f' % (filtpt.the*r2d), '%.4f' % (filtpt.psi*r2d), '0' ]
         f.write(','.join(line) + '\n')
 
-    return imu_data, gps_data, filter_data
+    return imu_data, gps_data, air_data, filter_data

@@ -91,8 +91,8 @@ def load(flight_dir):
     # )
     print mag_affine
 
-    #imu_source = 'camera'
-    imu_source = 'autopilot'
+    imu_source = 'camera'
+    #imu_source = 'autopilot'
     
     if imu_source == 'camera':
         fimu = fileinput.input(imu_file)
@@ -102,18 +102,19 @@ def load(flight_dir):
                 tokens = line.split(',')
                 # print len(tokens)
                 if len(tokens) == 15 and isFloat(tokens[0]) and float(tokens[0]) > 0:
-                    #print '"' + tokens[10] + '"'
-                    (time, p, q, r, ax, ay, az, hx, hy, hz, temp, roll, pitch, yaw, yaw_accuracy) = tokens
+                    #(time, p, q, r, ax, ay, az, hx, hy, hz, temp, roll, pitch, yaw, yaw_accuracy) = tokens
+                    imu = libnav_core.IMUdata()
+                    imu.time = float(tokens[0])/1000000000.0 # nanosec
                     # remap axis before applying mag calibration
-                    p =  float(q)
-                    q = -float(p)
-                    r = -float(r)
-                    ax =  float(ay)
-                    ay = -float(ax)
-                    az = -float(az)
-                    hx =  float(hy)
-                    hy = -float(hx)
-                    hz = -float(hz)
+                    imu.p =  float(tokens[2])
+                    imu.q = -float(tokens[1])
+                    imu.r = -float(tokens[3])
+                    imu.ax =  float(tokens[5])
+                    imu.ay = -float(tokens[4])
+                    imu.az = -float(tokens[6])
+                    hx =  float(tokens[8])
+                    hy = -float(tokens[7])
+                    hz = -float(tokens[9])
                     mag_orientation = 'newer'
                     if mag_orientation == 'older':
                         #hx_new = hx_func(float(hx))
@@ -129,30 +130,52 @@ def load(flight_dir):
                     # mag calibration mapping via mag_affine matrix
                     hs = np.hstack( [s, 1.0] )
                     hf = np.dot(mag_affine, hs)
-                    #print hf[:3]
-                    #norm = np.linalg.norm([hx_new, hy_new, hz_new])
-                    #hx_new /= norm
-                    #hy_new /= norm
-                    #hz_new /= norm
-
-                    imu = libnav_core.IMUdata()
-                    imu.time = float(time)/1000000000.0 # nanosec
-                    imu.p = p
-                    imu.q = q
-                    imu.r = r
-                    imu.ax = ax
-                    imu.ay = ay
-                    imu.az = az
                     imu.hx = hf[0]
                     imu.hy = hf[1]
                     imu.hz = hf[2]
-                    #float(hf[0]), float(hf[1]), float(hf[2]),
-                    if isFloat(temp):
-                        imu.temp = float(temp)
+                    if isFloat(tokens[10]):
+                        imu.temp = float(tokens[10])
                     else:
                         imu.temp = 15.0
                     imu_data.append( imu )
+        do_filter = 'butterworth'
+        if do_filter == 'butterworth':
+            # filter accel data with butterworth filter
+            import scipy.signal as signal
+            b, a = signal.butter(2, 15.0/(200.0/2))
 
+            ax = []
+            ay = []
+            az = []
+            for imu in imu_data:
+                ax.append(imu.ax)
+                ay.append(imu.ay)
+                az.append(imu.az)
+            ax = np.array(ax)
+            ay = np.array(ay)
+            az = np.array(az)
+            ax = signal.filtfilt(b, a, ax)
+            ay = signal.filtfilt(b, a, ay)
+            az = signal.filtfilt(b, a, az)
+            for i in range(len(imu_data)):
+                imu_data[i].ax = ax[i]
+                imu_data[i].ay = ay[i]
+                imu_data[i].az = az[i]
+                print "%.4f, %.4f, %.4f, %.4f" % (imu_data[i].time, ax[i], ay[i], az[i])
+        elif do_filter == 'low-pass':
+            # filter accel data with simple lowpass filter
+            ax_filt = imu_data[0].ax
+            ay_filt = imu_data[0].ay
+            az_filt = imu_data[0].az
+            for imu in imu_data:
+                ax_filt = 0.5 * ax_filt + 0.5 * imu.ax
+                ay_filt = 0.5 * ay_filt + 0.5 * imu.ay
+                az_filt = 0.5 * az_filt + 0.5 * imu.az
+                imu.ax = ax_filt
+                imu.ay = ay_filt
+                imu.az = az_filt
+                print "%.4f, %.4f, %.4f, %.4f" % (imu.time, imu.ax, imu.ay, imu.az)
+            
     fproc = fileinput.input(procerus_file)
     for line in fproc:
         if not re.search('Timestamp', line):

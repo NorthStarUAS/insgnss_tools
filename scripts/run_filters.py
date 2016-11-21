@@ -22,6 +22,8 @@ sys.path.append('../build/src/nav_core/.libs/')
 import libnav_core
 
 import flight_data
+import data_store
+import wind
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
@@ -41,6 +43,7 @@ FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
+FLAG_PLOT_WIND = True
 FLAG_PLOT_BIASES = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
@@ -51,7 +54,6 @@ import csv
 import numpy as np
 from matplotlib import pyplot as plt
 import navpy
-r2d = np.rad2deg
 
 # filter interfaces
 import nav_orig
@@ -68,70 +70,19 @@ filter2 = nav_eigen_mag.filter()
 #filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
-# this class organizes the filter output in a way that is more
-# convenient and dirct for matplotlib
-class data_store():
-    def __init__(self):
-        self.time = []
-        self.psi = []
-        self.the = []
-        self.phi = []
-        self.nav_lat = []
-        self.nav_lon = []
-        self.nav_alt = []
-        self.nav_vn = []
-        self.nav_ve = []
-        self.nav_vd = []
+r2d = 180.0 / math.pi
+mps2kt = 1.94384
 
-        self.ax_bias = []
-        self.ay_bias = [] 
-        self.az_bias = []
-        self.p_bias = []
-        self.q_bias = []
-        self.r_bias = []
-
-        self.Pp = []
-        self.Pvel = []
-        self.Patt = []
-        self.Pab = []
-        self.Pgb = []
-
-    def append(self, insgps):
-        self.time.append(insgps.time)
-        
-        self.psi.append(insgps.psi)
-        self.the.append(insgps.the)
-        self.phi.append(insgps.phi)
-        self.nav_lat.append(insgps.lat)
-        self.nav_lon.append(insgps.lon)
-        self.nav_alt.append(insgps.alt)
-        self.nav_vn.append(insgps.vn)
-        self.nav_ve.append(insgps.ve)
-        self.nav_vd.append(insgps.vd)
-
-        self.ax_bias.append(insgps.abx)
-        self.ay_bias.append(insgps.aby)
-        self.az_bias.append(insgps.abz)
-        self.p_bias.append(insgps.gbx)
-        self.q_bias.append(insgps.gby)
-        self.r_bias.append(insgps.gbz)
-        
-        self.Pp.append( np.array([insgps.Pp0, insgps.Pp1, insgps.Pp2]) )
-        self.Pvel.append( np.array([insgps.Pv0, insgps.Pv1, insgps.Pv2]) )
-        self.Patt.append( np.array([insgps.Pa0, insgps.Pa1, insgps.Pa2]) )
-        self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
-        self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
-
-        
 def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
                start_time=None, end_time=None):
-    data_dict = data_store()
+    data_dict = data_store.data_store()
     # t_store = []
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     run_start = time.time()
     gps_index = 0
+    air_index = 0
     filter_index = 0
     new_gps = 0
     if call_init:
@@ -167,6 +118,15 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
             gpspt = gps_data[gps_index]
             gpspt.newData = 0
         #print gpspt.time
+        if air_index < len(air_data) - 1:
+            # walk the airdata counter forward as needed
+            while air_index < len(air_data) - 1 and air_data[air_index+1].time <= imupt.time:
+                air_index += 1
+            airpt = air_data[air_index]
+        else:
+            # no more air data, stay on the last record
+            airpt = air_data[air_index]
+        #print airpt.time
         # walk the filter counter forward as needed
         if len(filter_data):
             if imupt.time > filter_data[filter_index].time:
@@ -187,12 +147,21 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
         elif filter_init:
             navpt = filter.update(imupt, gpspt, filterpt)
 
+        if filter_init:
+            # experimental: run wind estimator
+            (wn, we, ps) = wind.update_wind(imupt.time, airpt.airspeed,
+                                            navpt.psi, navpt.vn, navpt.ve)
+            #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
+            wind_deg = 90 - math.atan2(wn, we) * r2d
+            if wind_deg < 0: wind_deg += 360.0
+            wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
+            print wn, we, ps, wind_deg, wind_kt
+            
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
             data_dict.append(navpt)
-            #t_store.append(imupt.time)
-            # print imupt.time, imupt.p - insgps1.estGB[0], imupt.q - insgps1.estGB[1], imupt.r - insgps1.estGB[2], imupt.ax - insgps1.estAB[0], imupt.ay - insgps1.estAB[1], imupt.az - insgps1.estAB[2], imupt.hx, imupt.hy, imupt.hz, imupt.temp
+            data_dict.add_wind(wind_deg, wind_kt, ps)
 
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -205,9 +174,10 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
     return data_dict, elapsed_sec
 
 
-imu_data, gps_data, filter_data = flight_data.load(args)
+imu_data, gps_data, air_data, filter_data = flight_data.load(args)
 print "imu records:", len(imu_data)
 print "gps records:", len(gps_data)
+print "airdata records:", len(air_data)
 print "filter records:", len(filter_data)
 if len(imu_data) == 0 and len(gps_data) == 0:
     print "not enough data loaded to continue."
@@ -312,20 +282,6 @@ for f in filter_data:
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
     
-data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
-
-start_time = 310
-end_time = 410
-# find start index to extract sane initial conditions
-for k, gpspt in enumerate(gps_data):
-    if gpspt.time >= start_time:
-        k_start = k
-        break
-d2r = math.pi/ 180.0
-start_lat = gps_data[k_start].lat*d2r
-start_lon = gps_data[k_start].lon*d2r
-start_alt = gps_data[k_start].alt
-
 # almost no trust in IMU ...
 # config = libnav_core.NAVconfig()
 # config.sig_w_ax = 2.0
@@ -345,24 +301,46 @@ start_alt = gps_data[k_start].alt
 # config.sig_mag      = 0.2
 # filter2.set_config(config)
 
+# less than default trust in IMU ...
+# config = libnav_core.NAVconfig()
+# config.sig_w_ax = 0.1
+# config.sig_w_ay = 0.1
+# config.sig_w_az = 0.1
+# config.sig_w_gx = 0.003
+# config.sig_w_gy = 0.003
+# config.sig_w_gz = 0.003
+# config.sig_a_d  = 0.1
+# config.tau_a    = 100.0
+# config.sig_g_d  = 0.00873
+# config.tau_g    = 50.0
+# config.sig_gps_p_ne = 3.0
+# config.sig_gps_p_d  = 5.0
+# config.sig_gps_v_ne = 0.5
+# config.sig_gps_v_d  = 1.0
+# config.sig_mag      = 0.2
+# filter1.set_config(config)
+# filter2.set_config(config)
+
 # too high trust in IMU ...
-config = libnav_core.NAVconfig()
-config.sig_w_ax = 0.02
-config.sig_w_ay = 0.02
-config.sig_w_az = 0.02
-config.sig_w_gx = 0.001
-config.sig_w_gy = 0.001
-config.sig_w_gz = 0.001
-config.sig_a_d  = 0.1
-config.tau_a    = 100.0
-config.sig_g_d  = 0.00873
-config.tau_g    = 50.0
-config.sig_gps_p_ne = 10.0
-config.sig_gps_p_d  = 10.0
-config.sig_gps_v_ne = 2.0
-config.sig_gps_v_d  = 4.0
-config.sig_mag      = 0.1
-filter2.set_config(config)
+# config = libnav_core.NAVconfig()
+# config.sig_w_ax = 0.02
+# config.sig_w_ay = 0.02
+# config.sig_w_az = 0.02
+# config.sig_w_gx = 0.001
+# config.sig_w_gy = 0.001
+# config.sig_w_gz = 0.001
+# config.sig_a_d  = 0.1
+# config.tau_a    = 100.0
+# config.sig_g_d  = 0.00873
+# config.tau_g    = 50.0
+# config.sig_gps_p_ne = 10.0
+# config.sig_gps_p_d  = 10.0
+# config.sig_gps_v_ne = 2.0
+# config.sig_gps_v_d  = 4.0
+# config.sig_mag      = 0.1
+# filter2.set_config(config)
+
+data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
 
 data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data)
 
@@ -397,6 +375,7 @@ t_store1 = data_dict1.time
 t_store2 = data_dict2.time
 
 # Plotting
+r2d = np.rad2deg
 if FLAG_PLOT_ATTITUDE:
     Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
     Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
@@ -456,8 +435,8 @@ if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
-    vn_nav = data_dict1.nav_vn
-    vn_nav_mag = data_dict2.nav_vn
+    vn_nav = data_dict1.vn
+    vn_nav_mag = data_dict2.vn
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
     ax1.plot(t_gps, vn_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -468,8 +447,8 @@ if FLAG_PLOT_VELOCITIES:
     ax1.legend(loc=0)
 
     # ve Plot
-    ve_nav = data_dict1.nav_ve
-    ve_nav_mag = data_dict2.nav_ve
+    ve_nav = data_dict1.ve
+    ve_nav_mag = data_dict2.ve
     ax2.set_ylabel('ve (mps)', weight='bold')
     ax2.plot(t_gps, ve_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax2.plot(t_flight, ve_flight, label='On Board', c='k', lw=2, alpha=.5)
@@ -478,8 +457,8 @@ if FLAG_PLOT_VELOCITIES:
     ax2.grid()
 
     # vd Plot
-    vd_nav = data_dict1.nav_vd
-    vd_nav_mag = data_dict2.nav_vd
+    vd_nav = data_dict1.vd
+    vd_nav_mag = data_dict2.vd
     ax3.set_ylabel('vd (mps)', weight='bold')
     ax3.plot(t_gps, vd_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax3.plot(t_flight, vd_flight, label='On Board', c='k', lw=2, alpha=.5)
@@ -490,24 +469,42 @@ if FLAG_PLOT_VELOCITIES:
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-    navalt = data_dict1.nav_alt
-    nav_magalt = data_dict2.nav_alt
+    navalt = data_dict1.alt
+    nav_magalt = data_dict2.alt
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     plt.plot(t_flight, navalt_flight, label='On Board', c='k', lw=2, alpha=.5)
     plt.plot(t_store1, navalt, label=filter1.name, c='r', lw=2, alpha=.8)
-    plt.plot(t_store2, nav_magalt, label=filter2.name,c='b', lw=2, alpha=.8)
+    plt.plot(t_store2, nav_magalt, label=filter2.name, c='b', lw=2, alpha=.8)
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
 
+# Wind Plot
+if FLAG_PLOT_WIND:
+    fig, ax1 = plt.subplots()
+    wind_deg = data_dict1.wind_deg
+    wind_kt = data_dict1.wind_kt
+    pitot_scale = data_dict1.pitot_scale
+    ax1.set_title('Wind')
+    ax1.set_ylabel('Degrees', weight='bold')
+    ax1.plot(t_store1, wind_deg, label='Direction (deg)', c='r', lw=2, alpha=.8)
+
+    ax2 = ax1.twinx()
+    ax2.plot(t_store1, wind_kt, label='Speed (kt)', c='b', lw=2, alpha=.8)
+    ax2.plot(t_store1, pitot_scale, label='Pitot Scale', c='k', lw=2, alpha=.8)
+    ax2.set_ylabel('Knots', weight='bold')
+    ax1.legend(loc=4)
+    ax2.legend(loc=1)
+    ax1.grid()
+
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-    navlat = data_dict1.nav_lat
-    navlon = data_dict1.nav_lon
-    nav_maglat = data_dict2.nav_lat
-    nav_maglon = data_dict2.nav_lon
+    navlat = data_dict1.lat
+    navlon = data_dict1.lon
+    nav_maglat = data_dict2.lat
+    nav_maglon = data_dict2.lon
     plt.figure()
     plt.title(plotname, fontsize=10)
     plt.ylabel('LATITUDE (DEGREES)', weight='bold')

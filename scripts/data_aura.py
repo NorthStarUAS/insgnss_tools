@@ -16,17 +16,17 @@ d2r = math.pi / 180.0
 def load(flight_dir, recalibrate=None):
     imu_data = []
     gps_data = []
-    filter_data = []
     air_data = []
+    filter_data = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
     imucal_json = flight_dir + "/imucal.json"
     imucal_xml = flight_dir + "/imucal.xml"
     gps_file = flight_dir + "/gps-0.txt"
+    air_file = flight_dir + "/air-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
-    airdata_file = flight_dir + "/air-0.txt"
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
     # not raw magnetometer, so we don't need to correct here.  We
@@ -121,6 +121,18 @@ def load(flight_dir, recalibrate=None):
             gps_data.append(gps)
         last_time = time
 
+    fair = fileinput.input(air_file)
+    for line in fair:
+        tokens = line.split(',')
+        air = libnav_core.Airdata()
+        air.time = float(tokens[0])
+        air.static_press = float(tokens[1])
+        air.diff_press = 0.0    # not directly available in flight log
+        air.temp = float(tokens[2])
+        air.airspeed = float(tokens[3])
+        air.altitude = float(tokens[4])
+        air_data.append( air )
+
     # load filter records if they exist (for comparison purposes)
     ffilter = fileinput.input(filter_file)
     for line in ffilter:
@@ -159,7 +171,7 @@ def load(flight_dir, recalibrate=None):
         rcal.load(recalibrate)
         imu_data = rcal.correct(imu_data)
 
-    return imu_data, gps_data, filter_data
+    return imu_data, gps_data, air_data, filter_data
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')
