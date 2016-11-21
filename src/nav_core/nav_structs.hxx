@@ -30,6 +30,15 @@ struct GPSdata {
     bool newData;
 };
 
+struct Airdata {
+    double time;		// seconds
+    double static_press;	// mbar
+    double diff_press;		// pa
+    double temp;		// degree C
+    double airspeed;		// knots
+    double altitude;		// meters
+};
+
 struct Filterdata {
     double time;		// seconds
     double lat, lon, alt;	// rad, meter
@@ -71,7 +80,6 @@ struct NAVdata {
     double Pgbx, Pgby, Pgbz; // [rad], covariance estimate for rate gyro bias
     enum errdefs err_type;   // NAV filter status
 };
-
 
 struct NAVconfig {
     double sig_w_ax;		// m/s^2

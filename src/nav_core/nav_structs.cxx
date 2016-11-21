@@ -33,6 +33,15 @@ BOOST_PYTHON_MODULE(libnav_core)
 	.def_readwrite("newData", &GPSdata::newData)
     ;
 
+    class_<Airdata>("Airdata")
+	.def_readwrite("time", &Airdata::time)
+	.def_readwrite("static_press", &Airdata::static_press)
+	.def_readwrite("diff_press", &Airdata::diff_press)
+	.def_readwrite("temp", &Airdata::temp)
+	.def_readwrite("airspeed", &Airdata::airspeed)
+	.def_readwrite("altitude", &Airdata::altitude)
+    ;
+
     class_<Filterdata>("Filterdata")
 	.def_readwrite("time", &Filterdata::time)
 	.def_readwrite("lat", &Filterdata::lat)
