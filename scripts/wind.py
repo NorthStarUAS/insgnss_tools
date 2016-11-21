@@ -18,7 +18,7 @@ filt_we = lowpass.LowPassFilter(time_factor)
 filt_ps = lowpass.LowPassFilter(time_factor*0.75, 1.0)
 last_time = 0.0
 
-def update_wind(time, airspeed_kt, psi, vn, ve):
+def update_wind(time, airspeed_kt, yaw_rad, vn, ve):
     global last_time
     global filt_wn
     global filt_we
@@ -31,7 +31,7 @@ def update_wind(time, airspeed_kt, psi, vn, ve):
 
     if dt > 0.0 and airspeed_kt >= 10.0:
         # update values if 'flying' and time has elapsed
-        psi = math.pi * 0.5 - psi
+        psi = math.pi * 0.5 - yaw_rad
 
         # estimate body velocity
         ue = math.cos(psi) * (airspeed_kt * filt_ps.value * kt2mps)
