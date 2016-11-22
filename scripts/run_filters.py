@@ -155,7 +155,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
             wind_deg = 90 - math.atan2(wn, we) * r2d
             if wind_deg < 0: wind_deg += 360.0
             wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
-            print wn, we, ps, wind_deg, wind_kt
+            #print wn, we, ps, wind_deg, wind_kt
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -484,9 +484,9 @@ if FLAG_PLOT_ALTITUDE:
 # Wind Plot
 if FLAG_PLOT_WIND:
     fig, ax1 = plt.subplots()
-    wind_deg = data_dict1.wind_deg
-    wind_kt = data_dict1.wind_kt
-    pitot_scale = data_dict1.pitot_scale
+    wind_deg = data_dict2.wind_deg
+    wind_kt = data_dict2.wind_kt
+    pitot_scale = data_dict2.pitot_scale
     ax1.set_title('Wind')
     ax1.set_ylabel('Degrees', weight='bold')
     ax1.plot(t_store1, wind_deg, label='Direction (deg)', c='r', lw=2, alpha=.8)

@@ -253,13 +253,21 @@ class Calibration():
             newimu.ax = imu.ax / ax_scale_func(temp) + ax_bias_func(temp)
             newimu.ay = imu.ay / ay_scale_func(temp) + ay_bias_func(temp)
             newimu.az = imu.az / az_scale_func(temp) + az_bias_func(temp)
-            hs = [imu.hx, imu.hy, imu.hz, 1.0]
-            hf = np.dot(self.mag_affine_inv, hs)
-            norm = np.linalg.norm(hf[:3])
-            # #hf[:3] /= norm
-            newimu.hx = hf[0]
-            newimu.hy = hf[1]
-            newimu.hz = hf[2]
+            # note: corrected mags are currently being logged so don't
+            # back correct mags here...
+            back_correct_mags = False
+            if back_correct_mags:
+                hs = [imu.hx, imu.hy, imu.hz, 1.0]
+                hf = np.dot(self.mag_affine_inv, hs)
+                norm = np.linalg.norm(hf[:3])
+                # #hf[:3] /= norm
+                newimu.hx = hf[0]
+                newimu.hy = hf[1]
+                newimu.hz = hf[2]
+            else:
+                newimu.hx = imu.hx
+                newimu.hy = imu.hy
+                newimu.hz = imu.hz
             #print 'orig:', newimu.az, 'cooked:', imu.az
             imu_corrected.append(newimu)
         return imu_corrected

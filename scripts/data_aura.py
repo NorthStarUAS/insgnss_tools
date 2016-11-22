@@ -156,13 +156,13 @@ def load(flight_dir, recalibrate=None):
             filter.psi = float(psi)*d2r
             filter_data.append(filter)
 
-    print 'back correcting imu data (to get original raw values)'
     cal = imucal.Calibration()
     if os.path.exists(imucal_json):
         imucal_file = imucal_json
     elif os.path.exists(imucal_xml):
         imucal_file = imucal_xml
     cal.load(imucal_file)
+    print 'back correcting imu data (to get original raw values)'
     imu_data = cal.back_correct(imu_data)
 
     if recalibrate:
