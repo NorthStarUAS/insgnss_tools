@@ -32,11 +32,10 @@ using namespace Eigen;
 
 #include "nav_functions.hxx"
 
-Vector3d llarate(Vector3d V, Vector3d lla) {
-    /* This function calculates the rate of change of latitude,
-     * longitude, and altitude using WGS-84.
-     */
 
+// This function calculates the rate of change of latitude, longitude,
+// and altitude using WGS-84.
+Vector3d llarate(Vector3d V, Vector3d lla) {
     double lat = lla(0,0);
     double h = lla(2,0);
 	
@@ -54,11 +53,9 @@ Vector3d llarate(Vector3d V, Vector3d lla) {
     return lla_dot;
 }
 
+// This function calculates the angular velocity of the NED frame,
+// also known as the navigation rate using WGS-84.
 Vector3d navrate(Vector3d V, Vector3d lla) {
-    /* This function calculates the angular velocity of the NED frame,
-     * also known as the navigation rate using WGS-84.
-     */
-
     double lat = lla(0,0);
     double h = lla(2,0);
 	
@@ -76,11 +73,9 @@ Vector3d navrate(Vector3d V, Vector3d lla) {
     return nr;
 }
 
+// This function calculates the ECEF Coordinate given the
+// Latitude, Longitude and Altitude.
 Vector3d lla2ecef(Vector3d lla) {
-    /* This function calculates the ECEF Coordinate given the
-     * Latitude, Longitude and Altitude.
-     */
-
     double sinlat = sin(lla(0,0));
     double coslat = cos(lla(0,0));
     double coslon = cos(lla(1,0));
@@ -99,6 +94,8 @@ Vector3d lla2ecef(Vector3d lla) {
     return ecef;
 }
 
+// This function calculates the Latitude, Longitude and Altitude given
+// the ECEF Coordinates.
 Vector3d ecef2lla( Vector3d ecef_pos ) {
     const double ra2 = 1.0/(EARTH_RADIUS*EARTH_RADIUS);
     const double e2 = E2;
@@ -152,11 +149,9 @@ Vector3d ecef2lla( Vector3d ecef_pos ) {
     return lla;
 }
 
+// This function converts a vector in ecef to ned coordinate centered
+// at pos_ref.
 Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref) {
-    /* This function converts a vector in ecef to ned coordinate
-     * centered at ecef_ref.
-     */
-	
     double lat = pos_ref(0,0);
     double lon = pos_ref(1,0);
     double sin_lat = sin(lat);
@@ -172,13 +167,12 @@ Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref) {
     return ned;
 }
 
-/* Return a quaternion rotation from the earth centered to the
- * simulation usual horizontal local frame from given longitude and
- * latitude.  The horizontal local frame used in simulations is the
- * frame with x-axis pointing north, the y-axis pointing eastwards and
- * the z axis pointing downwards.  (Returns the ecef2ned
- * transformation as a quaternion.)
- */
+// Return a quaternion rotation from the earth centered to the
+// simulation usual horizontal local frame from given longitude and
+// latitude.  The horizontal local frame used in simulations is the
+// frame with x-axis pointing north, the y-axis pointing eastwards and
+// the z axis pointing downwards.  (Returns the ecef2ned
+// transformation as a quaternion.)
 Quaterniond lla2quat(double lon_rad, double lat_rad) {
     Quaterniond q;
     double zd2 = 0.5*lon_rad;
@@ -194,9 +188,8 @@ Quaterniond lla2quat(double lon_rad, double lat_rad) {
     return q;
 }
 
+// This function gives a skew symmetric matrix from a given vector w
 Matrix3d sk(Vector3d w) {
-    /* This function gives a skew symmetric matrix from a given vector w */
-
     Matrix3d C;
 
     C(0,0) = 0.0;	C(0,1) = -w(2,0);	C(0,2) = w(1,0);
@@ -230,6 +223,7 @@ Vector3d quat2eul(Quaterniond q) {
     return result;
 }
 
+// Computes a quaternion from the given euler angles
 Quaterniond eul2quat(double phi, double the, double psi) {
     double sin_psi = sin(psi*0.5);
     double cos_psi = cos(psi*0.5);
@@ -247,10 +241,8 @@ Quaterniond eul2quat(double phi, double the, double psi) {
     return q;
 }
 
-// fixme: clean up math operations
+// Quaternion to C_N2B
 Matrix3d quat2dcm(Quaterniond q) {
-    /* Quaternion to C_N2B */
-
     double q0, q1, q2, q3;
     Matrix3d C_N2B;
 
