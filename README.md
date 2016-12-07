@@ -1,7 +1,7 @@
-# nav-devel
+# navigation
 
-Navigation development infrastructure for EKF development and
-evaluation.
+Navigation libraries with a development infrastructure for EKF
+development and evaluation.
 
 This code project was original put together by Hamid Mokhtarzadeh
 mokh0006 at umn dot edu in support of the research performed by the
