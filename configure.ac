@@ -72,10 +72,7 @@ AC_CONFIG_FILES([ \
 	Makefile \
         src/Makefile \
         src/include/Makefile \
-        src/utils/Makefile \
         src/nav_core/Makefile \
-        src/nav_orig/Makefile \
-        src/nav_mag/Makefile \
         src/nav_eigen/Makefile \
         src/nav_eigen_mag/Makefile \
         src/nav_openloop/Makefile \
