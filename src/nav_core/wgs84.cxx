@@ -38,10 +38,12 @@ static inline double M0( double e2 ) {
 					       e2*(5.0/256.0) )));
 }
 
-// given, lla, az1 and distance (s), return (lat2, lon2) and modify
-// *az2 (starting return heading.)  Lat, lon, and azimuth are in
-// degrees, distance in meters.
-tuple geo_direct_wgs84 ( double lat1, double lon1, double az1, double s ) {
+// given, lat1, lon1, az1 and distance (s), calculate lat2, lon2
+// and az2.  Lat, lon, and azimuth are in degrees.  distance in meters
+static int _geo_direct_wgs_84 ( double lat1, double lon1, double az1,
+                        double s, double *lat2, double *lon2,
+                        double *az2 )
+{
     double a = EQURAD, rf = iFLATTENING;
     double testv = 1.0E-10;
     double f = ( rf > 0.0 ? 1.0/rf : 0.0 );
@@ -51,20 +53,16 @@ tuple geo_direct_wgs84 ( double lat1, double lon1, double az1, double s ) {
     double sinphi1 = sin(phi1), cosphi1 = cos(phi1);
     double azm1 = az1*d2r;
     double sinaz1 = sin(azm1), cosaz1 = cos(azm1);
- 
-    double lat2;
-    double lon2;
-    double az2;
-    tuple result;
-	    
+	
+	
     if( fabs(s) < 0.01 ) {	// distance < centimeter => congruency
-	lat2 = lat1;
-	lon2 = lon1;
-	az2 = 180.0 + az1;
-	if( az2 > 360.0 ) az2 -= 360.0;
-	result = make_tuple(lat2, lon2, az2);
+	*lat2 = lat1;
+	*lon2 = lon1;
+	*az2 = 180.0 + az1;
+	if( *az2 > 360.0 ) *az2 -= 360.0;
+	return 0;
     } else if( fabs(cosphi1) > std::numeric_limits<int>::min() ) {
-	// non-polar origin
+    	// non-polar origin
 	// u1 is reduced latitude
 	double tanu1 = sqrt(1.0-e2)*sinphi1/cosphi1;
 	double sig1 = atan2(tanu1,cosaz1);
@@ -73,7 +71,7 @@ tuple geo_direct_wgs84 ( double lat1, double lon1, double az1, double s ) {
 	double us = cos2saz*e2/(1.0-e2);
 
 	// Terms
-	double ta = 1.0+us*(4096.0+us*(-768.0+us*(320.0-175.0*us)))/16384.0,
+	double	ta = 1.0+us*(4096.0+us*(-768.0+us*(320.0-175.0*us)))/16384.0,
 	    tb = us*(256.0+us*(-128.0+us*(74.0-47.0*us)))/1024.0,
 	    tc = 0;
 
@@ -99,7 +97,7 @@ tuple geo_direct_wgs84 ( double lat1, double lon1, double az1, double s ) {
 
 	// NUMERATOR
 	rnumer = sinu1*cossig+cosu1*sinsig*cosaz1;
-	lat2 = atan2(rnumer,denom)*r2d;
+	*lat2 = atan2(rnumer,denom)*r2d;
 
 	// DIFFERENCE IN LONGITUDE ON AUXILARY SPHERE (DLAMS )
 	rnumer = sinsig*sinaz1;
@@ -114,28 +112,30 @@ tuple geo_direct_wgs84 ( double lat1, double lon1, double az1, double s ) {
 				       (c2sigm+
 					tc*cossig*(-1.0+2.0*
 						   c2sigm*c2sigm)));
-	lon2 = (lam1+dlam)*r2d;
-	if (lon2 > 180.0  ) lon2 -= 360.0;
-	if (lon2 < -180.0 ) lon2 += 360.0;
+	*lon2 = (lam1+dlam)*r2d;
+	if (*lon2 > 180.0  ) *lon2 -= 360.0;
+	if (*lon2 < -180.0 ) *lon2 += 360.0;
 
 	// AZIMUTH - FROM NORTH
-	az2 = atan2(-sinaz,temp)*r2d;
-	if ( fabs(az2) < testv ) az2 = 0.0;
-	if( az2 < 0.0) az2 += 360.0;
-	result = make_tuple(lat2, lon2, az2);
+	*az2 = atan2(-sinaz,temp)*r2d;
+	if ( fabs(*az2) < testv ) *az2 = 0.0;
+	if( *az2 < 0.0) *az2 += 360.0;
+	return 0;
     } else {			// phi1 == 90 degrees, polar origin
 	double dM = a*M0(e2) - s;
 	double paz = ( phi1 < 0.0 ? 180.0 : 0.0 );
         double zero = 0.0f;
-	result = geo_direct_wgs84( zero, lon1, paz, dM );
-    }
-    return result;
+	return _geo_direct_wgs_84( zero, lon1, paz, dM, lat2, lon2, az2 );
+    } 
 }
 
 // given lat1, lon1, lat2, lon2, calculate starting and ending
 // az1, az2 and distance (s).  Lat, lon, and azimuth are in degrees.
 // distance in meters
-tuple geo_inverse_wgs84( double lat1, double lon1, double lat2, double lon2 ) {
+static int _geo_inverse_wgs_84( double lat1, double lon1, double lat2,
+				double lon2, double *az1, double *az2,
+				double *s )
+{
     double a = EQURAD, rf = iFLATTENING;
     int iter=0;
     double testv = 1.0E-10;
@@ -146,49 +146,39 @@ tuple geo_inverse_wgs84( double lat1, double lon1, double lat2, double lon2 ) {
     double sinphi1 = sin(phi1), cosphi1 = cos(phi1);
     double phi2 = lat2*d2r, lam2 = lon2*d2r;
     double sinphi2 = sin(phi2), cosphi2 = cos(phi2);
-    
-    double az1;
-    double az2;
-    double s;
-    tuple result = make_tuple(0.0, 0.0, 0.0);
-    
+	
     if( (fabs(lat1-lat2) < testv && 
 	 ( fabs(lon1-lon2) < testv)) || (fabs(lat1-90.0) < testv ) )
     {	
 	// TWO STATIONS ARE IDENTICAL : SET DISTANCE & AZIMUTHS TO ZERO */
-	az1 = 0.0; az2 = 0.0; s = 0.0;
-	result = make_tuple(az1, az2, s);
+	*az1 = 0.0; *az2 = 0.0; *s = 0.0;
+	return 0;
     } else if(  fabs(cosphi1) < testv ) {
 	// initial point is polar
-	tuple tmp = geo_inverse_wgs84( lat2, lon2, lat1, lon1 );
-	az1 = extract<double>(tmp[1]);
-	az2 = extract<double>(tmp[0]);
-	s = extract<double>(tmp[2]);
-	result = make_tuple(az1, az2, s);
+	int k = _geo_inverse_wgs_84( lat2,lon2,lat1,lon1, az1,az2,s );
+	k = k; // avoid compiler error since return result is unused
+	b = *az1; *az1 = *az2; *az2 = b;
+	return 0;
     } else if( fabs(cosphi2) < testv ) {
 	// terminal point is polar
         double _lon1 = lon1 + 180.0f;
-	tuple tmp = geo_inverse_wgs84( lat1, lon1, lat1, _lon1 );
-	az1 = extract<double>(tmp[0]);
-	az2 = extract<double>(tmp[1]);
-	s = extract<double>(tmp[2]);
-	s /= 2.0;
-	az2 = az1 + 180.0;
-	if( az2 > 360.0 ) az2 -= 360.0; 
-	result = make_tuple(az1, az2, s);
+	int k = _geo_inverse_wgs_84( lat1, lon1, lat1, _lon1, 
+				    az1, az2, s );
+	k = k; // avoid compiler error since return result is unused
+	*s /= 2.0;
+	*az2 = *az1 + 180.0;
+	if( *az2 > 360.0 ) *az2 -= 360.0; 
+	return 0;
     } else if( (fabs( fabs(lon1-lon2) - 180 ) < testv) && 
 	       (fabs(lat1+lat2) < testv) ) 
     {
 	// Geodesic passes through the pole (antipodal)
-	tuple tmp;
-	tmp = geo_inverse_wgs84( lat1,lon1, lat1,lon2 );
-	double s1 = extract<double>(tmp[2]);
-	tmp = geo_inverse_wgs84( lat2,lon2, lat1,lon2 );
-	az1 = extract<double>(tmp[0]);
-	az2 = az1;
-	double s2 = extract<double>(tmp[2]);
-	s = s1 + s2;
-	result = make_tuple(az1, az2, s);
+	double s1,s2;
+	_geo_inverse_wgs_84( lat1,lon1, lat1,lon2, az1,az2, &s1 );
+	_geo_inverse_wgs_84( lat2,lon2, lat1,lon2, az1,az2, &s2 );
+	*az2 = *az1;
+	*s = s1 + s2;
+	return 0;
     } else {
 	// antipodal and polar points don't get here
 	double dlam = lam2 - lam1, dlams = dlam;
@@ -223,7 +213,7 @@ tuple geo_inverse_wgs84( double lat1, double lon1, double lat2, double lon2 ) {
 		(sig+tc*sinsig*
 		 (c2sigm+tc*cossig*(-1.0+2.0*c2sigm*c2sigm)));
 	    if (fabs(dlams) > M_PI && iter++ > 50) {
-		result = make_tuple(0.0, 0.0, -1.0);
+		return iter;
 	    }
 	} while ( fabs(temp-dlams) > testv);
 
@@ -231,16 +221,16 @@ tuple geo_inverse_wgs84( double lat1, double lon1, double lat2, double lon2 ) {
 	// BACK AZIMUTH FROM NORTH
 	rnumer = -(cosu1*sdlams);
 	denom = sinu1*cosu2-cosu1*sinu2*cdlams;
-	az2 = atan2(rnumer,denom)*r2d;
-	if( fabs(az2) < testv ) az2 = 0.0;
-	if(az2 < 0.0) az2 += 360.0;
+	*az2 = atan2(rnumer,denom)*r2d;
+	if( fabs(*az2) < testv ) *az2 = 0.0;
+	if(*az2 < 0.0) *az2 += 360.0;
 
 	// FORWARD AZIMUTH FROM NORTH
 	rnumer = cosu2*sdlams;
 	denom = cosu1*sinu2-sinu1*cosu2*cdlams;
-	az1 = atan2(rnumer,denom)*r2d;
-	if( fabs(az1) < testv ) az1 = 0.0;
-	if(az1 < 0.0) az1 += 360.0;
+	*az1 = atan2(rnumer,denom)*r2d;
+	if( fabs(*az1) < testv ) *az1 = 0.0;
+	if(*az1 < 0.0) *az1 += 360.0;
 
 	// Terms a & b
 	ta = 1.0+us*(4096.0+us*(-768.0+us*(320.0-175.0*us)))/
@@ -248,12 +238,23 @@ tuple geo_inverse_wgs84( double lat1, double lon1, double lat2, double lon2 ) {
 	tb = us*(256.0+us*(-128.0+us*(74.0-47.0*us)))/1024.0;
 
 	// GEODETIC DISTANCE
-	s = b*ta*(sig-tb*sinsig*
+	*s = b*ta*(sig-tb*sinsig*
 		   (c2sigm+tb*(cossig*(-1.0+2.0*c2sigm*c2sigm)-tb*
 			       c2sigm*(-3.0+4.0*sinsig*sinsig)*
 			       (-3.0+4.0*c2sigm*c2sigm)/6.0)/
 		    4.0));
-	result = make_tuple(az1, az2, s);
+	return 0;
     }
-    return result;
+}
+
+tuple py_geo_direct_wgs84(double lat1, double lon1, double az1, double s) {
+    double lat2, lon2, az2;
+    _geo_direct_wgs_84( lat1, lon1, az1, s, &lat2, &lon2, &az2 );
+    return make_tuple(lat2, lon2, az2);
+}
+
+tuple py_geo_inverse_wgs84(double lat1, double lon1, double lat2, double lon2) {
+    double az1, az2, s;
+    _geo_inverse_wgs_84( lat1, lon1, lat2, lon2, &az1, &az2, &s );
+    return make_tuple(az1, az2, s);
 }

@@ -112,6 +112,6 @@ BOOST_PYTHON_MODULE(libnav_core)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
     ;
 
-    def("geo_direct_wgs84", geo_direct_wgs84);
-    def("geo_inverse_wgs84", geo_inverse_wgs84);
+    def("geo_direct_wgs84", py_geo_direct_wgs84);
+    def("geo_inverse_wgs84", py_geo_inverse_wgs84);
 }
