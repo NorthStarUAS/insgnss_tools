@@ -2,6 +2,7 @@
 // associated structures.
 
 #include "nav_structs.hxx"
+#include "wgs84.hxx"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -110,4 +111,7 @@ BOOST_PYTHON_MODULE(libnav_core)
 	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
     ;
+
+    def("geo_direct_wgs84", geo_direct_wgs84);
+    def("geo_inverse_wgs84", geo_inverse_wgs84);
 }
