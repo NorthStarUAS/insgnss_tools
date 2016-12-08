@@ -3,7 +3,8 @@ AUTOMAKE_OPTIONS = subdir-objects
 lib_LTLIBRARIES = libnav_core.la
 
 libnav_core_la_SOURCES = \
-        nav_structs.cxx nav_structs.hxx
+        nav_structs.cxx nav_structs.hxx \
+	wgs84.cxx wgs84.hxx
 
 AM_CPPFLAGS = @PYTHON_INCLUDES@
 
