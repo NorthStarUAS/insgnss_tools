@@ -24,6 +24,7 @@ import libnav_core
 import flight_data
 import data_store
 import wind
+import synth_asi
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
@@ -44,6 +45,7 @@ FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND = True
+FLAG_PLOT_SYNTH_ASI = True
 FLAG_PLOT_BIASES = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
@@ -73,7 +75,8 @@ filter2 = nav_eigen_mag.filter()
 r2d = 180.0 / math.pi
 mps2kt = 1.94384
 
-def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
+def run_filter(filter, imu_data, gps_data, air_data, filter_data,
+               pilot_data, act_data, call_init=True,
                start_time=None, end_time=None):
     data_dict = data_store.data_store()
     # t_store = []
@@ -84,6 +87,8 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
     gps_index = 0
     air_index = 0
     filter_index = 0
+    pilot_index = 0
+    act_index = 0
     new_gps = 0
     if call_init:
         filter_init = False
@@ -138,6 +143,24 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
         else:
             filterpt = None
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
+        if len(pilot_data):
+            if imupt.time > pilot_data[pilot_index].time:
+                pilot_index += 1
+            if pilot_index >= len(pilot_data):
+                # no more pilot data, stay on the last record
+                pilot_index = len(pilot_data)-1
+            pilotpt = pilot_data[pilot_index]
+        else:
+            pilotpt = None
+        if len(act_data):
+            if imupt.time > act_data[act_index].time:
+                act_index += 1
+            if act_index >= len(act_data):
+                # no more act data, stay on the last record
+                act_index = len(act_data)-1
+            actpt = act_data[act_index]
+        else:
+            actpt = None
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
@@ -156,6 +179,15 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
             if wind_deg < 0: wind_deg += 360.0
             wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
             #print wn, we, ps, wind_deg, wind_kt
+
+            # experimental: synthetic airspeed estimator
+            if synth_asi.rbfi == None:
+                synth_asi.append(navpt.phi, actpt.throttle, actpt.elevator,
+                                imupt.q, airpt.airspeed)
+            else:
+                asi_kt = synth_asi.est_airspeed(navpt.phi, actpt.throttle,
+                                               actpt.elevator, imupt.q)
+                data_dict.add_asi(airpt.airspeed, asi_kt)
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -173,12 +205,13 @@ def run_filter(filter, imu_data, gps_data, filter_data, call_init=True,
     elapsed_sec = run_end - run_start
     return data_dict, elapsed_sec
 
-
-imu_data, gps_data, air_data, filter_data = flight_data.load(args)
+imu_data, gps_data, air_data, filter_data, pilot_data, act_data = flight_data.load(args)
 print "imu records:", len(imu_data)
 print "gps records:", len(gps_data)
 print "airdata records:", len(air_data)
 print "filter records:", len(filter_data)
+print "pilot records:", len(pilot_data)
+print "act records:", len(act_data)
 if len(imu_data) == 0 and len(gps_data) == 0:
     print "not enough data loaded to continue."
     quit()
@@ -282,6 +315,25 @@ for f in filter_data:
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
     
+# Default config
+# config = libnav_core.NAVconfig()
+# config.sig_w_ax = 0.05
+# config.sig_w_ay = 0.05
+# config.sig_w_az = 0.05
+# config.sig_w_gx = 0.00175
+# config.sig_w_gy = 0.00175
+# config.sig_w_gz = 0.00175
+# config.sig_a_d  = 0.1
+# config.tau_a    = 100.0
+# config.sig_g_d  = 0.00873
+# config.tau_g    = 50.0
+# config.sig_gps_p_ne = 3.0
+# config.sig_gps_p_d  = 5.0
+# config.sig_gps_v_ne = 0.5
+# config.sig_gps_v_d  = 1.0
+# config.sig_mag      = 0.2
+# filter2.set_config(config)
+
 # almost no trust in IMU ...
 # config = libnav_core.NAVconfig()
 # config.sig_w_ax = 2.0
@@ -322,27 +374,30 @@ for f in filter_data:
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-# config = libnav_core.NAVconfig()
-# config.sig_w_ax = 0.02
-# config.sig_w_ay = 0.02
-# config.sig_w_az = 0.02
-# config.sig_w_gx = 0.001
-# config.sig_w_gy = 0.001
-# config.sig_w_gz = 0.001
-# config.sig_a_d  = 0.1
-# config.tau_a    = 100.0
-# config.sig_g_d  = 0.00873
-# config.tau_g    = 50.0
-# config.sig_gps_p_ne = 10.0
-# config.sig_gps_p_d  = 10.0
-# config.sig_gps_v_ne = 2.0
-# config.sig_gps_v_d  = 4.0
-# config.sig_mag      = 0.1
-# filter2.set_config(config)
+config = libnav_core.NAVconfig()
+config.sig_w_ax = 0.02
+config.sig_w_ay = 0.02
+config.sig_w_az = 0.02
+config.sig_w_gx = 0.00175
+config.sig_w_gy = 0.00175
+config.sig_w_gz = 0.00175
+config.sig_a_d  = 0.1
+config.tau_a    = 100.0
+config.sig_g_d  = 0.00873
+config.tau_g    = 50.0
+config.sig_gps_p_ne = 15.0
+config.sig_gps_p_d  = 20.0
+config.sig_gps_v_ne = 2.0
+config.sig_gps_v_d  = 4.0
+config.sig_mag      = 0.3
+filter1.set_config(config)
 
-data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, filter_data)
+data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, air_data, filter_data, pilot_data, act_data)
 
-data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, filter_data)
+print "building synthetic air data estimator..."
+synth_asi.build()
+
+data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, air_data, filter_data, pilot_data, act_data)
 
 print "filter1 time = %.4f" % filter1_sec
 print "filter2 time = %.4f" % filter2_sec
@@ -359,7 +414,7 @@ if args.flight or args.aura_flight:
         filter_post = os.path.join(args.flight, "filter-post.txt")
     elif args.aura_flight:
         filter_post = os.path.join(args.aura_flight, "filter-post.txt")
-    data_aura.save_filter_result(filter_post, data_dict2)
+    data_aura.save_filter_result(filter_post, data_dict1)
     
 if args.sentera_flight:
     import data_sentera
@@ -499,6 +554,17 @@ if FLAG_PLOT_WIND:
     ax2.legend(loc=1)
     ax1.grid()
 
+if FLAG_PLOT_SYNTH_ASI:
+    fig, ax1 = plt.subplots()
+    asi = data_dict2.asi
+    synth_asi = data_dict2.synth_asi
+    ax1.set_title('Synthetic Airspeed')
+    ax1.set_ylabel('Kts', weight='bold')
+    ax1.plot(t_store1, asi, label='Measured ASI', c='r', lw=2, alpha=.8)
+    ax1.plot(t_store1, synth_asi, label='Synthetic ASI', c='b', lw=2, alpha=.8)
+    ax1.legend(loc=0)
+    ax1.grid()
+    
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
     navlat = data_dict1.lat
