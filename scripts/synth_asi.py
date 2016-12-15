@@ -1,4 +1,4 @@
-# synthetic airspeed experiement
+# synthetic airspeed experiment
 
 import math
 import numpy as np
@@ -11,8 +11,6 @@ from scipy.interpolate import Rbf
 # di.shape
 # (20,)
 
-d2r = math.pi / 180.0
-
 phi_list = []
 thr_list = []
 ele_list = []
@@ -24,7 +22,7 @@ min_airspeed = 15               # kts
 
 def append(phi, thr, ele, q, airspeed):
     if airspeed >= min_airspeed:
-        phi_list.append(math.cos(phi*d2r))
+        phi_list.append(math.cos(phi))
         thr_list.append(thr)
         ele_list.append(ele)
         q_list.append(q)
@@ -120,4 +118,4 @@ def build():
                smooth=1.0)
 
 def est_airspeed(phi, thr, ele, q):
-    return rbfi(math.cos(phi*d2r), thr, ele, q)
+    return rbfi(math.cos(phi), thr, ele, q)

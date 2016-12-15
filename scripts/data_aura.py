@@ -205,6 +205,7 @@ def load(flight_dir, recalibrate=None):
         act.aux1 = float(aux1)
         act.auto_manual = float(auto_manual)
         act_data.append(act)
+        #print 'load:', act.time, act.throttle, act.elevator
         last_time = time
 
     cal = imucal.Calibration()

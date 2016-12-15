@@ -134,33 +134,25 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
         #print airpt.time
         # walk the filter counter forward as needed
         if len(filter_data):
-            if imupt.time > filter_data[filter_index].time:
+            while filter_index < len(filter_data) - 1 and filter_data[filter_index].time <= imupt.time:
                 filter_index += 1
-            if filter_index >= len(filter_data):
-                # no more filter data, stay on the last record
-                filter_index = len(filter_data)-1
             filterpt = filter_data[filter_index]
         else:
-            filterpt = None
+            filterpt = filter_data[filter_index]
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
         if len(pilot_data):
-            if imupt.time > pilot_data[pilot_index].time:
+            while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index].time <= imupt.time:
                 pilot_index += 1
-            if pilot_index >= len(pilot_data):
-                # no more pilot data, stay on the last record
-                pilot_index = len(pilot_data)-1
             pilotpt = pilot_data[pilot_index]
         else:
-            pilotpt = None
+            pilotpt = pilot_data[pilot_index]
         if len(act_data):
-            if imupt.time > act_data[act_index].time:
+            while act_index < len(act_data) - 1 and act_data[act_index].time <= imupt.time:
                 act_index += 1
-            if act_index >= len(act_data):
-                # no more act data, stay on the last record
-                act_index = len(act_data)-1
             actpt = act_data[act_index]
+            #print act_index, imupt.time, actpt.time, actpt.throttle, actpt.elevator
         else:
-            actpt = None
+            actpt = act_data[act_index]
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
@@ -182,8 +174,9 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
 
             # experimental: synthetic airspeed estimator
             if synth_asi.rbfi == None:
+                #print airpt.airspeed, actpt.throttle, actpt.elevator
                 synth_asi.append(navpt.phi, actpt.throttle, actpt.elevator,
-                                imupt.q, airpt.airspeed)
+                                 imupt.q, airpt.airspeed)
             else:
                 asi_kt = synth_asi.est_airspeed(navpt.phi, actpt.throttle,
                                                actpt.elevator, imupt.q)

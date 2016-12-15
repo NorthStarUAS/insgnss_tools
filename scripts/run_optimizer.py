@@ -199,9 +199,10 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     else:
         return 0.0
 
-imu_data, gps_data, filter_data = flight_data.load(args)
+imu_data, gps_data, air_data, filter_data, pilot_data, act_data = flight_data.load(args)
 print "imu records:", len(imu_data)
 print "gps records:", len(gps_data)
+print "air records:", len(gps_data)
 print "filter records:", len(filter_data)
 if len(imu_data) == 0 and len(gps_data) == 0:
     print "not enough data loaded to continue."
