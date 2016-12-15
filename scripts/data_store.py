@@ -42,6 +42,9 @@ class data_store():
         self.wind_kt = []
         self.pitot_scale = []
 
+        self.asi = []
+        self.synth_asi = []
+
     def append(self, insgps):
         self.data.append(insgps)
         
@@ -95,6 +98,10 @@ class data_store():
         self.wind_deg.append(wind_deg)
         self.wind_kt.append(wind_kt)
         self.pitot_scale.append(pitot_scale)
+
+    def add_asi(self, asi_kt, synth_asi_kt):
+        self.asi.append(asi_kt)
+        self.synth_asi.append(synth_asi_kt)
         
     # return the index corresponding to the given time (or the next
     # index if there is no exact match

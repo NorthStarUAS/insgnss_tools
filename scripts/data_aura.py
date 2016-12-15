@@ -18,6 +18,8 @@ def load(flight_dir, recalibrate=None):
     gps_data = []
     air_data = []
     filter_data = []
+    pilot_data = []
+    act_data = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
@@ -26,6 +28,8 @@ def load(flight_dir, recalibrate=None):
     gps_file = flight_dir + "/gps-0.txt"
     air_file = flight_dir + "/air-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
+    pilot_file = flight_dir + "/pilot-0.txt"
+    act_file = flight_dir + "/act-0.txt"
     imu_bias_file = flight_dir + "/imubias.txt"
 
     # HEY: in the latest aura code, calibrated magnetometer is logged,
@@ -106,18 +110,31 @@ def load(flight_dir, recalibrate=None):
         # but for the pruposes of the insgns algorithm, it's only
         # important to have a properly incrementing clock, it doens't
         # really matter what the zero reference point of time is.
-        time, lat, lon, alt, vn, ve, vd, unix_sec, sats, status = line.split(',')
-        if int(sats) >= 5 and time > last_time:
+        tokens = line.split(',')
+        time = float(tokens[0])
+        lat = float(tokens[1])
+        lon = float(tokens[2])
+        alt = float(tokens[3])
+        vn = float(tokens[4])
+        ve = float(tokens[5])
+        vd = float(tokens[6])
+        unix_sec = float(tokens[7])
+        sats = int(tokens[8])
+        if len(tokens) == 13:
+            status = int(tokens[12])
+        else:
+            status = int(tokens[8])
+        if sats >= 5 and time > last_time:
             gps = libnav_core.GPSdata()
-            gps.time = float(time)
-            #gps.status = int(status)
-            gps.unix_sec = float(unix_sec)
-            gps.lat = float(lat)
-            gps.lon = float(lon)
-            gps.alt = float(alt)
-            gps.vn = float(vn)
-            gps.ve = float(ve)
-            gps.vd = float(vd)
+            gps.time = time
+            #gps.status = status
+            gps.unix_sec = unix_sec
+            gps.lat = lat
+            gps.lon = lon
+            gps.alt = alt
+            gps.vn = vn
+            gps.ve = ve
+            gps.vd = vd
             gps_data.append(gps)
         last_time = time
 
@@ -156,6 +173,40 @@ def load(flight_dir, recalibrate=None):
             filter.psi = float(psi)*d2r
             filter_data.append(filter)
 
+    fpilot = fileinput.input(pilot_file)
+    last_time = -1.0
+    for line in fpilot:
+        time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
+        pilot = libnav_core.Controldata()
+        pilot.time = float(time)
+        pilot.aileron = float(aileron)
+        pilot.elevator = float(elevator)
+        pilot.throttle = float(throttle)
+        pilot.rudder = float(rudder)
+        pilot.gear = float(gear)
+        pilot.flaps = float(flaps)
+        pilot.aux1 = float(aux1)
+        pilot.auto_manual = float(auto_manual)
+        pilot_data.append(pilot)
+        last_time = time
+
+    fact = fileinput.input(act_file)
+    last_time = -1.0
+    for line in fact:
+        time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
+        act = libnav_core.Controldata()
+        act.time = float(time)
+        act.aileron = float(aileron)
+        act.elevator = float(elevator)
+        act.throttle = float(throttle)
+        act.rudder = float(rudder)
+        act.gear = float(gear)
+        act.flaps = float(flaps)
+        act.aux1 = float(aux1)
+        act.auto_manual = float(auto_manual)
+        act_data.append(act)
+        last_time = time
+
     cal = imucal.Calibration()
     if os.path.exists(imucal_json):
         imucal_file = imucal_json
@@ -171,7 +222,7 @@ def load(flight_dir, recalibrate=None):
         rcal.load(recalibrate)
         imu_data = rcal.correct(imu_data)
 
-    return imu_data, gps_data, air_data, filter_data
+    return imu_data, gps_data, air_data, filter_data, pilot_data, act_data
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')
