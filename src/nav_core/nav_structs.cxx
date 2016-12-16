@@ -56,6 +56,18 @@ BOOST_PYTHON_MODULE(libnav_core)
 	.def_readwrite("psi", &Filterdata::psi)
     ;
 
+    class_<Controldata>("Controldata")
+	.def_readwrite("time", &Controldata::time)
+	.def_readwrite("aileron", &Controldata::aileron)
+	.def_readwrite("elevator", &Controldata::elevator)
+	.def_readwrite("throttle", &Controldata::throttle)
+	.def_readwrite("rudder", &Controldata::rudder)
+	.def_readwrite("gear", &Controldata::gear)
+	.def_readwrite("flaps", &Controldata::flaps)
+	.def_readwrite("aux1", &Controldata::aux1)
+	.def_readwrite("auto_manual", &Controldata::auto_manual)
+	;
+    
     class_<NAVdata>("NAVdata")
 	.def_readwrite("time", &NAVdata::time)
 	.def_readwrite("lat", &NAVdata::lat)
