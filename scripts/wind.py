@@ -15,7 +15,7 @@ kt2mps = 1 / mps2kt
 time_factor = 30
 filt_wn = lowpass.LowPassFilter(time_factor, 0.0)
 filt_we = lowpass.LowPassFilter(time_factor, 0.0)
-filt_ps = lowpass.LowPassFilter(time_factor*1.0, 1.0)
+filt_ps = lowpass.LowPassFilter(time_factor*0.9, 1.0)
 last_time = 0.0
 
 def update_wind(time, airspeed_kt, yaw_rad, vn, ve):

@@ -22,14 +22,14 @@ min_airspeed = 15               # kts
 
 def append(phi, thr, ele, q, airspeed):
     if airspeed >= min_airspeed:
-        phi_list.append(math.cos(phi))
+        phi_list.append(math.sqrt(math.cos(phi)))
         thr_list.append(thr)
-        ele_list.append(ele)
+        ele_list.append(1.0/ele)
         q_list.append(q)
         asi_list.append(airspeed)
 
 def build():
-    bins = 25
+    bins = 40
     
     phi_array = np.array(phi_list)
     thr_array = np.array(thr_list)
@@ -118,4 +118,4 @@ def build():
                smooth=1.0)
 
 def est_airspeed(phi, thr, ele, q):
-    return rbfi(math.cos(phi), thr, ele, q)
+    return rbfi(math.sqrt(math.cos(phi)), thr, 1.0/ele, q)

@@ -185,7 +185,7 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict.append(navpt)
+            data_dict.append(navpt, imupt)
             data_dict.add_wind(wind_deg, wind_kt, ps)
 
         # Increment time up one step for the next iteration of the
@@ -307,6 +307,10 @@ for f in filter_data:
     vn_flight.append(f.vn)
     ve_flight.append(f.ve)
     vd_flight.append(f.vd)
+
+r_flight = []
+for i in imu_data:
+    r_flight.append(i.r)
     
 # Default config
 # config = libnav_core.NAVconfig()
@@ -530,6 +534,17 @@ if FLAG_PLOT_ALTITUDE:
     plt.grid()
 
 # Wind Plot
+def gen_func( coeffs, min, max, steps ):
+    xvals = []
+    yvals = []
+    step = (max - min) / steps
+    func = np.poly1d(coeffs)
+    for x in np.arange(min, max+step, step):
+        y = func(x)
+        xvals.append(x)
+        yvals.append(y)
+    return xvals, yvals
+
 if FLAG_PLOT_WIND:
     fig, ax1 = plt.subplots()
     wind_deg = data_dict2.wind_deg
@@ -558,6 +573,31 @@ if FLAG_PLOT_SYNTH_ASI:
     ax1.legend(loc=0)
     ax1.grid()
     
+    # plot roll vs. yaw rate
+    roll_array = []
+    r_array = []
+    for i in range(len(data_dict1.phi)):
+        vn = data_dict1.vn[i]
+        ve = data_dict1.ve[i]
+        vel = math.sqrt(vn*vn + ve*ve)
+        phi = data_dict1.phi[i]
+        r = data_dict1.r[i]
+        if vel > 8 and abs(phi) <= 0.2:
+            roll_array.append(phi)
+            r_array.append(r)
+    roll_array = np.array(roll_array)
+    r_array = np.array(r_array)
+    roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 1, full=True )
+    print roll_cal
+    print 'zero turn @ bank =', (-roll_cal[1] / roll_cal[0]) * 180 / math.pi, 'deg'
+    xvals, yvals = gen_func(roll_cal, roll_array.min(), roll_array.max(), 100)
+    fig, ax1 = plt.subplots()
+    ax1.set_title('Turn Calibration')
+    ax1.set_xlabel('Bank angle (rad)', weight='bold')
+    ax1.set_ylabel('Turn rate (rad/sec)', weight='bold')
+    ax1.plot(roll_array, r_array, '*', label='bank vs. turn', c='r', lw=2, alpha=.8)
+    ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
+
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
     navlat = data_dict1.lat
