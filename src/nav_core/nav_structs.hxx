@@ -39,13 +39,6 @@ struct Airdata {
     double altitude;		// meters
 };
 
-struct Filterdata {
-    double time;		// seconds
-    double lat, lon, alt;	// rad, meter
-    double vn, ve, vd;		// m/sec
-    double phi, the, psi;	// rad
-};
-
 struct Controldata {
     double time;		// seconds
     double aileron;		// normalized

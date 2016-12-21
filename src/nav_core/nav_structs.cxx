@@ -43,19 +43,6 @@ BOOST_PYTHON_MODULE(libnav_core)
 	.def_readwrite("altitude", &Airdata::altitude)
     ;
 
-    class_<Filterdata>("Filterdata")
-	.def_readwrite("time", &Filterdata::time)
-	.def_readwrite("lat", &Filterdata::lat)
-	.def_readwrite("lon", &Filterdata::lon)
-	.def_readwrite("alt", &Filterdata::alt)
-	.def_readwrite("vn", &Filterdata::vn)
-	.def_readwrite("ve", &Filterdata::ve)
-	.def_readwrite("vd", &Filterdata::vd)
-	.def_readwrite("phi", &Filterdata::phi)
-	.def_readwrite("the", &Filterdata::the)
-	.def_readwrite("psi", &Filterdata::psi)
-    ;
-
     class_<Controldata>("Controldata")
 	.def_readwrite("time", &Controldata::time)
 	.def_readwrite("aileron", &Controldata::aileron)
