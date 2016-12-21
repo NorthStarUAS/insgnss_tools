@@ -4,6 +4,7 @@ import fileinput
 import numpy as np
 import os
 import math
+import re
 
 import imucal
 
@@ -110,7 +111,7 @@ def load(flight_dir, recalibrate=None):
         # but for the pruposes of the insgns algorithm, it's only
         # important to have a properly incrementing clock, it doens't
         # really matter what the zero reference point of time is.
-        tokens = line.split(',')
+        tokens = re.split('[,\s]+', line.rstrip())
         time = float(tokens[0])
         lat = float(tokens[1])
         lon = float(tokens[2])
@@ -120,10 +121,6 @@ def load(flight_dir, recalibrate=None):
         vd = float(tokens[6])
         unix_sec = float(tokens[7])
         sats = int(tokens[8])
-        if len(tokens) == 13:
-            status = int(tokens[12])
-        else:
-            status = int(tokens[8])
         if sats >= 5 and time > last_time:
             gps = libnav_core.GPSdata()
             gps.time = time
@@ -213,9 +210,12 @@ def load(flight_dir, recalibrate=None):
         imucal_file = imucal_json
     elif os.path.exists(imucal_xml):
         imucal_file = imucal_xml
-    cal.load(imucal_file)
-    print 'back correcting imu data (to get original raw values)'
-    imu_data = cal.back_correct(imu_data)
+    else:
+        imucal_file = None
+    if imucal_file:
+        cal.load(imucal_file)
+        print 'back correcting imu data (to get original raw values)'
+        imu_data = cal.back_correct(imu_data)
 
     if recalibrate:
         print 'recalibrating imu data using alternate calibration file:', recalibrate

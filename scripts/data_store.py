@@ -38,6 +38,13 @@ class data_store():
         self.Pab = []
         self.Pgb = []
 
+        self.p = []
+        self.q = []
+        self.r = []
+        self.ax = []
+        self.ay = []
+        self.az = []
+        
         self.wind_deg = []
         self.wind_kt = []
         self.pitot_scale = []
@@ -45,7 +52,7 @@ class data_store():
         self.asi = []
         self.synth_asi = []
 
-    def append(self, insgps):
+    def append(self, insgps, imupt):
         self.data.append(insgps)
         
         self.time.append(insgps.time)
@@ -73,6 +80,13 @@ class data_store():
         self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
+        self.p.append(imupt.p)
+        self.q.append(imupt.q)
+        self.r.append(imupt.r)
+        self.ax.append(imupt.ax)
+        self.ay.append(imupt.ay)
+        self.az.append(imupt.az)
+        
     def append_from_filter(self, filterpt):
         self.time.append(filterpt.time)
         self.psi.append(filterpt.psi)
