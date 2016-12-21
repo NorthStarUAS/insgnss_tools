@@ -89,9 +89,9 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
     airpt = libnav_core.Airdata()
     filter_index = 0
     pilot_index = 0
-    pilotpt = libnav_core.Controldata()
+    pilotpt = None
     act_index = 0
-    actpt = libnav_core.Controldata()
+    actpt = None
     new_gps = 0
     if call_init:
         filter_init = False

@@ -24,7 +24,7 @@ def append(phi, thr, ele, q, airspeed):
     if airspeed >= min_airspeed:
         phi_list.append(math.sqrt(math.cos(phi)))
         thr_list.append(thr)
-        ele_list.append(1.0/ele)
+        ele_list.append(ele)
         q_list.append(q)
         asi_list.append(airspeed)
 
@@ -118,4 +118,4 @@ def build():
                smooth=1.0)
 
 def est_airspeed(phi, thr, ele, q):
-    return rbfi(math.sqrt(math.cos(phi)), thr, 1.0/ele, q)
+    return rbfi(math.sqrt(math.cos(phi)), thr, ele, q)

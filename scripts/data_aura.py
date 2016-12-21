@@ -14,6 +14,10 @@ import libnav_core
 
 d2r = math.pi / 180.0
 
+# empty class we'll fill in with data members
+class Controldata:
+    pass
+
 def load(flight_dir, recalibrate=None):
     imu_data = []
     gps_data = []
@@ -174,7 +178,7 @@ def load(flight_dir, recalibrate=None):
     last_time = -1.0
     for line in fpilot:
         time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
-        pilot = libnav_core.Controldata()
+        pilot = Controldata()
         pilot.time = float(time)
         pilot.aileron = float(aileron)
         pilot.elevator = float(elevator)
@@ -191,7 +195,7 @@ def load(flight_dir, recalibrate=None):
     last_time = -1.0
     for line in fact:
         time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
-        act = libnav_core.Controldata()
+        act = Controldata()
         act.time = float(time)
         act.aileron = float(aileron)
         act.elevator = float(elevator)
