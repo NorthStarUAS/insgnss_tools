@@ -19,7 +19,9 @@ import os
 
 import nav.structs
 
-from nav.data import flight_data, data_store, data_aura
+from nav.data import flight_data, aura
+
+import data_store
 import wind
 import synth_asi
 

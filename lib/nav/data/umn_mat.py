@@ -10,7 +10,7 @@ join = os.path.join
 import numpy as np
 from scipy import io as sio
 
-import nav.structs
+from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
 mps2kt = 1.94384
 
@@ -137,7 +137,7 @@ def load(mat_filename):
         #hf = np.dot(mag_affine, s)
         hf = s
 
-        imu_pt = nav.structs.IMUdata()
+        imu_pt = IMUdata()
         imu_pt.time = float(t[k])
         imu_pt.p = float(p)
         imu_pt.q = float(q)
@@ -156,7 +156,7 @@ def load(mat_filename):
 
         if abs(alt[k] - last_gps_alt) > 0.0001:
             last_gps_alt = alt[k]
-            gps_pt = nav.structs.GPSdata()
+            gps_pt = GPSdata()
             gps_pt.time = float(t[k])
             #gps_pt.status = int(status)
             gps_pt.unix_sec = float(t[k])
@@ -168,13 +168,13 @@ def load(mat_filename):
             gps_pt.vd = float(vd[k])
             gps_data.append(gps_pt)
 
-        air_pt = nav.structs.Airdata()
+        air_pt = Airdata()
         air_pt.time = float(t[k])
         air_pt.airspeed = float(flight_data.ias[k]*mps2kt)
         air_pt.altitude = float(flight_data.h[k])
         air_data.append(air_pt)
         
-        nav = nav.structs.NAVdata()
+        nav = NAVdata()
         nav.time = float(t[k])
         nav.lat = float(flight_data.navlat[k])
         nav.lon = float(flight_data.navlon[k])
