@@ -29,6 +29,13 @@ setup(name='navigation',
                       depends=['src/nav_eigen_mag/EKF_15state_mag.hxx',
                                'src/core/nav_functions.hxx',
                                'src/core/coremag.h']),
-            Extension('openloop', ['src/nav_openloop/openloop.cxx', 'src/nav_openloop/glocal.cxx', 'src/core/nav_functions.cxx'], libraries=['boost_python'])
+            Extension('openloop',
+                      ['src/nav_openloop/openloop.cxx',
+                       'src/nav_openloop/glocal.cxx',
+                       'src/core/nav_functions.cxx'],
+                      libraries=['boost_python'],
+                      depends=['src/nav_openloop/openloop.hxx',
+                               'src/nav_openloop/glocal.hxx',
+                               'src/core/nav_functions.hxx'])
       ],
      )
