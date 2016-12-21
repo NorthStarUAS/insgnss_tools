@@ -30,7 +30,7 @@ def isFloat(string):
 def load(flight_dir):
     imu_data = []
     gps_data = []
-    nav_data = []
+    filter_data = []
     air_data = []
 
     # load imu/gps data files
@@ -226,12 +226,12 @@ def load(flight_dir):
                 nav.phi = float(tokens[11]) / 10000
                 nav.the = float(tokens[12]) / 10000
                 nav.psi = float(tokens[13]) / 10000
-                nav_data.append(nav)
+                filter_data.append(nav)
 
             else:
                 print 'procerus-metadata.csv: unknown structure:', line
                 
-    return imu_data, gps_data, air_data, nav_data
+    return imu_data, gps_data, air_data, filter_data
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')

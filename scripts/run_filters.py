@@ -21,8 +21,7 @@ import sys
 sys.path.append('../build/src/nav_core/.libs/')
 import libnav_core
 
-import flight_data
-import data_store
+from nav_data import flight_data, data_store, data_aura
 import wind
 import synth_asi
 
@@ -411,7 +410,6 @@ else:
     print "filter2 is %.1f%% slower" % (-perc * 100.0)
 
 if args.flight or args.aura_flight:
-    import data_aura
     if args.flight:
         filter_post = os.path.join(args.flight, "filter-post.txt")
     elif args.aura_flight:
