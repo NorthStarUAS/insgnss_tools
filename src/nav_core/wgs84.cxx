@@ -258,3 +258,10 @@ tuple py_geo_inverse_wgs84(double lat1, double lon1, double lat2, double lon2) {
     _geo_inverse_wgs_84( lat1, lon1, lat2, lon2, &az1, &az2, &s );
     return make_tuple(az1, az2, s);
 }
+
+
+BOOST_PYTHON_MODULE(wgs84)
+{
+    def("geo_direct_wgs84", py_geo_direct_wgs84);
+    def("geo_inverse_wgs84", py_geo_inverse_wgs84);
+}

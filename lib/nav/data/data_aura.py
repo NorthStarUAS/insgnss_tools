@@ -8,7 +8,7 @@ import re
 
 import imucal
 
-import nav.nav_core
+from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
 d2r = math.pi / 180.0
 
@@ -91,7 +91,7 @@ def load(flight_dir, recalibrate=None):
         s = [float(hx), float(hy), float(hz), 1.0]
         hf = np.dot(mag_affine, s)
         #print hf
-        imu = libnav_core.IMUdata()
+        imu = IMUdata()
         imu.time = float(time)
         imu.p = float(p)
         imu.q = float(q)
@@ -124,7 +124,7 @@ def load(flight_dir, recalibrate=None):
         unix_sec = float(tokens[7])
         sats = int(tokens[8])
         if sats >= 5 and time > last_time:
-            gps = libnav_core.GPSdata()
+            gps = GPSdata()
             gps.time = time
             #gps.status = status
             gps.unix_sec = unix_sec
@@ -140,7 +140,7 @@ def load(flight_dir, recalibrate=None):
     fair = fileinput.input(air_file)
     for line in fair:
         tokens = line.split(',')
-        air = libnav_core.Airdata()
+        air = Airdata()
         air.time = float(tokens[0])
         air.static_press = float(tokens[1])
         air.diff_press = 0.0    # not directly available in flight log
@@ -159,7 +159,7 @@ def load(flight_dir, recalibrate=None):
                 psi = psi - 360.0
             if psi < -180.0:
                 psi = psi - 360.0
-            nav = libnav_core.NAVdata()
+            nav = NAVdata()
             nav.time = float(time)
             nav.lat = float(lat)*d2r
             nav.lon = float(lon)*d2r

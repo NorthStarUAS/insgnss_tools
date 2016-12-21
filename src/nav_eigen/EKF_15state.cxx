@@ -411,7 +411,7 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_eigen)
+BOOST_PYTHON_MODULE(EKF15)
 {
     class_<EKF15>("EKF15")
         .def("set_config", &EKF15::set_config)

@@ -8,7 +8,7 @@ from props import PropertyNode, root, getNode
 import props_json
 import props_xml
 
-import nav.nav_core
+import nav.structs
 
 class Calibration():
     def __init__(self):
@@ -191,7 +191,7 @@ class Calibration():
         ay_scale_func = np.poly1d(self.ay_scale)
         az_scale_func = np.poly1d(self.az_scale)
         for imu in imu_data:
-            newimu = libnav_core.IMUdata()
+            newimu = nav.structs.IMUdata()
             newimu.time = imu.time
             temp = imu.temp
             newimu.temp = temp
@@ -236,7 +236,7 @@ class Calibration():
         ay_scale_func = np.poly1d(self.ay_scale)
         az_scale_func = np.poly1d(self.az_scale)
         for imu in imu_data:
-            newimu = libnav_core.IMUdata()
+            newimu = nav.structs.IMUdata()
             newimu.time = imu.time
             temp = imu.temp
             newimu.temp = temp

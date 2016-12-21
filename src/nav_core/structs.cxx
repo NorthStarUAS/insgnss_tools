@@ -1,13 +1,13 @@
 // The following constructs a python interface for this class and
 // associated structures.
 
-#include "nav_structs.hxx"
+#include "structs.hxx"
 #include "wgs84.hxx"
 
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(nav_core)
+BOOST_PYTHON_MODULE(structs)
 {
     class_<IMUdata>("IMUdata")
 	.def_readwrite("time", &IMUdata::time)
@@ -98,7 +98,4 @@ BOOST_PYTHON_MODULE(nav_core)
 	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
     ;
-
-    def("geo_direct_wgs84", py_geo_direct_wgs84);
-    def("geo_inverse_wgs84", py_geo_inverse_wgs84);
 }

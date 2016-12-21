@@ -17,9 +17,7 @@ import numpy as np
 import time
 import os
 
-#import sys
-#sys.path.append('../build/src/nav_core/.libs/')
-import nav.nav_core
+import nav.structs
 
 from nav.data import flight_data, data_store, data_aura
 import wind
@@ -60,7 +58,7 @@ import navpy
 import nav_eigen
 import nav_eigen_mag
 import nav_openloop
-import MadgwickAHRS
+#import MadgwickAHRS
 
 filter1 = nav_eigen.filter()
 #filter1 = nav_mag.filter()
@@ -83,7 +81,7 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
     run_start = time.time()
     gps_index = 0
     air_index = 0
-    airpt = libnav_core.Airdata()
+    airpt = nav.structs.Airdata()
     filter_index = 0
     pilot_index = 0
     pilotpt = None
@@ -164,7 +162,7 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
 
         if filter_init:
             # experimental: run wind estimator
-            print airpt.airspeed
+            # print airpt.airspeed
             (wn, we, ps) = wind.update_wind(imupt.time, airpt.airspeed,
                                             navpt.psi, navpt.vn, navpt.ve)
             #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
@@ -314,7 +312,7 @@ for i in imu_data:
     r_flight.append(i.r)
     
 # Default config
-# config = libnav_core.NAVconfig()
+# config = nav.structs.NAVconfig()
 # config.sig_w_ax = 0.05
 # config.sig_w_ay = 0.05
 # config.sig_w_az = 0.05
@@ -333,7 +331,7 @@ for i in imu_data:
 # filter2.set_config(config)
 
 # almost no trust in IMU ...
-# config = libnav_core.NAVconfig()
+# config = nav.structs.NAVconfig()
 # config.sig_w_ax = 2.0
 # config.sig_w_ay = 2.0
 # config.sig_w_az = 2.0
@@ -352,7 +350,7 @@ for i in imu_data:
 # filter2.set_config(config)
 
 # less than default trust in IMU ...
-# config = libnav_core.NAVconfig()
+# config = nav.structs.NAVconfig()
 # config.sig_w_ax = 0.1
 # config.sig_w_ay = 0.1
 # config.sig_w_az = 0.1
@@ -372,7 +370,7 @@ for i in imu_data:
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-config = libnav_core.NAVconfig()
+config = nav.structs.NAVconfig()
 config.sig_w_ax = 0.02
 config.sig_w_ay = 0.02
 config.sig_w_az = 0.02

@@ -2,12 +2,11 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('../build/src/nav_eigen/.libs/')
-import libnav_eigen
+import nav.EKF15
 
 class filter():
     def __init__(self):
-        self.ekf = libnav_eigen.EKF15()
+        self.ekf = nav.EKF15.EKF15()
         self.name = 'EKF15'
 
     def set_config(self, config):

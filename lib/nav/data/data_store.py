@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-import nav.nav_core
+import nav.structs
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
@@ -127,7 +127,7 @@ class data_store():
 
 # return a record filled in with half the difference between 
 def diff_split(nav1, nav2):
-    diff = libnav_core.NAVdata()
+    diff = nav.structs.NAVdata()
     
     diff.time = nav1.time
     print ' err t =', diff.time
@@ -162,7 +162,7 @@ def diff_split(nav1, nav2):
 
 # return a weighted average of the two records
 def weighted_avg(nav1, nav2, w):
-    avg = libnav_core.NAVdata()
+    avg = nav.structs.NAVdata()
 
     a = w
     b = 1 - w
@@ -187,7 +187,7 @@ def weighted_avg(nav1, nav2, w):
     
 # return a weighted average of the two records
 def sum(nav1, nav2):
-    result = libnav_core.NAVdata()
+    result = nav.structs.NAVdata()
 
     result.time = nav1.time
     result.psi = nav1.psi + nav2.psi

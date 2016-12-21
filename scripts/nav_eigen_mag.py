@@ -2,13 +2,12 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('../build/src/nav_eigen_mag/.libs/')
-import libnav_eigen_mag
+import nav.EKF15_mag
 
 class filter():
     def __init__(self):
-        self.ekf = libnav_eigen_mag.EKF15mag()
-        self.name = 'EKF15+Mag'
+        self.ekf = nav.EKF15_mag.EKF15_mag()
+        self.name = 'EKF15_mag'
 
     def set_config(self, config):
         self.ekf.set_config(config)

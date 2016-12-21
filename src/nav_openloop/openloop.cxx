@@ -191,9 +191,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_openloop)
+BOOST_PYTHON_MODULE(openloop)
 {
-    class_<OpenLoop>("OpenLoop")
+    class_<OpenLoop>("openloop")
         .def("init", &OpenLoop::init)
         .def("set_pos", &OpenLoop::set_pos)
         .def("set_vel", &OpenLoop::set_vel)

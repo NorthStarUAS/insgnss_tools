@@ -12,7 +12,7 @@ import re
 
 import navpy
 
-import nav.nav_core
+import nav.structs
 
 d2r = math.pi / 180.0
 g = 9.81
@@ -103,7 +103,7 @@ def load(flight_dir):
                 # print len(tokens)
                 if len(tokens) == 15 and isFloat(tokens[0]) and float(tokens[0]) > 0:
                     #(time, p, q, r, ax, ay, az, hx, hy, hz, temp, roll, pitch, yaw, yaw_accuracy) = tokens
-                    imu = libnav_core.IMUdata()
+                    imu = nav.structs.IMUdata()
                     imu.time = float(tokens[0])/1000000000.0 # nanosec
                     # remap axis before applying mag calibration
                     imu.p =  float(tokens[2])
@@ -183,7 +183,7 @@ def load(flight_dir):
             tokens = line.split(',')
             if len(tokens) == 36:
                 if imu_source == 'autopilot':
-                    imu = libnav_core.IMUdata()
+                    imu = nav.structs.IMUdata()
                     imu.time = float(tokens[0])/1000000000.0 # nanosec
                     imu.p = float(tokens[20]) / 10000.0
                     imu.q = float(tokens[21]) / 10000.0
@@ -197,7 +197,7 @@ def load(flight_dir):
                     imu.temp = 15.0
                     imu_data.append( imu )
                 
-                gps = libnav_core.GPSdata()
+                gps = nav.structs.GPSdata()
                 gps.time = float(tokens[0]) / 1000000000.0 # nanosec
                 gps.unix_sec = gps.time
                 gps.lat = float(tokens[5]) / 10000000.0
@@ -208,12 +208,12 @@ def load(flight_dir):
                 gps.vd = float(tokens[10])
                 gps_data.append(gps)
 
-                air = libnav_core.Airdata()
+                air = nav.structs.Airdata()
                 air.time = float(tokens[0]) / 1000000000.0 # nanosec
                 air.airspeed = (float(tokens[29])-2000) * mps2kt / 100.0
                 air_data.append( air )
                 
-                nav = libnav_core.NAVdata()
+                nav = nav.structs.NAVdata()
                 nav.time = float(tokens[0]) / 1000000000.0 # nanosec
                 nav.lat = (float(tokens[5]) / 10000000.0) * d2r
                 nav.lon = (float(tokens[6]) / 10000000.0) * d2r

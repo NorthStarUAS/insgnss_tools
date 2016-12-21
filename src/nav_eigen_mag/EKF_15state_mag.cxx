@@ -451,9 +451,9 @@ NAVdata EKF15mag::update(IMUdata imu, GPSdata gps) {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(libnav_eigen_mag)
+BOOST_PYTHON_MODULE(EKF15_mag)
 {
-    class_<EKF15mag>("EKF15mag")
+    class_<EKF15mag>("EKF15_mag")
         .def("set_config", &EKF15mag::set_config)
         .def("init", &EKF15mag::init)
         .def("update", &EKF15mag::update)

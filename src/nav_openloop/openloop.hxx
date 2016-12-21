@@ -24,7 +24,7 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav_core/nav_structs.hxx"
+#include "../nav_core/structs.hxx"
 #include "../nav_core/nav_functions.hxx"
 
 // usefule constants

@@ -8,7 +8,7 @@ import re
 
 import navpy
 
-import nav.nav_core
+import nav.structs
 
 d2r = math.pi / 180.0
 g = 9.81
@@ -125,7 +125,7 @@ def load(flight_dir):
                 #hy_new /= norm
                 #hz_new /= norm
                 
-                imu = libnav_core.IMUdata()
+                imu = nav.structs.IMUdata()
                 imu.time = float(time)/1000000.0
                 imu.p = p
                 imu.q = q
@@ -166,7 +166,7 @@ def load(flight_dir):
                                   float(ecefvz)/100.0],
                                  llh[0], llh[1], llh[2])
             if int(numsvs) >= 4:
-                gps = libnav_core.GPSdata()
+                gps = nav.structs.GPSdata()
                 gps.time = float(time)/1000000.0
                 #gps.status = int(status)
                 gps.unix_sec = float(time)/1000000.0 # make filter happy
