@@ -2,7 +2,7 @@
 using std::cout;
 using std::endl;
 
-#include "../nav_core/nav_functions.hxx"
+#include "../core/nav_functions.hxx"
 
 #include "glocal.hxx"
 #include "openloop.hxx"
