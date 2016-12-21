@@ -1,7 +1,8 @@
 # navigation
 
-Navigation libraries with a development infrastructure for EKF
-development and evaluation.
+Navigation (EKF) libraries suitable for use in small UAS applications.
+The code is structured with dual C++ and python interfaces.  It
+includes a plotting librar for comparing filters or configurations.
 
 This code project was original put together by Hamid Mokhtarzadeh
 mokh0006 at umn dot edu in support of the research performed by the
@@ -16,6 +17,8 @@ Mechanics Deptarment, University of Minnesota.
 
 * Ardupilot tlog (partial support, I would be happy to find a
   volunteer to improve this.)
+
+* Sentera camera IMU format
 
 # Available filters
 
@@ -36,5 +39,5 @@ Mechanics Deptarment, University of Minnesota.
 * Core filters are written in C/C++ but the infrastructure, data
   loading, and plotting is handled in python.
 
-* Uses boost/python to create loadable python modules from the C/C++
-  code.
+* Uses boost/python so that the same core C++ code can be used from
+  either C++ or python applications.
