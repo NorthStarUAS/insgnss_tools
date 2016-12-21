@@ -18,6 +18,7 @@ import libnav_core
 
 d2r = math.pi / 180.0
 g = 9.81
+mps2kt = 1.94384
 
 def isFloat(string):
     try:
@@ -29,7 +30,8 @@ def isFloat(string):
 def load(flight_dir):
     imu_data = []
     gps_data = []
-    filter_data = []
+    nav_data = []
+    air_data = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu.csv"
@@ -208,23 +210,28 @@ def load(flight_dir):
                 gps.vd = float(tokens[10])
                 gps_data.append(gps)
 
-                filter = libnav_core.Filterdata()
-                filter.time = float(tokens[0]) / 1000000000.0 # nanosec
-                filter.lat = (float(tokens[5]) / 10000000.0) * d2r
-                filter.lon = (float(tokens[6]) / 10000000.0) * d2r
-                filter.alt = float(tokens[7])
-                filter.vn = float(tokens[8])
-                filter.ve = float(tokens[9])
-                filter.vd = float(tokens[10])
-                filter.phi = float(tokens[11]) / 10000
-                filter.the = float(tokens[12]) / 10000
-                filter.psi = float(tokens[13]) / 10000
-                filter_data.append(filter)
+                air = libnav_core.Airdata()
+                air.time = float(tokens[0]) / 1000000000.0 # nanosec
+                air.airspeed = (float(tokens[29])-2000) * mps2kt / 100.0
+                air_data.append( air )
+                
+                nav = libnav_core.NAVdata()
+                nav.time = float(tokens[0]) / 1000000000.0 # nanosec
+                nav.lat = (float(tokens[5]) / 10000000.0) * d2r
+                nav.lon = (float(tokens[6]) / 10000000.0) * d2r
+                nav.alt = float(tokens[7])
+                nav.vn = float(tokens[8])
+                nav.ve = float(tokens[9])
+                nav.vd = float(tokens[10])
+                nav.phi = float(tokens[11]) / 10000
+                nav.the = float(tokens[12]) / 10000
+                nav.psi = float(tokens[13]) / 10000
+                nav_data.append(nav)
 
             else:
                 print 'procerus-metadata.csv: unknown structure:', line
                 
-    return imu_data, gps_data, filter_data
+    return imu_data, gps_data, air_data, nav_data
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')

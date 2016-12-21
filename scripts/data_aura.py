@@ -157,18 +157,18 @@ def load(flight_dir, recalibrate=None):
                 psi = psi - 360.0
             if psi < -180.0:
                 psi = psi - 360.0
-            filter = libnav_core.Filterdata()
-            filter.time = float(time)
-            filter.lat = float(lat)*d2r
-            filter.lon = float(lon)*d2r
-            filter.alt = float(alt)
-            filter.vn = float(vn)
-            filter.ve = float(ve)
-            filter.vd = float(vd)
-            filter.phi = float(phi)*d2r
-            filter.the = float(the)*d2r
-            filter.psi = float(psi)*d2r
-            filter_data.append(filter)
+            nav = libnav_core.NAVdata()
+            nav.time = float(time)
+            nav.lat = float(lat)*d2r
+            nav.lon = float(lon)*d2r
+            nav.alt = float(alt)
+            nav.vn = float(vn)
+            nav.ve = float(ve)
+            nav.vd = float(vd)
+            nav.phi = float(phi)*d2r
+            nav.the = float(the)*d2r
+            nav.psi = float(psi)*d2r
+            filter_data.append(nav)
 
     fpilot = fileinput.input(pilot_file)
     last_time = -1.0

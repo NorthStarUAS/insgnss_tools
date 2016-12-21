@@ -25,7 +25,7 @@ def load(args):
     elif args.sentera_flight:
         imu_data, gps_data, filter_data = data_sentera.load(args.sentera_flight)
     elif args.sentera2_flight:
-        imu_data, gps_data, filter_data = data_sentera2.load(args.sentera2_flight)
+        imu_data, gps_data, air_data, filter_data = data_sentera2.load(args.sentera2_flight)
     elif args.umn_flight:
         imu_data, gps_data, air_data, filter_data = data_umn.load(args.umn_flight)
     else:
