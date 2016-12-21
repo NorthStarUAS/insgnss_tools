@@ -12,9 +12,7 @@ import re
 
 import navpy
 
-import sys
-sys.path.append('../build/src/nav_core/.libs/')
-import libnav_core
+import nav.nav_core
 
 d2r = math.pi / 180.0
 g = 9.81

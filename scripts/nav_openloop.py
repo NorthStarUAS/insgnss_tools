@@ -2,9 +2,9 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('../build/src/nav_core/.libs/')
+import nav.nav_core
+
 sys.path.append('../build/src/nav_openloop/.libs/')
-import libnav_core
 import libnav_openloop
 
 class filter():

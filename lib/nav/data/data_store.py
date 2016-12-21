@@ -1,9 +1,7 @@
 import math
 import numpy as np
 
-import sys
-sys.path.append('../build/src/nav_core/.libs/')
-import libnav_core
+import nav.nav_core
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0

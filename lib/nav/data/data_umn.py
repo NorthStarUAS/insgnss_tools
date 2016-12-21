@@ -10,9 +10,7 @@ join = os.path.join
 import numpy as np
 from scipy import io as sio
 
-import sys
-sys.path.append('../build/src/nav_core/.libs/')
-import libnav_core
+import nav.nav_core
 
 mps2kt = 1.94384
 

@@ -17,11 +17,11 @@ import numpy as np
 import time
 import os
 
-import sys
-sys.path.append('../build/src/nav_core/.libs/')
-import libnav_core
+#import sys
+#sys.path.append('../build/src/nav_core/.libs/')
+import nav.nav_core
 
-from nav_data import flight_data, data_store, data_aura
+from nav.data import flight_data, data_store, data_aura
 import wind
 import synth_asi
 
@@ -57,8 +57,6 @@ from matplotlib import pyplot as plt
 import navpy
 
 # filter interfaces
-import nav_orig
-import nav_mag
 import nav_eigen
 import nav_eigen_mag
 import nav_openloop

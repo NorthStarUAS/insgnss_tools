@@ -8,9 +8,7 @@ from props import PropertyNode, root, getNode
 import props_json
 import props_xml
 
-import sys
-sys.path.append('../build/src/nav_core/.libs/')
-import libnav_core
+import nav.nav_core
 
 class Calibration():
     def __init__(self):

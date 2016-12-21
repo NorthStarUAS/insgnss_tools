@@ -39,18 +39,6 @@ struct Airdata {
     double altitude;		// meters
 };
 
-struct Controldata {
-    double time;		// seconds
-    double aileron;		// normalized
-    double elevator;
-    double throttle;
-    double rudder;
-    double gear;
-    double flaps;
-    double aux1;
-    double auto_manual;
-};
-
 /// Define status message enum list
 enum errdefs {
     got_invalid,		// No data received
