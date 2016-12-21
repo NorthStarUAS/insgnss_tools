@@ -1,7 +1,7 @@
-import data_aura
-import data_sentera
-import data_sentera2
-import data_umn
+import aura
+import sentera
+import sentera2
+import umn_mat
 
 def load(args):
     imu_data = []
@@ -18,16 +18,16 @@ def load(args):
         
     if args.flight:
         imu_data, gps_data, air_data, filter_data, pilot_data, act_data = \
-            data_aura.load(args.flight, recal_file)
+            aura.load(args.flight, recal_file)
     elif args.aura_flight:
         imu_data, gps_data, air_data, filter_data, pilot_data, act_data = \
-            data_aura.load(args.aura_flight, recal_file)
+            aura.load(args.aura_flight, recal_file)
     elif args.sentera_flight:
-        imu_data, gps_data, filter_data = data_sentera.load(args.sentera_flight)
+        imu_data, gps_data, filter_data = sentera.load(args.sentera_flight)
     elif args.sentera2_flight:
-        imu_data, gps_data, air_data, filter_data = data_sentera2.load(args.sentera2_flight)
+        imu_data, gps_data, air_data, filter_data = sentera2.load(args.sentera2_flight)
     elif args.umn_flight:
-        imu_data, gps_data, air_data, filter_data = data_umn.load(args.umn_flight)
+        imu_data, gps_data, air_data, filter_data = umn_mat.load(args.umn_flight)
     else:
         print "no valid input file / dir specified"
         
