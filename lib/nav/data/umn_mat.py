@@ -122,10 +122,11 @@ def load(mat_filename):
     last_gps_alt = -9999.9
 
     # create data structures for ekf processing
-    imu_data = []
-    gps_data = []
-    air_data = []
-    filter_data = []
+    result = {}
+    result['imu'] = []
+    result['gps'] = []
+    result['air'] = []
+    result['filter'] = []
     
     k = kstart
     while k < len(t):
@@ -152,7 +153,7 @@ def load(mat_filename):
         imu_pt.hy = float(hf[1])
         imu_pt.hz = float(hf[2])
         imu_pt.temp = 15.0
-        imu_data.append(imu_pt)
+        result['imu'].append(imu_pt)
 
         if abs(alt[k] - last_gps_alt) > 0.0001:
             last_gps_alt = alt[k]
@@ -166,13 +167,13 @@ def load(mat_filename):
             gps_pt.vn = float(vn[k])
             gps_pt.ve = float(ve[k])
             gps_pt.vd = float(vd[k])
-            gps_data.append(gps_pt)
+            result['gps'].append(gps_pt)
 
         air_pt = Airdata()
         air_pt.time = float(t[k])
         air_pt.airspeed = float(flight_data.ias[k]*mps2kt)
         air_pt.altitude = float(flight_data.h[k])
-        air_data.append(air_pt)
+        result['air'].append(air_pt)
         
         nav = NAVdata()
         nav.time = float(t[k])
@@ -185,7 +186,7 @@ def load(mat_filename):
         nav.phi = float(flight_data.phi[k])
         nav.the = float(flight_data.theta[k])
         nav.psi = float(flight_data.psi[k])
-        filter_data.append(nav)
+        result['filter'].append(nav)
 
         k += 1
 
@@ -194,21 +195,21 @@ def load(mat_filename):
     
     filename = os.path.join(dir, 'imu-0.txt')
     f = open(filename, 'w')
-    for imupt in imu_data:
+    for imupt in result['imu']:
         line = [ '%.5f' % imupt.time, '%.4f' % imupt.p, '%.4f' % imupt.q, '%.4f' % imupt.r, '%.4f' % imupt.ax, '%.4f' % imupt.ay, '%.4f' % imupt.az, '%.4f' % imupt.hx, '%.4f' % imupt.hy, '%.4f' % imupt.hz, '%.4f' % imupt.temp, '0' ]
         f.write(','.join(line) + '\n')
 
     filename = os.path.join(dir, 'gps-0.txt')
     f = open(filename, 'w')
-    for gpspt in gps_data:
+    for gpspt in result['gps']:
         line = [ '%.5f' % gpspt.time, '%.10f' % gpspt.lat, '%.10f' % gpspt.lon, '%.4f' % gpspt.alt, '%.4f' % gpspt.vn, '%.4f' % gpspt.ve, '%.4f' % gpspt.vd, '%.4f' % gpspt.time, '8', '0' ]
         f.write(','.join(line) + '\n')
 
     filename = os.path.join(dir, 'filter-0.txt')
     f = open(filename, 'w')
     r2d = 180.0 / math.pi
-    for filtpt in filter_data:
+    for filtpt in result['filter']:
         line = [ '%.5f' % filtpt.time, '%.10f' % filtpt.lat, '%.10f' % filtpt.lon, '%.4f' % filtpt.alt, '%.4f' % filtpt.vn, '%.4f' % filtpt.ve, '%.4f' % filtpt.vd, '%.4f' % (filtpt.phi*r2d), '%.4f' % (filtpt.the*r2d), '%.4f' % (filtpt.psi*r2d), '0' ]
         f.write(','.join(line) + '\n')
 
-    return imu_data, gps_data, air_data, filter_data
+    return result

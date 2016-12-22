@@ -72,9 +72,13 @@ filter2 = nav_eigen_mag.filter()
 r2d = 180.0 / math.pi
 mps2kt = 1.94384
 
-def run_filter(filter, imu_data, gps_data, air_data, filter_data,
-               pilot_data, act_data, call_init=True,
-               start_time=None, end_time=None):
+def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
+    # for convenience ...
+    imu_data = data['imu']
+    gps_data = data['gps']
+    air_data = data['air']
+    filter_data = data['filter']
+    
     data_dict = data_store.data_store()
     # t_store = []
     
@@ -140,18 +144,18 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
         else:
             filterpt = filter_data[filter_index]
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
-        if len(pilot_data):
+        if 'pilot' in data:
             while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index].time <= imupt.time:
                 pilot_index += 1
             pilotpt = pilot_data[pilot_index]
-        elif len(pilot_data):
+        elif 'pilot' in data:
             pilotpt = pilot_data[pilot_index]
-        if len(act_data):
+        if 'act' in data:
             while act_index < len(act_data) - 1 and act_data[act_index].time <= imupt.time:
                 act_index += 1
             actpt = act_data[act_index]
             #print act_index, imupt.time, actpt.time, actpt.throttle, actpt.elevator
-        elif len(act_data):
+        elif 'act' in data:
             actpt = act_data[act_index]
 
         # If k is at the initialization time init_nav else get_nav
@@ -174,11 +178,11 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
             #print wn, we, ps, wind_deg, wind_kt
 
             # experimental: synthetic airspeed estimator
-            if len(act_data) and synth_asi.rbfi == None:
+            if 'act' in data and synth_asi.rbfi == None:
                 #print airpt.airspeed, actpt.throttle, actpt.elevator
                 synth_asi.append(navpt.phi, actpt.throttle, actpt.elevator,
                                  imupt.q, airpt.airspeed)
-            elif len(act_data):
+            elif 'act' in data:
                 asi_kt = synth_asi.est_airspeed(navpt.phi, actpt.throttle,
                                                actpt.elevator, imupt.q)
                 data_dict.add_asi(airpt.airspeed, asi_kt)
@@ -205,8 +209,10 @@ print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
 print "airdata records:", len(data['air'])
 print "filter records:", len(data['filter'])
-print "pilot records:", len(data['pilot'])
-print "act records:", len(data['act'])
+if 'pilot' in data:
+    print "pilot records:", len(data['pilot'])
+if 'act' in data:
+    print "act records:", len(data['act'])
 if len(data['imu']) == 0 and len(data['gps']) == 0:
     print "not enough data loaded to continue."
     quit()
@@ -391,13 +397,13 @@ config.sig_gps_v_d  = 4.0
 config.sig_mag      = 0.3
 filter1.set_config(config)
 
-data_dict1, filter1_sec = run_filter(filter1, data['imu'], data['gps'], data['air'], data['filter'], data['pilot'], data['act'])
+data_dict1, filter1_sec = run_filter(filter1, data)
 
 print "building synthetic air data estimator..."
-if len(data['act']):
+if 'act' in data:
     synth_asi.build()
 
-data_dict2, filter2_sec = run_filter(filter2, data['imu'], data['gps'], data['air'], data['filter'], data['pilot'], data['act'])
+data_dict2, filter2_sec = run_filter(filter2, data)
 
 print "filter1 time = %.4f" % filter1_sec
 print "filter2 time = %.4f" % filter2_sec
@@ -564,7 +570,7 @@ if FLAG_PLOT_WIND:
     ax2.legend(loc=1)
     ax1.grid()
 
-if len(data['act']) and FLAG_PLOT_SYNTH_ASI:
+if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     fig, ax1 = plt.subplots()
     asi = data_dict2.asi
     synth_asi = data_dict2.synth_asi

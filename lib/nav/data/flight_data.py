@@ -20,7 +20,7 @@ def load(args):
     elif args.sentera2_flight:
         imu_data, gps_data, air_data, filter_data = sentera2.load(args.sentera2_flight)
     elif args.umn_flight:
-        imu_data, gps_data, air_data, filter_data = umn_mat.load(args.umn_flight)
+        flight_data = umn_mat.load(args.umn_flight)
     else:
         print "no valid input file / dir specified"
         
