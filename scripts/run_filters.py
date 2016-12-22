@@ -76,7 +76,10 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     # for convenience ...
     imu_data = data['imu']
     gps_data = data['gps']
-    air_data = data['air']
+    if 'air' in data:
+        air_data = data['air']
+    else:
+        air_data = []
     filter_data = data['filter']
     if 'pilot' in data:
         pilot_data = data['pilot']
@@ -211,11 +214,33 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     elapsed_sec = run_end - run_start
     return data_dict, elapsed_sec
 
-data = flight_data.load(args)
-print flight_data
+if args.flight:
+    loader = 'aura'
+    path = args.flight
+elif args.aura_flight:
+    loader = 'aura'
+    path = args.aura_flight
+elif args.sentera_flight:
+    loader = 'sentera1'
+    path = args.sentera_flight
+elif args.sentera2_flight:
+    loader = 'sentera2'
+    path = args.sentera2_flight
+elif args.umn_flight:
+    loader = 'umn1'
+    path = args.umn_flight
+else:
+    loader = None
+    path = None
+if 'recalibrate' in args:
+    recal_file = args.recalibrate
+else:
+    recal_file = None
+data = flight_data.load(loader, path, recal_file)
 print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
-print "airdata records:", len(data['air'])
+if 'air' in data:
+    print "airdata records:", len(data['air'])
 print "filter records:", len(data['filter'])
 if 'pilot' in data:
     print "pilot records:", len(data['pilot'])
@@ -387,23 +412,23 @@ for i in data['imu']:
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-config = nav.structs.NAVconfig()
-config.sig_w_ax = 0.02
-config.sig_w_ay = 0.02
-config.sig_w_az = 0.02
-config.sig_w_gx = 0.00175
-config.sig_w_gy = 0.00175
-config.sig_w_gz = 0.00175
-config.sig_a_d  = 0.1
-config.tau_a    = 100.0
-config.sig_g_d  = 0.00873
-config.tau_g    = 50.0
-config.sig_gps_p_ne = 15.0
-config.sig_gps_p_d  = 20.0
-config.sig_gps_v_ne = 2.0
-config.sig_gps_v_d  = 4.0
-config.sig_mag      = 0.3
-filter1.set_config(config)
+# config = nav.structs.NAVconfig()
+# config.sig_w_ax = 0.02
+# config.sig_w_ay = 0.02
+# config.sig_w_az = 0.02
+# config.sig_w_gx = 0.00175
+# config.sig_w_gy = 0.00175
+# config.sig_w_gz = 0.00175
+# config.sig_a_d  = 0.1
+# config.tau_a    = 100.0
+# config.sig_g_d  = 0.00873
+# config.tau_g    = 50.0
+# config.sig_gps_p_ne = 15.0
+# config.sig_gps_p_d  = 20.0
+# config.sig_gps_v_ne = 2.0
+# config.sig_gps_v_d  = 4.0
+# config.sig_mag      = 0.3
+# filter1.set_config(config)
 
 data_dict1, filter1_sec = run_filter(filter1, data)
 

@@ -18,12 +18,6 @@ class Controldata:
 
 def load(flight_dir, recalibrate=None):
     result = {}
-    result['imu'] = []
-    result['gps'] = []
-    result['air'] = []
-    result['filter'] = []
-    result['pilot'] = []
-    result['act'] = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
@@ -77,6 +71,7 @@ def load(flight_dir, recalibrate=None):
     #np.set_printoptions(precision=10,suppress=True)
     #print mag_affine
     
+    result['imu'] = []
     fimu = fileinput.input(imu_file)
     for line in fimu:
         tokens = re.split('[,\s]+', line.rstrip())
@@ -97,6 +92,7 @@ def load(flight_dir, recalibrate=None):
         imu.temp = float(tokens[10])
         result['imu'].append( imu )
 
+    result['gps'] = []
     fgps = fileinput.input(gps_file)
     last_time = -1.0
     for line in fgps:
@@ -121,19 +117,22 @@ def load(flight_dir, recalibrate=None):
             result['gps'].append(gps)
         last_time = time
 
-    fair = fileinput.input(air_file)
-    for line in fair:
-        tokens = re.split('[,\s]+', line.rstrip())
-        air = Airdata()
-        air.time = float(tokens[0])
-        air.static_press = float(tokens[1])
-        air.diff_press = 0.0    # not directly available in flight log
-        air.temp = float(tokens[2])
-        air.airspeed = float(tokens[3])
-        air.altitude = float(tokens[4])
-        result['air'].append( air )
+    if os.path.exists(air_file):
+        result['air'] = []
+        fair = fileinput.input(air_file)
+        for line in fair:
+            tokens = re.split('[,\s]+', line.rstrip())
+            air = Airdata()
+            air.time = float(tokens[0])
+            air.static_press = float(tokens[1])
+            air.diff_press = 0.0    # not directly available in flight log
+            air.temp = float(tokens[2])
+            air.airspeed = float(tokens[3])
+            air.altitude = float(tokens[4])
+            result['air'].append( air )
 
     # load filter records if they exist (for comparison purposes)
+    result['filter'] = []
     ffilter = fileinput.input(filter_file)
     for line in ffilter:
         tokens = re.split('[,\s]+', line.rstrip())
@@ -158,35 +157,39 @@ def load(flight_dir, recalibrate=None):
             nav.psi = psi*d2r
             result['filter'].append(nav)
 
-    fpilot = fileinput.input(pilot_file)
-    for line in fpilot:
-        tokens = re.split('[,\s]+', line.rstrip())
-        pilot = Controldata()
-        pilot.time = float(tokens[0])
-        pilot.aileron = float(tokens[1])
-        pilot.elevator = float(tokens[2])
-        pilot.throttle = float(tokens[3])
-        pilot.rudder = float(tokens[4])
-        pilot.gear = float(tokens[5])
-        pilot.flaps = float(tokens[6])
-        pilot.aux1 = float(tokens[7])
-        pilot.auto_manual = float(tokens[8])
-        result['pilot'].append(pilot)
+    if os.path.exists(pilot_file):
+        result['pilot'] = []
+        fpilot = fileinput.input(pilot_file)
+        for line in fpilot:
+            tokens = re.split('[,\s]+', line.rstrip())
+            pilot = Controldata()
+            pilot.time = float(tokens[0])
+            pilot.aileron = float(tokens[1])
+            pilot.elevator = float(tokens[2])
+            pilot.throttle = float(tokens[3])
+            pilot.rudder = float(tokens[4])
+            pilot.gear = float(tokens[5])
+            pilot.flaps = float(tokens[6])
+            pilot.aux1 = float(tokens[7])
+            pilot.auto_manual = float(tokens[8])
+            result['pilot'].append(pilot)
 
-    fact = fileinput.input(act_file)
-    for line in fact:
-        tokens = re.split('[,\s]+', line.rstrip())
-        act = Controldata()
-        act.time = float(tokens[0])
-        act.aileron = float(tokens[1])
-        act.elevator = float(tokens[2])
-        act.throttle = float(tokens[3])
-        act.rudder = float(tokens[4])
-        act.gear = float(tokens[5])
-        act.flaps = float(tokens[6])
-        act.aux1 = float(tokens[7])
-        act.auto_manual = float(tokens[8])
-        result['act'].append(act)
+    if os.path.exists(act_file):
+        result['act'] = []
+        fact = fileinput.input(act_file)
+        for line in fact:
+            tokens = re.split('[,\s]+', line.rstrip())
+            act = Controldata()
+            act.time = float(tokens[0])
+            act.aileron = float(tokens[1])
+            act.elevator = float(tokens[2])
+            act.throttle = float(tokens[3])
+            act.rudder = float(tokens[4])
+            act.gear = float(tokens[5])
+            act.flaps = float(tokens[6])
+            act.aux1 = float(tokens[7])
+            act.auto_manual = float(tokens[8])
+            result['act'].append(act)
 
     cal = imucal.Calibration()
     if os.path.exists(imucal_json):

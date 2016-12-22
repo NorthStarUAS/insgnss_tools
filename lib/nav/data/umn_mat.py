@@ -167,6 +167,7 @@ def load(mat_filename):
             gps_pt.vn = float(vn[k])
             gps_pt.ve = float(ve[k])
             gps_pt.vd = float(vd[k])
+            gps_pt.sats = 8     # force a reasonable value (not logged?)
             result['gps'].append(gps_pt)
 
         air_pt = Airdata()
