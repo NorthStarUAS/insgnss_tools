@@ -199,14 +199,15 @@ def run_filter(filter, imu_data, gps_data, air_data, filter_data,
     elapsed_sec = run_end - run_start
     return data_dict, elapsed_sec
 
-imu_data, gps_data, air_data, filter_data, pilot_data, act_data = flight_data.load(args)
-print "imu records:", len(imu_data)
-print "gps records:", len(gps_data)
-print "airdata records:", len(air_data)
-print "filter records:", len(filter_data)
-print "pilot records:", len(pilot_data)
-print "act records:", len(act_data)
-if len(imu_data) == 0 and len(gps_data) == 0:
+data = flight_data.load(args)
+print flight_data
+print "imu records:", len(data['imu'])
+print "gps records:", len(data['gps'])
+print "airdata records:", len(data['air'])
+print "filter records:", len(data['filter'])
+print "pilot records:", len(data['pilot'])
+print "act records:", len(data['act'])
+if len(data['imu']) == 0 and len(data['gps']) == 0:
     print "not enough data loaded to continue."
     quit()
 
@@ -228,15 +229,15 @@ if False:
     p_sum = 0.0
     q_sum = 0.0
     r_sum = 0.0
-    for imu in imu_data:
+    for imu in data['imu']:
         p_sum += imu.p
         q_sum += imu.q
         r_sum += imu.r
-    p_bias = p_sum / len(imu_data)
-    q_bias = q_sum / len(imu_data)
-    r_bias = r_sum / len(imu_data)
+    p_bias = p_sum / len(data['imu'])
+    q_bias = q_sum / len(data['imu'])
+    r_bias = r_sum / len(data['imu'])
     print "bias:", p_bias, q_bias, r_bias
-    for imu in imu_data:
+    for imu in data['imu']:
         imu.p -= p_bias
         imu.q -= q_bias
         imu.r -= r_bias
@@ -249,7 +250,7 @@ if False:
     x_max = -1000000.0
     y_max = -1000000.0
     z_max = -1000000.0
-    for imu in imu_data:
+    for imu in data['imu']:
         if imu.hx < x_min: x_min = imu.hx
         if imu.hy < y_min: y_min = imu.hy
         if imu.hz < z_min: z_min = imu.hz
@@ -265,7 +266,7 @@ if False:
     cx = (x_min + x_max) * 0.5
     cy = (y_min + y_max) * 0.5
     cz = (z_min + z_max) * 0.5
-    for imu in imu_data:
+    for imu in data['imu']:
         imu.hx = ((imu.hx - x_min) / dx) * 2.0 - 1.0
         imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
@@ -278,7 +279,7 @@ alt_gps = []
 vn_gps = []
 ve_gps = []
 vd_gps = []
-for g in gps_data:
+for g in data['gps']:
     t_gps.append(g.time)
     lat_gps.append(g.lat)
     lon_gps.append(g.lon)
@@ -297,7 +298,7 @@ navalt_flight = []
 vn_flight = []
 ve_flight = []
 vd_flight = []
-for f in filter_data:
+for f in data['filter']:
     t_flight.append(f.time)
     psi_flight.append(f.psi)
     the_flight.append(f.the)
@@ -310,7 +311,7 @@ for f in filter_data:
     vd_flight.append(f.vd)
 
 r_flight = []
-for i in imu_data:
+for i in data['imu']:
     r_flight.append(i.r)
     
 # Default config
@@ -390,13 +391,13 @@ config.sig_gps_v_d  = 4.0
 config.sig_mag      = 0.3
 filter1.set_config(config)
 
-data_dict1, filter1_sec = run_filter(filter1, imu_data, gps_data, air_data, filter_data, pilot_data, act_data)
+data_dict1, filter1_sec = run_filter(filter1, data['imu'], data['gps'], data['air'], data['filter'], data['pilot'], data['act'])
 
 print "building synthetic air data estimator..."
-if len(act_data):
+if len(data['act']):
     synth_asi.build()
 
-data_dict2, filter2_sec = run_filter(filter2, imu_data, gps_data, air_data, filter_data, pilot_data, act_data)
+data_dict2, filter2_sec = run_filter(filter2, data['imu'], data['gps'], data['air'], data['filter'], data['pilot'], data['act'])
 
 print "filter1 time = %.4f" % filter1_sec
 print "filter2 time = %.4f" % filter2_sec
@@ -412,7 +413,7 @@ if args.flight or args.aura_flight:
         filter_post = os.path.join(args.flight, "filter-post.txt")
     elif args.aura_flight:
         filter_post = os.path.join(args.aura_flight, "filter-post.txt")
-    data_aura.save_filter_result(filter_post, data_dict1)
+    aura.save_filter_result(filter_post, data_dict1)
     
 if args.sentera_flight:
     import data_sentera
@@ -563,7 +564,7 @@ if FLAG_PLOT_WIND:
     ax2.legend(loc=1)
     ax1.grid()
 
-if len(act_data) and FLAG_PLOT_SYNTH_ASI:
+if len(data['act']) and FLAG_PLOT_SYNTH_ASI:
     fig, ax1 = plt.subplots()
     asi = data_dict2.asi
     synth_asi = data_dict2.synth_asi

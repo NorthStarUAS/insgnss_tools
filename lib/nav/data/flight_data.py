@@ -4,12 +4,7 @@ import sentera2
 import umn_mat
 
 def load(args):
-    imu_data = []
-    gps_data = []
-    air_data = []
-    filter_data = []
-    pilot_data = []
-    act_data = []
+    flight_data = {}
     
     if 'recalibrate' in args:
         recal_file = args.recalibrate
@@ -17,11 +12,9 @@ def load(args):
         recal_file = None
         
     if args.flight:
-        imu_data, gps_data, air_data, filter_data, pilot_data, act_data = \
-            aura.load(args.flight, recal_file)
+        flight_data = aura.load(args.flight, recal_file)
     elif args.aura_flight:
-        imu_data, gps_data, air_data, filter_data, pilot_data, act_data = \
-            aura.load(args.aura_flight, recal_file)
+        flight_data = aura.load(args.aura_flight, recal_file)
     elif args.sentera_flight:
         imu_data, gps_data, filter_data = sentera.load(args.sentera_flight)
     elif args.sentera2_flight:
@@ -31,4 +24,4 @@ def load(args):
     else:
         print "no valid input file / dir specified"
         
-    return imu_data, gps_data, air_data, filter_data, pilot_data, act_data
+    return flight_data

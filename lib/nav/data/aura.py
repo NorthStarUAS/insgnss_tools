@@ -17,12 +17,13 @@ class Controldata:
     pass
 
 def load(flight_dir, recalibrate=None):
-    imu_data = []
-    gps_data = []
-    air_data = []
-    filter_data = []
-    pilot_data = []
-    act_data = []
+    flight_data = {}
+    flight_data['imu'] = []
+    flight_data['gps'] = []
+    flight_data['air'] = []
+    flight_data['filter'] = []
+    flight_data['pilot'] = []
+    flight_data['act'] = []
 
     # load imu/gps data files
     imu_file = flight_dir + "/imu-0.txt"
@@ -104,7 +105,7 @@ def load(flight_dir, recalibrate=None):
         imu.hz = float(hz)
         #float(hf[0]), float(hf[1]), float(hf[2]),
         imu.temp = float(temp)
-        imu_data.append( imu )
+        flight_data['imu'].append( imu )
 
     fgps = fileinput.input(gps_file)
     last_time = -1.0
@@ -134,7 +135,7 @@ def load(flight_dir, recalibrate=None):
             gps.vn = vn
             gps.ve = ve
             gps.vd = vd
-            gps_data.append(gps)
+            flight_data['gps'].append(gps)
         last_time = time
 
     fair = fileinput.input(air_file)
@@ -147,7 +148,7 @@ def load(flight_dir, recalibrate=None):
         air.temp = float(tokens[2])
         air.airspeed = float(tokens[3])
         air.altitude = float(tokens[4])
-        air_data.append( air )
+        flight_data['air'].append( air )
 
     # load filter records if they exist (for comparison purposes)
     ffilter = fileinput.input(filter_file)
@@ -170,7 +171,7 @@ def load(flight_dir, recalibrate=None):
             nav.phi = float(phi)*d2r
             nav.the = float(the)*d2r
             nav.psi = float(psi)*d2r
-            filter_data.append(nav)
+            flight_data['filter'].append(nav)
 
     fpilot = fileinput.input(pilot_file)
     last_time = -1.0
@@ -186,7 +187,7 @@ def load(flight_dir, recalibrate=None):
         pilot.flaps = float(flaps)
         pilot.aux1 = float(aux1)
         pilot.auto_manual = float(auto_manual)
-        pilot_data.append(pilot)
+        flight_data['pilot'].append(pilot)
         last_time = time
 
     fact = fileinput.input(act_file)
@@ -203,7 +204,7 @@ def load(flight_dir, recalibrate=None):
         act.flaps = float(flaps)
         act.aux1 = float(aux1)
         act.auto_manual = float(auto_manual)
-        act_data.append(act)
+        flight_data['act'].append(act)
         #print 'load:', act.time, act.throttle, act.elevator
         last_time = time
 
@@ -217,15 +218,15 @@ def load(flight_dir, recalibrate=None):
     if imucal_file:
         cal.load(imucal_file)
         print 'back correcting imu data (to get original raw values)'
-        imu_data = cal.back_correct(imu_data)
+        flight_data['imu'] = cal.back_correct(flight_data['imu'])
 
     if recalibrate:
         print 'recalibrating imu data using alternate calibration file:', recalibrate
         rcal = imucal.Calibration()
         rcal.load(recalibrate)
-        imu_data = rcal.correct(imu_data)
+        flight_data['imu'] = rcal.correct(flight_data['imu'])
 
-    return imu_data, gps_data, air_data, filter_data, pilot_data, act_data
+    return flight_data
 
 def save_filter_result(filename, data_store):
     f = open(filename, 'w')
