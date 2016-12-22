@@ -1,5 +1,4 @@
 import copy
-import lxml.etree as ET
 import numpy as np
 import os.path
 import sys
@@ -115,12 +114,6 @@ class Calibration():
 
         return True
     
-    def update_node(self, parent, node, value):
-        e = parent.find(node)
-        if e == None:
-            e = ET.SubElement(parent, node)
-        e.text = str(value)
-
     # save a configuration file
     def save(self, cal_file):
         config = PropertyNode()
