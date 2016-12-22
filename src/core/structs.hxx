@@ -27,6 +27,7 @@ struct GPSdata {
     double unix_sec;		// seconds in unix time reference
     double lat, lon, alt;	// rad, meter
     double vn, ve, vd;		// m/sec
+    int sats;
     bool newData;
 };
 

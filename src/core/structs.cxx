@@ -31,6 +31,7 @@ BOOST_PYTHON_MODULE(structs)
 	.def_readwrite("vn", &GPSdata::vn)
 	.def_readwrite("ve", &GPSdata::ve)
 	.def_readwrite("vd", &GPSdata::vd)
+	.def_readwrite("sats", &GPSdata::sats)
 	.def_readwrite("newData", &GPSdata::newData)
     ;
 

@@ -79,68 +79,51 @@ def load(flight_dir, recalibrate=None):
     
     fimu = fileinput.input(imu_file)
     for line in fimu:
-        time, p, q, r, ax, ay, az, hx, hy, hz, temp, status = line.split(',')
-        # quick hack:
-        #hx_new = hx_func(float(hx))
-        #hy_new = hy_func(float(hy))
-        #hz_new = hz_func(float(hz))
-        #norm = np.linalg.norm([hx_new, hy_new, hz_new])
-        #hx_new /= norm
-        #hy_new /= norm
-        #hz_new /= norm
-
-        s = [float(hx), float(hy), float(hz), 1.0]
-        hf = np.dot(mag_affine, s)
+        tokens = re.split('[,\s]+', line.rstrip())
+        #s = [float(tokens[7]), float(tokens[8]), float(tokens[9]), 1.0]
+        #hf = np.dot(mag_affine, s)
         #print hf
         imu = IMUdata()
-        imu.time = float(time)
-        imu.p = float(p)
-        imu.q = float(q)
-        imu.r = float(r)
-        imu.ax = float(ax)
-        imu.ay = float(ay)
-        imu.az = float(az)
-        imu.hx = float(hx)
-        imu.hy = float(hy)
-        imu.hz = float(hz)
-        #float(hf[0]), float(hf[1]), float(hf[2]),
-        imu.temp = float(temp)
+        imu.time = float(tokens[0])
+        imu.p = float(tokens[1])
+        imu.q = float(tokens[2])
+        imu.r = float(tokens[3])
+        imu.ax = float(tokens[4])
+        imu.ay = float(tokens[5])
+        imu.az = float(tokens[6])
+        imu.hx = float(tokens[7])
+        imu.hy = float(tokens[8])
+        imu.hz = float(tokens[9])
+        imu.temp = float(tokens[10])
         result['imu'].append( imu )
 
     fgps = fileinput.input(gps_file)
     last_time = -1.0
     for line in fgps:
         # Note: the aura logs unix time of the gps record, not tow,
-        # but for the pruposes of the insgns algorithm, it's only
-        # important to have a properly incrementing clock, it doens't
+        # but for the purposes of the insgns algorithm, it's only
+        # important to have a properly incrementing clock, it doesn't
         # really matter what the zero reference point of time is.
         tokens = re.split('[,\s]+', line.rstrip())
         time = float(tokens[0])
-        lat = float(tokens[1])
-        lon = float(tokens[2])
-        alt = float(tokens[3])
-        vn = float(tokens[4])
-        ve = float(tokens[5])
-        vd = float(tokens[6])
-        unix_sec = float(tokens[7])
         sats = int(tokens[8])
         if sats >= 5 and time > last_time:
             gps = GPSdata()
             gps.time = time
-            #gps.status = status
-            gps.unix_sec = unix_sec
-            gps.lat = lat
-            gps.lon = lon
-            gps.alt = alt
-            gps.vn = vn
-            gps.ve = ve
-            gps.vd = vd
+            gps.unix_sec = float(tokens[7])
+            gps.lat = float(tokens[1])
+            gps.lon = float(tokens[2])
+            gps.alt = float(tokens[3])
+            gps.vn = float(tokens[4])
+            gps.ve = float(tokens[5])
+            gps.vd = float(tokens[6])
+            gps.sats = sats
             result['gps'].append(gps)
         last_time = time
 
     fair = fileinput.input(air_file)
     for line in fair:
-        tokens = line.split(',')
+        tokens = re.split('[,\s]+', line.rstrip())
         air = Airdata()
         air.time = float(tokens[0])
         air.static_press = float(tokens[1])
@@ -153,60 +136,57 @@ def load(flight_dir, recalibrate=None):
     # load filter records if they exist (for comparison purposes)
     ffilter = fileinput.input(filter_file)
     for line in ffilter:
-        time, lat, lon, alt, vn, ve, vd, phi, the, psi, status = line.split(',')
-        if abs(float(lat)) > 0.0001 and abs(float(lon)) > 0.0001:
-            psi = float(psi)
+        tokens = re.split('[,\s]+', line.rstrip())
+        lat = float(tokens[1])
+        lon = float(tokens[2])
+        if abs(lat) > 0.0001 and abs(lon) > 0.0001:
+            nav = NAVdata()
+            nav.time = float(tokens[0])
+            nav.lat = lat*d2r
+            nav.lon = lon*d2r
+            nav.alt = float(tokens[3])
+            nav.vn = float(tokens[4])
+            nav.ve = float(tokens[5])
+            nav.vd = float(tokens[6])
+            nav.phi = float(tokens[7])*d2r
+            nav.the = float(tokens[8])*d2r
+            psi = float(tokens[9])
             if psi > 180.0:
                 psi = psi - 360.0
             if psi < -180.0:
-                psi = psi - 360.0
-            nav = NAVdata()
-            nav.time = float(time)
-            nav.lat = float(lat)*d2r
-            nav.lon = float(lon)*d2r
-            nav.alt = float(alt)
-            nav.vn = float(vn)
-            nav.ve = float(ve)
-            nav.vd = float(vd)
-            nav.phi = float(phi)*d2r
-            nav.the = float(the)*d2r
-            nav.psi = float(psi)*d2r
+                psi = psi + 360.0
+            nav.psi = psi*d2r
             result['filter'].append(nav)
 
     fpilot = fileinput.input(pilot_file)
-    last_time = -1.0
     for line in fpilot:
-        time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
+        tokens = re.split('[,\s]+', line.rstrip())
         pilot = Controldata()
-        pilot.time = float(time)
-        pilot.aileron = float(aileron)
-        pilot.elevator = float(elevator)
-        pilot.throttle = float(throttle)
-        pilot.rudder = float(rudder)
-        pilot.gear = float(gear)
-        pilot.flaps = float(flaps)
-        pilot.aux1 = float(aux1)
-        pilot.auto_manual = float(auto_manual)
+        pilot.time = float(tokens[0])
+        pilot.aileron = float(tokens[1])
+        pilot.elevator = float(tokens[2])
+        pilot.throttle = float(tokens[3])
+        pilot.rudder = float(tokens[4])
+        pilot.gear = float(tokens[5])
+        pilot.flaps = float(tokens[6])
+        pilot.aux1 = float(tokens[7])
+        pilot.auto_manual = float(tokens[8])
         result['pilot'].append(pilot)
-        last_time = time
 
     fact = fileinput.input(act_file)
-    last_time = -1.0
     for line in fact:
-        time, aileron, elevator, throttle, rudder, gear, flaps, aux1, auto_manual, status = line.split(',')
+        tokens = re.split('[,\s]+', line.rstrip())
         act = Controldata()
-        act.time = float(time)
-        act.aileron = float(aileron)
-        act.elevator = float(elevator)
-        act.throttle = float(throttle)
-        act.rudder = float(rudder)
-        act.gear = float(gear)
-        act.flaps = float(flaps)
-        act.aux1 = float(aux1)
-        act.auto_manual = float(auto_manual)
+        act.time = float(tokens[0])
+        act.aileron = float(tokens[1])
+        act.elevator = float(tokens[2])
+        act.throttle = float(tokens[3])
+        act.rudder = float(tokens[4])
+        act.gear = float(tokens[5])
+        act.flaps = float(tokens[6])
+        act.aux1 = float(tokens[7])
+        act.auto_manual = float(tokens[8])
         result['act'].append(act)
-        #print 'load:', act.time, act.throttle, act.elevator
-        last_time = time
 
     cal = imucal.Calibration()
     if os.path.exists(imucal_json):

@@ -78,7 +78,15 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     gps_data = data['gps']
     air_data = data['air']
     filter_data = data['filter']
-    
+    if 'pilot' in data:
+        pilot_data = data['pilot']
+    else:
+        pilot_data = []
+    if 'act' in data:
+        act_data = data['act']
+    else:
+        act_data = []
+        
     data_dict = data_store.data_store()
     # t_store = []
     
