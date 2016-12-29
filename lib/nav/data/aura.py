@@ -162,30 +162,31 @@ def load(flight_dir, recalibrate=None):
 
     # load filter (post process) records if they exist (for comparison
     # purposes)
-    result['filter-post'] = []
-    ffilter = fileinput.input(filter_post)
-    for line in ffilter:
-        tokens = re.split('[,\s]+', line.rstrip())
-        lat = float(tokens[1])
-        lon = float(tokens[2])
-        if abs(lat) > 0.0001 and abs(lon) > 0.0001:
-            nav = NAVdata()
-            nav.time = float(tokens[0])
-            nav.lat = lat*d2r
-            nav.lon = lon*d2r
-            nav.alt = float(tokens[3])
-            nav.vn = float(tokens[4])
-            nav.ve = float(tokens[5])
-            nav.vd = float(tokens[6])
-            nav.phi = float(tokens[7])*d2r
-            nav.the = float(tokens[8])*d2r
-            psi = float(tokens[9])
-            if psi > 180.0:
-                psi = psi - 360.0
-            if psi < -180.0:
-                psi = psi + 360.0
-            nav.psi = psi*d2r
-            result['filter'].append(nav)
+    if os.path.exists(filter_post):
+        result['filter_post'] = []
+        ffilter = fileinput.input(filter_post)
+        for line in ffilter:
+            tokens = re.split('[,\s]+', line.rstrip())
+            lat = float(tokens[1])
+            lon = float(tokens[2])
+            if abs(lat) > 0.0001 and abs(lon) > 0.0001:
+                nav = NAVdata()
+                nav.time = float(tokens[0])
+                nav.lat = lat*d2r
+                nav.lon = lon*d2r
+                nav.alt = float(tokens[3])
+                nav.vn = float(tokens[4])
+                nav.ve = float(tokens[5])
+                nav.vd = float(tokens[6])
+                nav.phi = float(tokens[7])*d2r
+                nav.the = float(tokens[8])*d2r
+                psi = float(tokens[9])
+                if psi > 180.0:
+                    psi = psi - 360.0
+                if psi < -180.0:
+                    psi = psi + 360.0
+                nav.psi = psi*d2r
+                result['filter_post'].append(nav)
 
     if os.path.exists(pilot_file):
         result['pilot'] = []
