@@ -26,6 +26,7 @@ def load(flight_dir, recalibrate=None):
     gps_file = flight_dir + "/gps-0.txt"
     air_file = flight_dir + "/air-0.txt"
     filter_file = flight_dir + "/filter-0.txt"
+    filter_post = flight_dir + "/filter-post.txt"
     pilot_file = flight_dir + "/pilot-0.txt"
     act_file = flight_dir + "/act-0.txt"
     ap_file = flight_dir + "/ap-0.txt"
@@ -136,6 +137,33 @@ def load(flight_dir, recalibrate=None):
     # load filter records if they exist (for comparison purposes)
     result['filter'] = []
     ffilter = fileinput.input(filter_file)
+    for line in ffilter:
+        tokens = re.split('[,\s]+', line.rstrip())
+        lat = float(tokens[1])
+        lon = float(tokens[2])
+        if abs(lat) > 0.0001 and abs(lon) > 0.0001:
+            nav = NAVdata()
+            nav.time = float(tokens[0])
+            nav.lat = lat*d2r
+            nav.lon = lon*d2r
+            nav.alt = float(tokens[3])
+            nav.vn = float(tokens[4])
+            nav.ve = float(tokens[5])
+            nav.vd = float(tokens[6])
+            nav.phi = float(tokens[7])*d2r
+            nav.the = float(tokens[8])*d2r
+            psi = float(tokens[9])
+            if psi > 180.0:
+                psi = psi - 360.0
+            if psi < -180.0:
+                psi = psi + 360.0
+            nav.psi = psi*d2r
+            result['filter'].append(nav)
+
+    # load filter (post process) records if they exist (for comparison
+    # purposes)
+    result['filter-post'] = []
+    ffilter = fileinput.input(filter_post)
     for line in ffilter:
         tokens = re.split('[,\s]+', line.rstrip())
         lat = float(tokens[1])
