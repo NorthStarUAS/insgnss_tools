@@ -9,9 +9,6 @@ from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
 d2r = math.pi / 180.0
 
-class dict2struct():
-    pass
-
 def load(csv_file):
     result = {}
     result['imu'] = []
