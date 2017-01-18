@@ -18,6 +18,8 @@ Mechanics Deptarment, University of Minnesota.
 * Ardupilot tlog (partial support, I would be happy to find a
   volunteer to improve this.)
 
+* PX4 "sdlog2_dump" (CSV) format
+
 * Sentera camera IMU format
 
 # Available filters
