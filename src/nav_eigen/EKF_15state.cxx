@@ -129,25 +129,11 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
 
     // fixme: for now match the reference implementation so we can
     // compare intermediate calculations.
-    nav.the = 8*D2R;
-    nav.phi = 0*D2R;
-    nav.psi = 90.0*D2R;
+    // nav.the = 8*D2R;
+    // nav.phi = 0*D2R;
+    // nav.psi = 90.0*D2R;
 
-    /*
-      if((imu.hy) > 0){
-      nav.psi = 90*D2R - atan(imu.hx / imu.hy);
-      }
-      else if((imu.hy) < 0){
-      nav.psi = 270*D2R - atan(imu.hx / imu.hy) - 360*D2R;
-      }
-      else if((imu.hy) == 0){
-      if((imu.hx) < 0){
-      nav.psi = 180*D2R;
-      }
-      else{
-      nav.psi = 0.0;
-      }
-      }*/
+    nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
     nav.qw = quat.w();
