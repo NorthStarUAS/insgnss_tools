@@ -28,6 +28,7 @@ import synth_asi
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
+parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
@@ -220,6 +221,9 @@ if args.flight:
 elif args.aura_flight:
     loader = 'aura'
     path = args.aura_flight
+elif args.px4_sdlog2:
+    loader = 'px4_sdlog2'
+    path = args.px4_sdlog2
 elif args.sentera_flight:
     loader = 'sentera1'
     path = args.sentera_flight
@@ -254,6 +258,8 @@ if args.flight:
     plotname = os.path.basename(args.flight)    
 elif args.aura_flight:
     plotname = os.path.basename(args.aura_flight)
+elif args.px4_sdlog2:
+    plotname = os.path.basename(args.px4_sdlog2)
 elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
 elif args.sentera2_flight:
