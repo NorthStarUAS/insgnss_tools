@@ -2,8 +2,6 @@
 
 import csv
 import math
-import os, sys
-join = os.path.join
 import numpy as np
 import re
 
