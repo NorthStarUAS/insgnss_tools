@@ -115,13 +115,8 @@ def load(csv_base):
                   float(row['q[2]']),
                   float(row['q[3]']) ]
             # either of these will work ...
-            if True:
-                (roll, pitch, yaw) = px4_quat2euler(q)
-                att.append( [time, yaw, pitch, roll] )
-            else:
-                import transformations
-                (yaw, pitch, roll) = transformations.euler_from_quaternion(np.array([q[0], -q[1], -q[2], -q[3]]), 'szyx')
-                att.append( [time, -yaw, -pitch, -roll] )
+            (roll, pitch, yaw) = px4_quat2euler(q)
+            att.append( [time, yaw, pitch, roll] )
         
     pos = []
     with open(pos_path, 'rb') as f:
