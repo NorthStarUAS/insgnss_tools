@@ -29,6 +29,7 @@ parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
 parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
+parser.add_argument('--px4-ulog', help='load specified px4 ulog (csv) base path')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
@@ -224,6 +225,9 @@ elif args.aura_flight:
 elif args.px4_sdlog2:
     loader = 'px4_sdlog2'
     path = args.px4_sdlog2
+elif args.px4_ulog:
+    loader = 'px4_ulog'
+    path = args.px4_ulog
 elif args.sentera_flight:
     loader = 'sentera1'
     path = args.sentera_flight
