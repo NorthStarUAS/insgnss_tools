@@ -2,12 +2,11 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('../build/src/nav_openloop/.libs/')
 import nav.openloop
 
 class filter():
     def __init__(self):
-        self.ekf = nav.openloop.OpenLoop()
+        self.ekf = nav.openloop.openloop()
         self.name = 'Open Loop'
         self.filter_sync = 0.0
 

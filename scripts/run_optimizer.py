@@ -23,20 +23,20 @@ from scipy.optimize import minimize
 import navpy
 
 import data_store
-import flight_data
+from nav.data import flight_data
 import plots
 
 # filter interfaces
-import nav_orig
-import nav_mag
 import nav_eigen
 import nav_eigen_mag
 import nav_openloop
-import MadgwickAHRS
+#import MadgwickAHRS
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
+parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
+parser.add_argument('--px4-ulog', help='load specified px4 ulog (csv) base path')
 parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
@@ -114,7 +114,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict.append(navpt)
+            data_dict.append_from_filter(navpt)
 
         if gpspt.newData:
             # compute error metric with each new gps report
@@ -199,12 +199,38 @@ def errorFunc(xk, config, imu_data, gps_data, filter_data):
     else:
         return 0.0
 
-imu_data, gps_data, air_data, filter_data, pilot_data, act_data = flight_data.load(args)
-print "imu records:", len(imu_data)
-print "gps records:", len(gps_data)
-print "air records:", len(gps_data)
-print "filter records:", len(filter_data)
-if len(imu_data) == 0 and len(gps_data) == 0:
+if args.flight:
+    loader = 'aura'
+    path = args.flight
+elif args.aura_flight:
+    loader = 'aura'
+    path = args.aura_flight
+elif args.px4_sdlog2:
+    loader = 'px4_sdlog2'
+    path = args.px4_sdlog2
+elif args.px4_ulog:
+    loader = 'px4_ulog'
+    path = args.px4_ulog
+elif args.sentera_flight:
+    loader = 'sentera1'
+    path = args.sentera_flight
+elif args.sentera2_flight:
+    loader = 'sentera2'
+    path = args.sentera2_flight
+elif args.umn_flight:
+    loader = 'umn1'
+    path = args.umn_flight
+else:
+    loader = None
+    path = None
+
+data = flight_data.load(loader, path, None)
+print "imu records:", len(data['imu'])
+print "gps records:", len(data['gps'])
+if 'air' in data:
+    print "air records:", len(data['air'])
+print "filter records:", len(data['filter'])
+if len(data['imu']) == 0 and len(data['gps']) == 0:
     print "not enough data loaded to continue."
     quit()
 
@@ -212,43 +238,47 @@ if args.flight:
     plotname = os.path.basename(args.flight)    
 elif args.aura_flight:
     plotname = os.path.basename(args.aura_flight)
+elif args.px4_sdlog2:
+    plotname = os.path.basename(args.px4_sdlog2)
 elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
 elif args.sentera2_flight:
     plotname = os.path.basename(args.sentera2_flight)
 elif args.umn_flight:
     plotname = os.path.basename(args.umn_flight)
+else:
+    plotname = "plotname not set correctly"
 
 # plots
 plt = plots.Plots(plotname)
 
 # plot onboard filter
 data_ob = data_store.data_store()
-for filterpt in filter_data:
+for filterpt in data['filter']:
     data_ob.append_from_filter(filterpt)
 plt.update(data_ob, 'On Board', c='g', alpha=0.5)
 
 # plot gps
 data_gps = data_store.data_store()
-for gpspt in gps_data:
+for gpspt in data['gps']:
     data_gps.append_from_gps(gpspt)
 plt.update(data_gps, 'GPS', marker='*', c='g', alpha=0.5)
 
 # find the range of gps time stamps that represent some significant
 # amount of velocity
 k_start = 0
-for k, gpspt in enumerate(gps_data):
+for k, gpspt in enumerate(data['gps']):
     gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
     if gps_vel > 5.0:
         k_start = k
         break
-gps_begin = gps_data[k_start].time + gps_latency
+gps_begin = data['gps'][k_start].time + gps_latency
 k_end = 0
-for k, gpspt in enumerate(gps_data):
+for k, gpspt in enumerate(data['gps']):
     gps_vel = math.sqrt(gpspt.vn*gpspt.vn + gpspt.ve*gpspt.ve)
     if gps_vel > 5.0:
         k_end = k
-gps_end = gps_data[k_end].time + gps_latency
+gps_end = data['gps'][k_end].time + gps_latency
 print "gps time span:", gps_begin, gps_end
 
 # store the segment config and optimal params so we can use the
@@ -270,43 +300,43 @@ while start_time < gps_end:
         end_time = gps_end
         
     # find starting position
-    for k, gpspt in enumerate(gps_data):
+    for k, gpspt in enumerate(data['gps']):
         if gpspt.time - gps_latency >= start_time:
             k_start = k
             break
     print "segment time span:", start_time, end_time
     config = {}
-    config['start_lat'] = gps_data[k_start].lat*d2r
-    config['start_lon'] = gps_data[k_start].lon*d2r
-    config['start_alt'] = gps_data[k_start].alt
+    config['start_lat'] = data['gps'][k_start].lat*d2r
+    config['start_lon'] = data['gps'][k_start].lon*d2r
+    config['start_alt'] = data['gps'][k_start].alt
 
     config['start_time'] = start_time
     config['end_time'] = end_time
     config['call_init'] = False
     
     # use filter solution to estimate intial attitude and velocity
-    for k, filterpt in enumerate(filter_data):
+    for k, filterpt in enumerate(data['filter']):
         if filterpt.time >= start_time:
             k_start = k
             break
-    initial = (filter_data[k_start].vn, filter_data[k_start].ve,
-               filter_data[k_start].vd,    # vel
-               filter_data[k_start].phi, filter_data[k_start].the,
-               filter_data[k_start].psi, # att
+    initial = (data['filter'][k_start].vn, data['filter'][k_start].ve,
+               data['filter'][k_start].vd,    # vel
+               data['filter'][k_start].phi, data['filter'][k_start].the,
+               data['filter'][k_start].psi, # att
                biases[0], biases[1], biases[2], # gyro
                biases[3], biases[4], biases[5]) # accel
-    bounds = ( (filter_data[k_start].vn-2.0, filter_data[k_start].vn+2.0),
-               (filter_data[k_start].ve-2.0, filter_data[k_start].ve+2.0),
-               (filter_data[k_start].vd-2.0, filter_data[k_start].vd+2.0),
-               (filter_data[k_start].phi-0.2, filter_data[k_start].phi+0.2),
-               (filter_data[k_start].the-0.2, filter_data[k_start].the+0.2),
-               (filter_data[k_start].psi-math.pi, filter_data[k_start].psi+math.pi),
+    bounds = ( (data['filter'][k_start].vn-2.0, data['filter'][k_start].vn+2.0),
+               (data['filter'][k_start].ve-2.0, data['filter'][k_start].ve+2.0),
+               (data['filter'][k_start].vd-2.0, data['filter'][k_start].vd+2.0),
+               (data['filter'][k_start].phi-0.2, data['filter'][k_start].phi+0.2),
+               (data['filter'][k_start].the-0.2, data['filter'][k_start].the+0.2),
+               (data['filter'][k_start].psi-math.pi, data['filter'][k_start].psi+math.pi),
                (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
                (-2.0, 2.0), (-2.0, 2.0), (-2.0, 2.0)) # accel bias
 
     from scipy.optimize import minimize
     res = minimize(errorFunc, initial[:], bounds=bounds,
-                   args=(config,imu_data,gps_data,filter_data),
+                   args=(config,data['imu'],data['gps'],data['filter']),
                    #options={'disp': True, 'maxiter': 5},
                    options={'disp': True},
                    callback=printParams)
@@ -338,7 +368,7 @@ while start_time < gps_end:
 result_opt = data_store.data_store()
 for i in range(0, len(segments)):
     #xk = segment['results']['x']
-    #errorFunc(xk, config, imu_data, gps_data, filter_data)
+    #errorFunc(xk, config, data['imu'], data['gps'], data['filter'])
     config = segments[i]['config']
     print 'start:', config['start_time'], 'end:', config['end_time']
     if i == 0:
