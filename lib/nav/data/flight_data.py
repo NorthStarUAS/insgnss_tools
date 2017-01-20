@@ -1,5 +1,6 @@
 import aura
 import px4_sdlog2
+import px4_ulog
 import sentera
 import sentera2
 import umn_mat
@@ -11,6 +12,8 @@ def load(loader, path, recal_file=None):
         flight_data = aura.load(path, recal_file)
     elif loader == 'px4_sdlog2':
         flight_data = px4_sdlog2.load(path)
+    elif loader == 'px4_ulog':
+        flight_data = px4_ulog.load(path)
     elif loader == 'sentera1':
         imu_data, gps_data, filter_data = sentera.load(path)
     elif loader == 'sentera2':
