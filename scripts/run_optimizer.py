@@ -114,7 +114,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict.append_from_filter(navpt)
+            data_dict.append(navpt, imupt)
 
         if gpspt.newData:
             # compute error metric with each new gps report
@@ -284,7 +284,7 @@ print "gps time span:", gps_begin, gps_end
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 60             # seconds
+segment_length = 30             # seconds
 segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
