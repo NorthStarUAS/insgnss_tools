@@ -78,12 +78,13 @@ class data_store():
         self.Pab.append( np.array([insgps.Pabx, insgps.Paby, insgps.Pabz]) )
         self.Pgb.append( np.array([insgps.Pgbx, insgps.Pgby, insgps.Pgbz]) )
 
-        self.p.append(imupt.p)
-        self.q.append(imupt.q)
-        self.r.append(imupt.r)
-        self.ax.append(imupt.ax)
-        self.ay.append(imupt.ay)
-        self.az.append(imupt.az)
+        if imupt != None:
+            self.p.append(imupt.p)
+            self.q.append(imupt.q)
+            self.r.append(imupt.r)
+            self.ax.append(imupt.ax)
+            self.ay.append(imupt.ay)
+            self.az.append(imupt.az)
         
     def append_from_filter(self, filterpt):
         self.time.append(filterpt.time)
