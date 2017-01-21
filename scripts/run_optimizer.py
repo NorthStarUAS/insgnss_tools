@@ -284,7 +284,7 @@ print "gps time span:", gps_begin, gps_end
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 30             # seconds
+segment_length = 45             # seconds
 segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
@@ -325,14 +325,16 @@ while start_time < gps_end:
                data['filter'][k_start].psi, # att
                biases[0], biases[1], biases[2], # gyro
                biases[3], biases[4], biases[5]) # accel
+    max_gyro_bias = 0.1
+    max_accel_bias = 0.2
     bounds = ( (data['filter'][k_start].vn-2.0, data['filter'][k_start].vn+2.0),
                (data['filter'][k_start].ve-2.0, data['filter'][k_start].ve+2.0),
                (data['filter'][k_start].vd-2.0, data['filter'][k_start].vd+2.0),
                (data['filter'][k_start].phi-0.2, data['filter'][k_start].phi+0.2),
                (data['filter'][k_start].the-0.2, data['filter'][k_start].the+0.2),
                (data['filter'][k_start].psi-math.pi, data['filter'][k_start].psi+math.pi),
-               (-0.2, 0.2), (-0.2, 0.2), (-0.2, 0.2), # gyro bias
-               (-2.0, 2.0), (-2.0, 2.0), (-2.0, 2.0)) # accel bias
+               (-max_gyro_bias, max_gyro_bias), (-max_gyro_bias, max_gyro_bias), (-max_gyro_bias, max_gyro_bias), # gyro bias
+               (-max_accel_bias, max_accel_bias), (-max_accel_bias, max_accel_bias), (-max_accel_bias, max_accel_bias)) # accel bias
 
     from scipy.optimize import minimize
     res = minimize(errorFunc, initial[:], bounds=bounds,
@@ -418,7 +420,7 @@ for i in range(0, len(segments)):
         perc = float(k - start_k) / float(end_k - start_k)
         err = data_store.weighted_avg(start_err, end_err, 1-perc)
         joined = data_store.sum(data1.data[k], err)
-        result_opt.append(joined)
+        result_opt.append(joined, None)
 
 # write out 'filter-post.txt' based on optimized result
 if args.flight or args.aura_flight:
