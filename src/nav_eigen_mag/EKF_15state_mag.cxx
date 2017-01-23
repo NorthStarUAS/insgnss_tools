@@ -67,7 +67,7 @@ void EKF15mag::default_config()
     config.sig_gps_p_d  = 5.0;
     config.sig_gps_v_ne = 0.5;
     config.sig_gps_v_d  = 1.0;
-    config.sig_mag      = 0.2;
+    config.sig_mag      = 0.4;
 }
 
 NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
@@ -133,7 +133,8 @@ NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
     mag_ned(1) = field[4];
     mag_ned(2) = field[5];
     mag_ned.normalize();
-    // cout << "Ideal mag vector (ned): " << mag_ned << endl;
+    cout << field[0] << " " << field[1] << " " << field[2] << endl;
+    cout << "Ideal mag vector (ned): " << mag_ned << endl;
     // // initial heading
     // double init_psi_rad = 90.0*D2R;
     // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
