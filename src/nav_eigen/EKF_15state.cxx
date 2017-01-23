@@ -133,7 +133,7 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
     // nav.phi = 0*D2R;
     // nav.psi = 90.0*D2R;
 
-    nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
+    nav.psi = 90*D2R - atan2(imu.hx, imu.hy);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
     nav.qw = quat.w();
