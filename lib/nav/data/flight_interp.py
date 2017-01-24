@@ -78,10 +78,19 @@ class FlightInterpolate():
             self.imu_ax = interpolate.interp1d(x, array[:,4],
                                                bounds_error=False,
                                                fill_value=0.0)
-            self.imu_ay = interpolate.interp1d(x, array[:,4],
+            self.imu_ay = interpolate.interp1d(x, array[:,5],
                                                bounds_error=False,
                                                fill_value=0.0)
-            self.imu_az = interpolate.interp1d(x, array[:,4],
+            self.imu_az = interpolate.interp1d(x, array[:,6],
+                                               bounds_error=False,
+                                               fill_value=0.0)
+            self.imu_hx = interpolate.interp1d(x, array[:,7],
+                                               bounds_error=False,
+                                               fill_value=0.0)
+            self.imu_hy = interpolate.interp1d(x, array[:,8],
+                                               bounds_error=False,
+                                               fill_value=0.0)
+            self.imu_hz = interpolate.interp1d(x, array[:,9],
                                                bounds_error=False,
                                                fill_value=0.0)
         if 'gps' in flight_data:
