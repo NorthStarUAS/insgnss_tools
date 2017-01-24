@@ -43,3 +43,9 @@ Mechanics Deptarment, University of Minnesota.
 
 * Uses boost/python so that the same core C++ code can be used from
   either C++ or python applications.
+
+# Calibration:
+
+* Includes code that can import a flight data set and do a least
+  squares fit of an ellipsoid to the magnetometer data to callibrate
+  the magnetometer.
