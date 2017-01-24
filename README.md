@@ -18,9 +18,10 @@ Mechanics Deptarment, University of Minnesota.
 * Ardupilot tlog (partial support, I would be happy to find a
   volunteer to improve this.)
 
-* PX4 "sdlog2_dump" (CSV) format
+* PX4 sdlog2_dump and ulog2csv formats (CSV).
 
 * Sentera camera IMU format
+
 
 # Available filters
 
@@ -33,6 +34,7 @@ Mechanics Deptarment, University of Minnesota.
 
 * Piece-wise segment optimizer.
 
+
 # Features:
 
 * Run two filters (or the same filter with different noise settings)
@@ -43,6 +45,7 @@ Mechanics Deptarment, University of Minnesota.
 
 * Uses boost/python so that the same core C++ code can be used from
   either C++ or python applications.
+
 
 # Calibration:
 
