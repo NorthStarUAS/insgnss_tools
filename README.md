@@ -52,3 +52,7 @@ Mechanics Deptarment, University of Minnesota.
 * Includes code that can import a flight data set and do a least
   squares fit of an ellipsoid to the magnetometer data to callibrate
   the magnetometer.
+
+* Includes code that can compare the expected ideal mag vector (based
+  on location, date, and aircraft orientation) versus the actual
+  sensed mag vector and do a best fit (mag calibration) from flight data.
