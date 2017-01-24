@@ -880,7 +880,7 @@ def orthogonalization_matrix(lengths, angles):
         [ 0.0,                          0.0,    0.0, 1.0]])
 
 
-def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True, usesparse=False):
+def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True, usesparse=True):
     """Return affine transform matrix to register two point sets.
 
     v0 and v1 are shape (ndims, \*) arrays of at least ndims non-homogeneous
