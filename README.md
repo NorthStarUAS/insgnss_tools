@@ -1,8 +1,9 @@
 # navigation
 
-Navigation (EKF) libraries suitable for use in small UAS applications.
-The code is structured with dual C++ and python interfaces.  It
-includes a plotting librar for comparing filters or configurations.
+Navigation (EKF) toolbox with python wrappers.  Suitable for use in
+small UAS applications.  The code is structured with dual C++ and
+python interfaces.  It includes a plotting librar for comparing
+filters or configurations.
 
 This code project was original put together by Hamid Mokhtarzadeh
 mokh0006 at umn dot edu in support of the research performed by the
