@@ -107,6 +107,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     act_index = 0
     actpt = None
     new_gps = 0
+    synth_filt_asi = 0
     if call_init:
         filter_init = False
     else:
@@ -198,7 +199,8 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             elif 'act' in data:
                 asi_kt = synth_asi.est_airspeed(navpt.phi, actpt.throttle,
                                                actpt.elevator, imupt.q)
-                data_dict.add_asi(airpt.airspeed, asi_kt)
+                synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
+                data_dict.add_asi(airpt.airspeed, synth_filt_asi)
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
