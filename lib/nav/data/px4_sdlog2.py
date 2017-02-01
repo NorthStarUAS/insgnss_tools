@@ -7,7 +7,12 @@ import re
 
 from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
+# empty classes we'll fill in with data members
+class Controldata: pass
+class APdata: pass
+
 d2r = math.pi / 180.0
+mps2kt = 1.94384
 
 def load(csv_file):
     result = {}
@@ -16,7 +21,7 @@ def load(csv_file):
     result['air'] = []
     result['filter'] = []
     #result['pilot'] = []
-    #result['act'] = []
+    result['act'] = []
     #result['ap'] = []
 
     last_gps_time = -1.0
@@ -48,46 +53,79 @@ def load(csv_file):
             imu.temp = 15.0
             result['imu'].append( imu )
 
-            gps = GPSdata()
-            gps.time = imu.time
-            gps.unix_sec = float(row['GPS_GPSTime']) / 1000000.0
-            gps.lat = float(row['GPS_Lat'])
-            gps.lon = float(row['GPS_Lon'])
-            gps.alt = float(row['GPS_Alt'])
-            gps.vn = float(row['GPS_VelN'])
-            gps.ve = float(row['GPS_VelE'])
-            gps.vd = float(row['GPS_VelD'])
-            gps.sats = int(row['GPS_nSat'])
-            if gps.sats >= 5 and gps.unix_sec > last_gps_time:
-                result['gps'].append(gps)
-            last_gps_time = gps.unix_sec
+            if row['GPS_GPSTime'] != '':
+                gps = GPSdata()
+                gps.time = imu.time
+                gps.unix_sec = float(row['GPS_GPSTime']) / 1000000.0
+                gps.lat = float(row['GPS_Lat'])
+                gps.lon = float(row['GPS_Lon'])
+                gps.alt = float(row['GPS_Alt'])
+                gps.vn = float(row['GPS_VelN'])
+                gps.ve = float(row['GPS_VelE'])
+                gps.vd = float(row['GPS_VelD'])
+                gps.sats = int(row['GPS_nSat'])
+                if gps.sats >= 5 and gps.unix_sec > last_gps_time:
+                    result['gps'].append(gps)
+                last_gps_time = gps.unix_sec
 
-            air = Airdata()
-            air.time = imu.time
-            air.static_press = float(row['SENS_BaroPres'])
-            air.diff_press = float(row['SENS_DiffPres'])
-            air.temp = float(row['AIRS_AirTemp'])
-            air.airspeed = float(row['AIRS_IndSpeed'])
-            air.alt_press = float(row['SENS_BaroAlt'])
-            air.alt_true = gps.alt
-            result['air'].append( air )
-        
-            nav = NAVdata()
-            nav.time = imu.time
-            nav.lat = float(row['GPOS_Lat'])*d2r
-            nav.lon = float(row['GPOS_Lon'])*d2r
-            nav.alt = float(row['GPOS_Alt'])
-            nav.vn = float(row['GPOS_VelN'])
-            nav.ve = float(row['GPOS_VelE'])
-            nav.vd = float(row['GPOS_VelD'])
-            nav.phi = float(row['ATT_Roll'])
-            nav.the = float(row['ATT_Pitch'])
-            psi = float(row['ATT_Yaw'])
-            if psi > 180.0:
-                psi = psi - 360.0
-            if psi < -180.0:
-                psi = psi + 360.0
-            nav.psi = psi
-            result['filter'].append(nav)
+            if row['SENS_BaroPres'] != '':
+                air = Airdata()
+                air.time = imu.time
+                air.static_press = float(row['SENS_BaroPres'])
+                if 'AIR1_DiffPres' in row and row['AIR1_DiffPres'] != '':
+                    air.diff_press = float(row['AIR1_DiffPres'])
+                else:
+                    air.diff_press = 0.0
+                if 'AIRS_Temp' in row and row['AIRS_Temp'] != '':
+                    air.temp = float(row['AIRS_Temp'])
+                else:
+                    air.temp = 0.0
+                if 'AIRS_IAS' in row and row['AIRS_IAS'] != '':
+                    air.airspeed = float(row['AIRS_IAS']) * mps2kt
+                else:
+                    air.airspeed = 0.0
+                air.alt_press = float(row['AIR1_BaroAlt'])
+                if 'GPS_Alt' in row and row['GPS_Alt'] != '':
+                    air.alt_true = float(row['GPS_Alt'])
+                else:
+                    air.alt_true = 0.0
+                result['air'].append( air )
+
+            if row['GPOS_Lat'] != '':
+                nav = NAVdata()
+                nav.time = imu.time
+                nav.lat = float(row['GPOS_Lat'])*d2r
+                nav.lon = float(row['GPOS_Lon'])*d2r
+                nav.alt = float(row['GPOS_Alt'])
+                nav.vn = float(row['GPOS_VelN'])
+                nav.ve = float(row['GPOS_VelE'])
+                nav.vd = float(row['GPOS_VelD'])
+                nav.phi = float(row['ATT_Roll'])
+                nav.the = float(row['ATT_Pitch'])
+                psi = float(row['ATT_Yaw'])
+                if psi > 180.0:
+                    psi = psi - 360.0
+                if psi < -180.0:
+                    psi = psi + 360.0
+                nav.psi = psi
+                result['filter'].append(nav)
+
+            if row['OUT0_Out0'] != '':
+                act = Controldata()
+                ch0 = (float(row['OUT0_Out0']) - 1500) / 500
+                ch1 = (float(row['OUT0_Out1']) - 1500) / 500 
+                ch2 = (float(row['OUT0_Out2']) - 1000) / 1000
+                ch3 = (float(row['OUT0_Out3']) - 1500) / 500
+                #print ch0, ch1, ch2, ch3
+                act.time = imu.time
+                act.aileron = (ch0 - ch1)
+                act.elevator = -(ch0 + ch1)
+                act.throttle = ch2
+                act.rudder = ch3
+                act.gear = 0.0
+                act.flaps = 0.0
+                act.aux1 = 0.0
+                act.auto_manual = 0.0
+                result['act'].append(act)
 
     return result
