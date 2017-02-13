@@ -84,7 +84,10 @@ def load(csv_file):
                     air.airspeed = float(row['AIRS_IAS']) * mps2kt
                 else:
                     air.airspeed = 0.0
-                air.alt_press = float(row['AIR1_BaroAlt'])
+                if 'AIR1_BaroAlt' in row and row['AIR1_BaroAlt'] != '':
+                    air.alt_press = float(row['AIR1_BaroAlt'])
+                else:
+                    air.alt_press = 0.0
                 if 'GPS_Alt' in row and row['GPS_Alt'] != '':
                     air.alt_true = float(row['GPS_Alt'])
                 else:
