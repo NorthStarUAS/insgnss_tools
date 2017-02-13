@@ -50,15 +50,15 @@ NAVconfig EKF15::get_config() {
 
 void EKF15::default_config()
 {
-    config.sig_w_ax = 0.05;	   // m/s^2
+    config.sig_w_ax = 0.05;    // m/s^2
     config.sig_w_ay = 0.05;
     config.sig_w_az = 0.05;
     config.sig_w_gx = 0.00175; // rad/s (0.1 deg/s)
     config.sig_w_gy = 0.00175;
     config.sig_w_gz = 0.00175;
-    config.sig_a_d  = 0.1;     // 5e-2*g
+    config.sig_a_d  = 0.01;    // value that leads to reasonable bias plots
     config.tau_a    = 100.0;
-    config.sig_g_d  = 0.00873; // 0.1 deg/s
+    config.sig_g_d  = 0.00025; // value that leads to reasonable bias plots
     config.tau_g    = 50.0;
     config.sig_gps_p_ne = 3.0;
     config.sig_gps_p_d  = 5.0;
@@ -125,14 +125,6 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
     nav.phi = asin(imu.ay/(g*cos(nav.the))); 
-    nav.psi = 0.0;
-
-    // fixme: for now match the reference implementation so we can
-    // compare intermediate calculations.
-    // nav.the = 8*D2R;
-    // nav.phi = 0*D2R;
-    // nav.psi = 90.0*D2R;
-
     nav.psi = 90*D2R - atan2(imu.hx, imu.hy);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
