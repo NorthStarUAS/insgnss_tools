@@ -12,7 +12,9 @@ class Controldata: pass
 class APdata: pass
 
 d2r = math.pi / 180.0
+r2d = 180.0/ math.pi
 mps2kt = 1.94384
+m2ft = 1.0 / 0.3048
 
 def load(csv_file):
     result = {}
@@ -22,7 +24,7 @@ def load(csv_file):
     result['filter'] = []
     #result['pilot'] = []
     result['act'] = []
-    #result['ap'] = []
+    result['ap'] = []
 
     last_gps_time = -1.0
     with open(csv_file, 'rb') as f:
@@ -113,6 +115,16 @@ def load(csv_file):
                 nav.psi = psi
                 result['filter'].append(nav)
 
+            if row['GPSP_Alt'] != '':
+                ap = APdata()
+                ap.time = imu.time
+                ap.hdg = float(row['ATSP_YawSP']) * r2d
+                ap.roll = float(row['ATSP_RollSP']) * r2d
+                ap.alt = float(row['GPSP_Alt']) * m2ft
+                ap.pitch = float(row['ATSP_PitchSP']) * r2d
+                ap.speed = float(row['TECS_AsSP']) * mps2kt
+                result['ap'].append(ap)
+                
             if row['OUT0_Out0'] != '':
                 act = Controldata()
                 ch0 = (float(row['OUT0_Out0']) - 1500) / 500
