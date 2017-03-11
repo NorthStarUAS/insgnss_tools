@@ -44,9 +44,9 @@ struct imu {
     double ax;	// [m/sec^2], body X axis acceleration
     double ay;	// [m/sec^2], body Y axis acceleration
     double az;	// [m/sec^2], body Z axis acceleration
-    //double hx;	// [Gauss], body X axis magnetic field
-    //double hy;	// [Gauss], body Y axis magnetic field
-    //double hz;	// [Gauss], body Z axis magnetic field
+    double hx;	// [Gauss], body X axis magnetic field
+    double hy;	// [Gauss], body Y axis magnetic field
+    double hz;	// [Gauss], body Z axis magnetic field
     //double phi; // [rad], Euler roll angle. Only used if IMU sensor reports attitude.
     //double the; // [rad], Euler pitch angle. Only used if IMU sensor reports attitude.
     //double psi; // [rad], Euler yaw angle. Only used if IMU sensor reports attitude.
@@ -54,6 +54,7 @@ struct imu {
     //float  Vs;	// [Volts], supply voltage of IMU sensor
     //double adc; // [counts], ADC reading
     //enum umn_errdefs err_type; // IMU status
+    double temp; // degree C
     double time; // [sec], timestamp of IMU data
 };
 
@@ -82,7 +83,7 @@ struct gps {
     //double speedOverGround;	// [rad], speed over the ground
     double time;	// [sec], timestamp of GPS data
     unsigned short newData;	// [bool], flag set when GPS data has been updated
-    //unsigned short satVisible; // Number satellites used in the position solution
+    unsigned short satVisible; // Number satellites used in the position solution
     //unsigned short navValid;// flag indicating whether the solution is valid, 0 = valid
     //unsigned short GPS_week;// GPS week since current epoch.
     //enum umn_errdefs err_type;	// GPS status
@@ -93,6 +94,7 @@ struct gps {
     //int bytesInLocalBuffer; // number of bytes in the local buffer
     //int readState;			// current state of serial data reader function
     //int read_calls;			// number of times the read_gps function has been called
+    double unix_time;
 };
 
 
