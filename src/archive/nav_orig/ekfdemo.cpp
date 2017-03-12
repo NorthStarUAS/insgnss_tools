@@ -1,5 +1,12 @@
+// simple compile command line:
+//
+//     /opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ EKF_15state_quat.c ekfdemo.cpp matrix.c nav_functions.c -lm -lrt -o ekfdemo
+//
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <vector>
 #include <string>
@@ -153,6 +160,7 @@ int main(int argc, char **argv) {
     nav nav_record;
 
     double start_sec = get_Time();
+    printf("Start time = %.2f\n", start_sec);
     
     while (true) {
         if (imu_index >= imu_list.size() - 1) {
@@ -177,16 +185,22 @@ int main(int argc, char **argv) {
 
         if (!ekf_inited) {
             init_nav(&imu_record, &gps_record, &nav_record);
+	    ekf_inited = true;
         } else {
             get_nav(&imu_record, &gps_record, &nav_record);
         }
 
-        // printf("%.8f %.8f %.2f\n", nav_record.lat, nav_record.lon, nav_record.alt);
+        /*double end_sec = get_Time();
+        double elapsed_sec = end_sec - start_sec;
+        printf("%.8f %.8f %.2f %.1f hz\n",
+               nav_record.lat, nav_record.lon, nav_record.alt,
+	       (float)imu_index/elapsed_sec);*/
         
         imu_index++;
     }
 
     double end_sec = get_Time();
+    printf("End time = %.2f\n", end_sec);
     double elapsed_sec = end_sec - start_sec;
     printf("Processed %d imu records in %.2f seconds.\n",
            imu_list.size(),
