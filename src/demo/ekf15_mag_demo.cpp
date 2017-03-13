@@ -1,6 +1,7 @@
 // simple example that loads an imu log, a gps log, and plays it through
 // the 15 state plus magnetometer ekf
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +12,73 @@
 using std::vector;
 using std::string;
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
+#include <math.h>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/LU>
+using namespace Eigen;
+
+#include "../core/coremag.h"
+#include "../core/nav_functions.hxx"
+
 #include "EKF_15state_mag.hxx"
+
+#include "linearfit.hxx"
+
+// magnetometer calibration
+static Vector3d mag_ned;
+static Quaterniond quat;
+static Matrix3d C_N2B;
+static LinearFitFilter magx(3600);
+static LinearFitFilter magy(3600);
+static LinearFitFilter magz(3600);
+
+void set_ideal_mag_vector(NAVdata nav) {
+    long int jd = now_to_julian_days();
+    double field[6];
+    calc_magvar( nav.lat, nav.lon,
+		 nav.alt / 1000.0, jd, field );
+    mag_ned(0) = field[3];
+    mag_ned(1) = field[4];
+    mag_ned(2) = field[5];
+    mag_ned.normalize();
+    cout << field[0] << " " << field[1] << " " << field[2] << endl;
+    cout << "Ideal mag vector (ned): " << mag_ned << endl;
+}
+
+void update_mag_calibration(IMUdata imu, NAVdata nav) {
+    quat = Quaterniond(nav.qw, nav.qx, nav.qy, nav.qz);
+    C_N2B = quat2dcm(quat);
+    Vector3d mag_ideal = C_N2B * mag_ned;
+
+    double vel_ms = sqrt(nav.vn*nav.vn + nav.ve*nav.ve);
+    if (vel_ms > 2.0) {
+        // update calibration when moving
+	magx.update(imu.hx, mag_ideal(0), 0.01);
+	magy.update(imu.hy, mag_ideal(1), 0.01);
+	magz.update(imu.hz, mag_ideal(2), 0.01);
+    }
+
+    if ( vel_ms > 2.0 ) {
+        // check the calibration
+        double cal_hx = magx.get_value(imu.hx);
+	double cal_hy = magy.get_value(imu.hy);
+	double cal_hz = magz.get_value(imu.hz);
+	Vector3d mag_cal(cal_hx, cal_hy, cal_hz);
+	mag_cal.normalize();
+	Vector3d mag_error = mag_cal - mag_ideal;
+	double error = mag_error.norm();
+	//printf("mag err = %.2f\n", error);
+	printf("x: %.2f %.2f y: %.2f %.2f z: %.2f %.2f\n",
+	       magx.get_a0(), magx.get_a1(),
+	       magy.get_a0(), magy.get_a1(),
+	       magz.get_a0(), magz.get_a1());
+    }
+}
 
 // split a string into tokens
 vector<float>
@@ -183,11 +250,16 @@ int main(int argc, char **argv) {
 
         if (!ekf_inited) {
 	    nav_record = ekf.init(imu_record, gps_record);
+	    set_ideal_mag_vector(nav_record);
 	    ekf_inited = true;
         } else {
             nav_record = ekf.update(imu_record, gps_record);
+	    update_mag_calibration(imu_record, nav_record);
         }
 
+	// magnetometer self calibration
+	
+	
         /*double end_sec = get_Time();
         double elapsed_sec = end_sec - start_sec;
         printf("%.8f %.8f %.2f %.1f hz\n",
