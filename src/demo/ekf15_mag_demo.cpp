@@ -50,33 +50,38 @@ void set_ideal_mag_vector(NAVdata nav) {
     cout << "Ideal mag vector (ned): " << mag_ned << endl;
 }
 
-void update_mag_calibration(IMUdata imu, NAVdata nav) {
+void update_mag_calibration(Vector3d mag_raw, IMUdata imu, NAVdata nav) {
     quat = Quaterniond(nav.qw, nav.qx, nav.qy, nav.qz);
     C_N2B = quat2dcm(quat);
     Vector3d mag_ideal = C_N2B * mag_ned;
 
     double vel_ms = sqrt(nav.vn*nav.vn + nav.ve*nav.ve);
-    if (vel_ms > 2.0) {
+    if (vel_ms > 4.0) {
         // update calibration when moving
-	magx.update(imu.hx, mag_ideal(0), 0.01);
-	magy.update(imu.hy, mag_ideal(1), 0.01);
-	magz.update(imu.hz, mag_ideal(2), 0.01);
+        magx.update(mag_raw(0), mag_ideal(0), 0.01);
+	magy.update(mag_raw(1), mag_ideal(1), 0.01);
+	magz.update(mag_raw(2), mag_ideal(2), 0.01);
     }
 
-    if ( vel_ms > 2.0 ) {
+    if ( vel_ms > 4.0 ) {
         // check the calibration
-        double cal_hx = magx.get_value(imu.hx);
-	double cal_hy = magy.get_value(imu.hy);
-	double cal_hz = magz.get_value(imu.hz);
-	Vector3d mag_cal(cal_hx, cal_hy, cal_hz);
+
+        // if mag uncalibrated
+        // double cal_hx = magx.get_value(imu.hx);
+	// double cal_hy = magy.get_value(imu.hy);
+	// double cal_hz = magz.get_value(imu.hz);
+	// Vector3d mag_cal(cal_hx, cal_hy, cal_hz);
+
+        // if mag calibrated
+        Vector3d mag_cal(imu.hx, imu.hy, imu.hz);
 	mag_cal.normalize();
 	Vector3d mag_error = mag_cal - mag_ideal;
 	double error = mag_error.norm();
-	//printf("mag err = %.2f\n", error);
-	printf("x: %.2f %.2f y: %.2f %.2f z: %.2f %.2f\n",
+	printf("mag err = %.2f\n", error);
+	/*printf("x: %.2f %.4f y: %.2f %.4f z: %.2f %.4f\n",
 	       magx.get_a0(), magx.get_a1(),
 	       magy.get_a0(), magy.get_a1(),
-	       magz.get_a0(), magz.get_a1());
+	       magz.get_a0(), magz.get_a1());*/
     }
 }
 
@@ -151,6 +156,18 @@ int main(int argc, char **argv) {
 
     char buf[256]; // input buffer
     FILE *f;
+
+    // in demo data, magnetometer is saved already calibrated, but we
+    // also save the calibration matrix, so we can undo the
+    // calibration which we will now do so we can test the on-the-fly
+    // calibration scheme...
+    Matrix4d mag_cal;
+    mag_cal <<
+       0.0025737141, 0.0001152496, 0.0004039434, -0.8824808415,
+      -0.0002158941, 0.0024616144, 0.0002816274,  0.1427379365,
+       0.0000307758, 0.0001215845, 0.0025342126,  0.1370547336,
+       0.0000000000, 0.0000000000, 0.0000000000,  1.0000000000;
+    Matrix4d mag_uncal = mag_cal.inverse();
     
     // load the imu data file
     f = fopen(argv[1], "r");
@@ -164,6 +181,11 @@ int main(int argc, char **argv) {
             printf("problem parsing imu file: %s\n", argv[1]);
             return -1;
         }
+
+	// undo the original magnetometer calibration (for testing)
+	Vector4d hc(tokens[7], tokens[8], tokens[9], 1.0);
+	Vector4d hr = mag_uncal * hc;
+	
         IMUdata imu_record;
         imu_record.time = tokens[0];
         imu_record.p = tokens[1];
@@ -172,9 +194,9 @@ int main(int argc, char **argv) {
         imu_record.ax = tokens[4];
         imu_record.ay = tokens[5];
         imu_record.az = tokens[6];
-        imu_record.hx = tokens[7];
-        imu_record.hy = tokens[8];
-        imu_record.hz = tokens[9];
+        imu_record.hx = /*tokens[7]*/ round(hr(0));
+        imu_record.hy = /*tokens[8]*/ round(hr(1));
+        imu_record.hz = /*tokens[9]*/ round(hr(2));
         imu_record.temp = tokens[10];
         imu_list.push_back(imu_record);
     }
@@ -248,13 +270,21 @@ int main(int argc, char **argv) {
             gps_record.newData = 0;
         }
 
+	// save the raw magnetometer
+	Vector3d mag_raw(imu_record.hx, imu_record.hy, imu_record.hz);
+	
+	// calibrate the mags before calling the ekf
+	imu_record.hx = magx.get_value(mag_raw(0));
+	imu_record.hy = magy.get_value(mag_raw(1));
+	imu_record.hz = magz.get_value(mag_raw(2));
+	
         if (!ekf_inited) {
 	    nav_record = ekf.init(imu_record, gps_record);
 	    set_ideal_mag_vector(nav_record);
 	    ekf_inited = true;
         } else {
             nav_record = ekf.update(imu_record, gps_record);
-	    update_mag_calibration(imu_record, nav_record);
+	    update_mag_calibration(mag_raw, imu_record, nav_record);
         }
 
 	// magnetometer self calibration
