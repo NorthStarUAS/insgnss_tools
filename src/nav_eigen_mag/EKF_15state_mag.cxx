@@ -53,21 +53,21 @@ NAVconfig EKF15mag::get_config() {
 
 void EKF15mag::default_config()
 {
-    config.sig_w_ax = 0.05;	   // m/s^2
+    config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
     config.sig_w_az = 0.05;
-    config.sig_w_gx = 0.00175; // rad/s (0.1 deg/s)
+    config.sig_w_gx = 0.00175;  // Std dev of gyro output noise (rad/s)  (0.1 deg/s)
     config.sig_w_gy = 0.00175;
     config.sig_w_gz = 0.00175;
-    config.sig_a_d  = 0.01;    // value that leads to reasonable bias plots
-    config.tau_a    = 100.0;
-    config.sig_g_d  = 0.00025; // value that leads to reasonable bias plots
-    config.tau_g    = 50.0;
-    config.sig_gps_p_ne = 3.0;
-    config.sig_gps_p_d  = 5.0;
-    config.sig_gps_v_ne = 0.5;
-    config.sig_gps_v_d  = 1.0;
-    config.sig_mag      = 0.4;
+    config.sig_a_d  = 0.01;     // Std dev of Accelerometer Markov Bias
+    config.tau_a    = 100.0;    // Correlation time or time constant of b_{ad}
+    config.sig_g_d  = 0.00025;  // Std dev of correlated gyro bias (rad)
+    config.tau_g    = 50.0;     // Correlation time or time constant of b_{gd}
+    config.sig_gps_p_ne = 3.0;  // GPS measurement noise std dev (m)
+    config.sig_gps_p_d  = 6.0;  // GPS measurement noise std dev (m)
+    config.sig_gps_v_ne = 0.5;  // GPS measurement noise std dev (m/s)
+    config.sig_gps_v_d  = 1.0;  // GPS measurement noise std dev (m/s)
+    config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
 NAVdata EKF15mag::init(IMUdata imu, GPSdata gps) {
@@ -444,6 +444,8 @@ NAVdata EKF15mag::update(IMUdata imu, GPSdata gps) {
 }
 
 
+#ifdef HAVE_BOOST_PYTHON
+
 // The following constructs a python interface for this class.
 
 #include <boost/python.hpp>
@@ -457,3 +459,5 @@ BOOST_PYTHON_MODULE(EKF15_mag)
         .def("update", &EKF15mag::update)
     ;
 }
+
+#endif // HAVE_BOOST_PYTHON

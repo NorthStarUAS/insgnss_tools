@@ -260,8 +260,14 @@ tuple py_geo_inverse_wgs84(double lat1, double lon1, double lat2, double lon2) {
 }
 
 
+#ifdef HAVE_BOOST_PYTHON
+
+// The following constructs a python interface for this class.
+
 BOOST_PYTHON_MODULE(wgs84)
 {
     def("geo_direct_wgs84", py_geo_direct_wgs84);
     def("geo_inverse_wgs84", py_geo_inverse_wgs84);
 }
+
+#endif // HAVE_BOOST_PYTHON
