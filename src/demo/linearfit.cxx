@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 
 #include "linearfit.hxx"
@@ -32,8 +33,9 @@ void LinearFitFilter::update( double x, double y, double dt ) {
     sum_y2 = sum_y2 * wf + y*y;
     sum_xy = sum_xy * wf + x*y;
 
-    if ( n > 1 ) {
-	a1 = (n*sum_xy - sum_x*sum_y) / (n*sum_x2 - sum_x*sum_x);
+    double denom = n*sum_x2 - sum_x*sum_x;
+    if ( n > 1 and fabs(denom) > 0.00001 ) {
+	a1 = (n*sum_xy - sum_x*sum_y) / denom;
 	a0 = (sum_y - a1*sum_x) / n;
     } else {
 	a1 = 0.0;
