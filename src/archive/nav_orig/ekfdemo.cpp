@@ -1,6 +1,6 @@
 // simple compile command line:
 //
-//     /opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ EKF_15state_quat.c ekfdemo.cpp matrix.c nav_functions.c -lm -lrt -o ekfdemo
+//     /opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -O3 EKF_15state_quat.c ekfdemo.cpp matrix.c nav_functions.c -lm -lrt -o ekfdemo
 //
 
 #include <stdio.h>
