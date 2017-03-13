@@ -1,7 +1,5 @@
-// simple compile command line:
-//
-//     /opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -O3 EKF_15state.cxx ekfdemo.cpp ../core/nav_functions.cxx -o ekfdemo -lm -lrt
-//
+// simple example that loads an imu log, a gps log, and plays it through
+// the 15 state (inertial only) ekf
 
 #include <stdio.h>
 #include <stdlib.h>
