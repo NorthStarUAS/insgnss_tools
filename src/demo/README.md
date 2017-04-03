@@ -13,7 +13,7 @@ g++ -O3 -I../nav_eigen ../nav_eigen/EKF_15state.cxx ../core/nav_functions.cxx ek
 
 ## Compile with cross compiler
 
-/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -O3 EKF_15state.cxx ekfdemo.cpp ../core/nav_functions.cxx -o ekfdemo -lm -lrt
+/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -I../nav_eigen -O3 ../nav_eigen/EKF_15state.cxx ekf15_demo.cpp ../core/nav_functions.cxx -o ekf15_demo -lm -lrt
 
 
 # 15 State EKF with magnetometer measurement correction
