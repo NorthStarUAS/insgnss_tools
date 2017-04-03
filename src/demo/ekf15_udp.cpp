@@ -112,11 +112,14 @@ int main(int argc, char **argv) {
     EKF15 ekf;
     bool ekf_inited = false;
 
+    double start_time = get_Time();
+    int imu_count = 0;
     double output_time = 0.0;
     
     while ( true ) {
         ssize_t result = sock_imu.recv(&imu_record, sizeof(IMUdata), 0);
 	if ( result == sizeof(IMUdata) ) {
+            imu_count++;
             // convert to seconds
 	    imu_record.time *= 1000.0;
             // convert accels to mps
@@ -155,10 +158,12 @@ int main(int argc, char **argv) {
 	      }
 	      if (imu_record.time >= output_time + 0.1) {
 		output_time = imu_record.time;
-		printf("%.8f %.8f %.2f %.1f %.1f %.1f\n",
+		double elapsed_sec = get_Time() - start_time;
+		printf("%.8f %.8f %.2f %.1f %.1f %.1f %.1f\n",
 		       nav_record.lat*r2d, nav_record.lon*r2d, nav_record.alt,
 		       nav_record.phi*r2d, nav_record.the*r2d,
-		       nav_record.psi*r2d);
+		       nav_record.psi*r2d,
+		       (double)imu_count/elapsed_sec);
 	      }
 	    }
 	}
