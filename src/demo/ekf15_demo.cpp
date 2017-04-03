@@ -12,6 +12,7 @@ using std::vector;
 using std::string;
 
 #include "EKF_15state.hxx"
+#include "netSocket.h"
 
 // split a string into tokens
 vector<float>
@@ -79,6 +80,35 @@ int main(int argc, char **argv) {
         printf("Usage: %s imu.txt gps.txt\n", argv[0]);
     }
 
+    netSocket sock_imu;
+
+    // open a UDP socket
+    if ( ! sock_imu.open( false ) ) {
+        printf("error opening imu input socket\n");
+    }
+
+    // bind
+    if ( sock_imu.bind( "", 55555 ) == -1 ) {
+        printf("error binding to port 55555\n");
+    }
+
+    IMUdata imu;
+    while ( true ) {
+        ssize_t result = sock_imu.recv(&imu, sizeof(imu), 0);
+	if ( result == sizeof(imu) ) {
+            // printf("received imu packet, len = %d\n", result);
+	    printf( "%0.6f, "
+                    "%0.3f, %0.3f, %0.3f, "
+                    "%0.3f, %0.3f, %0.3f, "
+                    "%0.3f, %0.3f, %0.3f, "
+                    "%0.3f\n",
+                    imu.time,
+                    imu.p, imu.q, imu.r,
+                    imu.ax, imu.ay, imu.az,
+                    imu.hx, imu.hy, imu.hz,
+                    imu.temp);
+	}
+    }
     vector<IMUdata> imu_list;
     vector<GPSdata> gps_list;
 
