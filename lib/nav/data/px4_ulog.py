@@ -1,8 +1,10 @@
 # load a px4_sdlog2 csv file
 
 import csv
+import fileinput
 import math
 import numpy as np
+import os
 from scipy import interpolate # strait up linear interpolation, nothing fancy
 import re
 
@@ -12,6 +14,7 @@ from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
 d2r = math.pi / 180.0
 r2d = 180.0 / math.pi
+mps2kt = 1.94384
 
 # create rotation matrix for the quaternion
 def px4_quat2dcm(q):
@@ -47,6 +50,8 @@ def load(csv_base):
     gps_path = csv_base + '_vehicle_gps_position_0.csv'
     att_path = csv_base + '_vehicle_attitude_0.csv'
     pos_path = csv_base + '_vehicle_global_position_0.csv'
+    air_path = csv_base + '_airspeed_0.csv'
+    filter_post = csv_base + '_filter_post.txt'
 
     result['imu'] = []
     with open(comb_path, 'rb') as f:
@@ -91,19 +96,19 @@ def load(csv_base):
             if gps.sats >= 5:
                 result['gps'].append(gps)
 
-    # result['air'] = []
-    # with open(gps_path, 'rb') as f:
-    #     reader = csv.DictReader(f)
-    #     for row in reader:
-    #         air = Airdata()
-    #         air.time = imu.time
-    #         air.static_press = float(row['SENS_BaroPres'])
-    #         air.diff_press = float(row['SENS_DiffPres'])
-    #         air.temp = float(row['AIRS_AirTemp'])
-    #         air.airspeed = float(row['AIRS_IndSpeed'])
-    #         air.alt_press = float(row['SENS_BaroAlt'])
-    #         air.alt_true = gps.alt
-    #         result['air'].append( air )
+    result['air'] = []
+    with open(air_path, 'rb') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            air = Airdata()
+            air.time = float(row['timestamp']) / 1000000.0
+            #air.static_press = float(row['SENS_BaroPres'])
+            air.diff_press = float(row['differential_pressure_filtered_pa'])
+            air.temp = float(row['air_temperature_celsius'])
+            air.airspeed = float(row['indicated_airspeed_m_s']) * mps2kt
+            #air.alt_press = float(row['SENS_BaroAlt'])
+            air.alt_true = gps.alt
+            result['air'].append( air )
 
     att = []
     with open(att_path, 'rb') as f:
@@ -167,4 +172,33 @@ def load(csv_base):
     #result['act'] = []
     #result['ap'] = []
 
+    # load filter (post process) records if they exist (for comparison
+    # purposes)
+    if os.path.exists(filter_post):
+        print "found filter_post.txt file"
+        result['filter_post'] = []
+        ffilter = fileinput.input(filter_post)
+        for line in ffilter:
+            tokens = re.split('[,\s]+', line.rstrip())
+            lat = float(tokens[1])
+            lon = float(tokens[2])
+            if abs(lat) > 0.0001 and abs(lon) > 0.0001:
+                nav = NAVdata()
+                nav.time = float(tokens[0])
+                nav.lat = lat*d2r
+                nav.lon = lon*d2r
+                nav.alt = float(tokens[3])
+                nav.vn = float(tokens[4])
+                nav.ve = float(tokens[5])
+                nav.vd = float(tokens[6])
+                nav.phi = float(tokens[7])*d2r
+                nav.the = float(tokens[8])*d2r
+                psi = float(tokens[9])
+                if psi > 180.0:
+                    psi = psi - 360.0
+                if psi < -180.0:
+                    psi = psi + 360.0
+                nav.psi = psi*d2r
+                result['filter_post'].append(nav)
+                
     return result
