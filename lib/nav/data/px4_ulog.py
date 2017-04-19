@@ -10,7 +10,9 @@ import re
 
 from nav.structs import IMUdata, GPSdata, Airdata, NAVdata
 
-#import transformations
+# empty classes we'll fill in with data members
+class Controldata: pass
+class APdata: pass
 
 d2r = math.pi / 180.0
 r2d = 180.0 / math.pi
@@ -50,6 +52,7 @@ def load(csv_base):
     gps_path = csv_base + '_vehicle_gps_position_0.csv'
     att_path = csv_base + '_vehicle_attitude_0.csv'
     pos_path = csv_base + '_vehicle_global_position_0.csv'
+    ap_path = csv_base + '_vehicle_attitude_setpoint_0.csv'
     air_path = csv_base + '_airspeed_0.csv'
     filter_post = csv_base + '_filter_post.txt'
 
@@ -153,6 +156,21 @@ def load(csv_base):
     vd_interp = interpolate.interp1d(pos_array[:,0], pos_array[:,6],
                                      bounds_error=False, fill_value=0.0)
 
+    result['ap'] = []
+    with open(ap_path, 'rb') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            ap = APdata()
+            ap.time = float(row['timestamp']) / 1000000.0
+            ap.hdg = float(row['yaw_body']) * r2d
+            ap.roll = float(row['roll_body']) * r2d
+            ap.pitch = float(row['pitch_body']) * r2d
+            ap.alt = 0
+            ap.speed = 0
+            #ap.alt = float(row['GPSP_Alt']) * m2ft
+            #ap.speed = float(row['TECS_AsSP']) * mps2kt
+            result['ap'].append(ap)
+ 
     result['filter'] = []
     for a in att:
         nav = NAVdata()
