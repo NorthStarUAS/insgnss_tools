@@ -233,7 +233,7 @@ class FlightInterpolate():
             self.act_rud = interpolate.interp1d(x, array[:,4],
                                                 bounds_error=False,
                                                 fill_value=0.0)
-        if 'ap' in flight_data:
+        if 'ap' in flight_data and len(flight_data['ap']):
             table = []
             for ap in flight_data['ap']:
                 hdgx = math.cos(ap.hdg*d2r)
