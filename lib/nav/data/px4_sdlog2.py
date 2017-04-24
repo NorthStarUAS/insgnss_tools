@@ -16,6 +16,13 @@ r2d = 180.0/ math.pi
 mps2kt = 1.94384
 m2ft = 1.0 / 0.3048
 
+# convert value (string) to float, check for '' and return 0.0
+def my_float(value):
+    if value != '':
+        return float(value)
+    else:
+        return 0.0
+    
 def load(csv_file):
     result = {}
     result['imu'] = []
@@ -118,11 +125,11 @@ def load(csv_file):
             if row['GPSP_Alt'] != '':
                 ap = APdata()
                 ap.time = imu.time
-                ap.hdg = float(row['ATSP_YawSP']) * r2d
-                ap.roll = float(row['ATSP_RollSP']) * r2d
-                ap.alt = float(row['GPSP_Alt']) * m2ft
-                ap.pitch = float(row['ATSP_PitchSP']) * r2d
-                ap.speed = float(row['TECS_AsSP']) * mps2kt
+                ap.hdg = my_float(row['ATSP_YawSP']) * r2d
+                ap.roll = my_float(row['ATSP_RollSP']) * r2d
+                ap.alt = my_float(row['GPSP_Alt']) * m2ft
+                ap.pitch = my_float(row['ATSP_PitchSP']) * r2d
+                ap.speed = my_float(row['TECS_AsSP']) * mps2kt
                 result['ap'].append(ap)
                 
             if row['OUT0_Out0'] != '':
