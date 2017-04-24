@@ -54,6 +54,7 @@ def load(csv_base):
     pos_path = csv_base + '_vehicle_global_position_0.csv'
     ap_path = csv_base + '_vehicle_attitude_setpoint_0.csv'
     air_path = csv_base + '_airspeed_0.csv'
+    act_path = csv_base + '_actuator_outputs_0.csv'
     filter_post = csv_base + '_filter_post.txt'
 
     result['imu'] = []
@@ -218,5 +219,25 @@ def load(csv_base):
                     psi = psi + 360.0
                 nav.psi = psi*d2r
                 result['filter_post'].append(nav)
+                
+    result['act'] = []
+    with open(act_path, 'rb') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            act = Controldata()
+            act.time = float(row['timestamp']) / 1000000.0
+            ch = [0] * 8
+            for i in range(len(ch)):
+                pwm = float(row['output[%d]' % i])
+                ch[i] = (pwm - 1500) / 500
+            act.aileron = ch[0]
+            act.elevator = ch[1]
+            act.throttle = ch[2]
+            act.rudder = ch[3]
+            act.gear = 0
+            act.flaps = 0
+            act.aux1 = 0
+            act.auto_manual = 0
+            result['act'].append(act)
                 
     return result
