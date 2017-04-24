@@ -34,6 +34,7 @@ parser.add_argument('--umn-flight', help='load specified .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
 parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
+parser.add_argument('--gps-lag', type=float, default='0.0', help='gps lag in seconds')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -131,7 +132,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         if gps_index < len(gps_data) - 1:
             # walk the gps counter forward as needed
             newData = 0
-            while gps_index < len(gps_data) - 1 and gps_data[gps_index+1].time <= imupt.time:
+            while gps_index < len(gps_data) - 1 and gps_data[gps_index+1].time - args.gps_lag <= imupt.time:
                 gps_index += 1
                 newData = 1
             gpspt = gps_data[gps_index]
@@ -366,23 +367,23 @@ for i in data['imu']:
     r_flight.append(i.r)
     
 # Default config
-# config = nav.structs.NAVconfig()
-# config.sig_w_ax = 0.05
-# config.sig_w_ay = 0.05
-# config.sig_w_az = 0.05
-# config.sig_w_gx = 0.00175
-# config.sig_w_gy = 0.00175
-# config.sig_w_gz = 0.00175
-# config.sig_a_d  = 0.1
-# config.tau_a    = 100.0
-# config.sig_g_d  = 0.00873
-# config.tau_g    = 50.0
-# config.sig_gps_p_ne = 3.0
-# config.sig_gps_p_d  = 5.0
-# config.sig_gps_v_ne = 0.5
-# config.sig_gps_v_d  = 1.0
-# config.sig_mag      = 0.2
-# filter2.set_config(config)
+config = nav.structs.NAVconfig()
+config.sig_w_ax = 0.05
+config.sig_w_ay = 0.05
+config.sig_w_az = 0.05
+config.sig_w_gx = 0.00175
+config.sig_w_gy = 0.00175
+config.sig_w_gz = 0.00175
+config.sig_a_d  = 0.01
+config.tau_a    = 100.0
+config.sig_g_d  = 0.0002
+config.tau_g    = 100.0
+config.sig_gps_p_ne = 3.0
+config.sig_gps_p_d  = 5.0
+config.sig_gps_v_ne = 0.5
+config.sig_gps_v_d  = 1.0
+config.sig_mag      = 0.2
+filter1.set_config(config)
 
 # almost no trust in IMU ...
 # config = nav.structs.NAVconfig()
@@ -465,6 +466,10 @@ if args.flight or args.aura_flight:
     elif args.aura_flight:
         filter_post = os.path.join(args.aura_flight, "filter-post.txt")
     aura.save_filter_result(filter_post, data_dict1)
+
+if args.px4_ulog:
+    filter_post = args.px4_ulog + "_filter_post.txt"
+    aura.save_filter_result(filter_post, data_dict1)
     
 if args.sentera_flight:
     import data_sentera
@@ -495,7 +500,7 @@ if FLAG_PLOT_ATTITUDE:
     att_ax[0,0].plot(t_store1, r2d(phi_nav), label=filter1.name, c='r', alpha=.8)
     att_ax[0,0].plot(t_store2, r2d(phi_nav_mag), label=filter2.name, c='b', alpha=.8)
     att_ax[0,0].grid()
-    
+
     att_ax[0,1].plot(t_store1,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
     att_ax[0,1].plot(t_store1,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
     att_ax[0,1].plot(t_store2,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
