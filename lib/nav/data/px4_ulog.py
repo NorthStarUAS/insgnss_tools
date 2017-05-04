@@ -35,8 +35,23 @@ def px4_quat2dcm(q):
     R[2,1] = 2.0 * (q[0] * q[1] + q[2] * q[3])
     R[2,2] = aSq - bSq - cSq + dSq
     return R
-        
+
+def px4_norm(q):
+    return math.sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3])
+
+def px4_normquat(q):
+    norm = px4_norm(q)
+    for i in range(4):
+        q[i] /= norm
+    return q
+    
 def px4_quat2euler(q):
+    #print q
+    norm = px4_norm(q)
+    if norm > 0.000001:
+        # normalize quat
+        for i in range(4):
+            q[i] /= norm
     # create Euler angles vector from the quaternion
     roll = math.atan2(2.0 * (q[0] * q[1] + q[2] * q[3]),
                       1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]))
@@ -157,20 +172,21 @@ def load(csv_base):
     vd_interp = interpolate.interp1d(pos_array[:,0], pos_array[:,6],
                                      bounds_error=False, fill_value=0.0)
 
-    result['ap'] = []
-    with open(ap_path, 'rb') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            ap = APdata()
-            ap.time = float(row['timestamp']) / 1000000.0
-            ap.hdg = float(row['yaw_body']) * r2d
-            ap.roll = float(row['roll_body']) * r2d
-            ap.pitch = float(row['pitch_body']) * r2d
-            ap.alt = 0
-            ap.speed = 0
-            #ap.alt = float(row['GPSP_Alt']) * m2ft
-            #ap.speed = float(row['TECS_AsSP']) * mps2kt
-            result['ap'].append(ap)
+    if os.path.exists(ap_path):
+        result['ap'] = []
+        with open(ap_path, 'rb') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ap = APdata()
+                ap.time = float(row['timestamp']) / 1000000.0
+                ap.hdg = float(row['yaw_body']) * r2d
+                ap.roll = float(row['roll_body']) * r2d
+                ap.pitch = float(row['pitch_body']) * r2d
+                ap.alt = 0
+                ap.speed = 0
+                #ap.alt = float(row['GPSP_Alt']) * m2ft
+                #ap.speed = float(row['TECS_AsSP']) * mps2kt
+                result['ap'].append(ap)
  
     result['filter'] = []
     for a in att:
@@ -219,25 +235,25 @@ def load(csv_base):
                     psi = psi + 360.0
                 nav.psi = psi*d2r
                 result['filter_post'].append(nav)
-                
-    result['act'] = []
-    with open(act_path, 'rb') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            act = Controldata()
-            act.time = float(row['timestamp']) / 1000000.0
-            ch = [0] * 8
-            for i in range(len(ch)):
-                pwm = float(row['output[%d]' % i])
-                ch[i] = (pwm - 1500) / 500
-            act.aileron = ch[0]
-            act.elevator = ch[1]
-            act.throttle = ch[2]
-            act.rudder = ch[3]
-            act.gear = 0
-            act.flaps = 0
-            act.aux1 = 0
-            act.auto_manual = 0
-            result['act'].append(act)
+    if os.path.exists(act_path):      
+        result['act'] = []
+        with open(act_path, 'rb') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                act = Controldata()
+                act.time = float(row['timestamp']) / 1000000.0
+                ch = [0] * 8
+                for i in range(len(ch)):
+                    pwm = float(row['output[%d]' % i])
+                    ch[i] = (pwm - 1500) / 500
+                act.aileron = ch[0]
+                act.elevator = ch[1]
+                act.throttle = ch[2]
+                act.rudder = ch[3]
+                act.gear = 0
+                act.flaps = 0
+                act.aux1 = 0
+                act.auto_manual = 0
+                result['act'].append(act)
                 
     return result
