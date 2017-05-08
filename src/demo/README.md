@@ -13,16 +13,16 @@ g++ -O3 -I../nav_eigen ../nav_eigen/EKF_15state.cxx ../core/nav_functions.cxx ek
 
 ## Compile with cross compiler
 
-/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -I../nav_eigen -O3 ../nav_eigen/EKF_15state.cxx ekf15_demo.cpp ../core/nav_functions.cxx -o ekf15_demo -lm -lrt
+/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -I../nav_eigen -O3 -mfpu=vfp -ftree-vectorize -mfloat-abi=softfp ../nav_eigen/EKF_15state.cxx ekf15_demo.cpp ../core/nav_functions.cxx -o ekf15_demo -lm -lrt
 
 
 # 15 State EKF with magnetometer measurement correction
 
 ## Compile with native compiler
 
-g++ -O3 -I../nav_eigen_mag ../nav_eigen_mag/EKF_15state_mag.cxx ../core/nav_functions.cxx ../core/coremag.c ekf15_mag_demo.cpp -o ekf15_mag_demo -lm -lrt
+g++ -O3 -I../nav_eigen_mag ../nav_eigen_mag/EKF_15state_mag.cxx ../core/nav_functions.cxx ../core/coremag.c linearfit.cxx ekf15_mag_demo.cpp -o ekf15_mag_demo -lm -lrt
 
 
 ## Compile with cross compiler
 
-/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -O3 ../nav_eigen_mag/EKF_15state_mag.cxx ekf15_mag_demo.cpp ../core/nav_functions.cxx ../core/coremag.c -o ekf15_mag_demo -lm -lrt
+/opt/codesourcery/arm-2009q1/bin/arm-none-linux-gnueabi-g++ -I/home/sentera/AuraUAS -I../nav_eigen_mag -O3 -mfpu=vfp -ftree-vectorize -mfloat-abi=softfp ../nav_eigen_mag/EKF_15state_mag.cxx linearfit.cxx ekf15_mag_demo.cpp ../core/nav_functions.cxx ../core/coremag.c -o ekf15_mag_demo -lm -lrt
