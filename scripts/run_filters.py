@@ -19,7 +19,7 @@ import os
 
 import nav.structs
 
-from nav.data import flight_data, aura
+from aurauas.flightdata import flight_data, aura, sentera
 
 import data_store
 import wind
@@ -30,7 +30,8 @@ parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--aura-flight', help='load specified aura flight log')
 parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
 parser.add_argument('--px4-ulog', help='load specified px4 ulog (csv) base path')
-parser.add_argument('--umn-flight', help='load specified .mat flight log')
+parser.add_argument('--umn1-flight', help='load specified goldy1 .mat flight log')
+parser.add_argument('--umn3-flight', help='load specified goldy3 .mat flight log')
 parser.add_argument('--sentera-flight', help='load specified sentera flight log')
 parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
 parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
@@ -157,7 +158,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
                 filter_index += 1
             filterpt = filter_data[filter_index]
         else:
-            filterpt = filter_data[filter_index]
+            filterpt = nav.structs.NAVdata()
         #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
         if 'pilot' in data:
             while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index].time <= imupt.time:
@@ -195,11 +196,12 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             # experimental: synthetic airspeed estimator
             if 'act' in data and synth_asi.rbfi == None:
                 #print airpt.airspeed, actpt.throttle, actpt.elevator
-                synth_asi.append(navpt.phi, actpt.throttle, actpt.elevator,
-                                 imupt.q, airpt.airspeed)
+                synth_asi.append(navpt.phi, navpt.the, actpt.throttle,
+                                 actpt.elevator, imupt.q, airpt.airspeed)
             elif 'act' in data:
-                asi_kt = synth_asi.est_airspeed(navpt.phi, actpt.throttle,
-                                               actpt.elevator, imupt.q)
+                asi_kt = synth_asi.est_airspeed(navpt.phi, navpt.the,
+                                                actpt.throttle,
+                                                actpt.elevator, imupt.q)
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
                 data_dict.add_asi(airpt.airspeed, synth_filt_asi)
             
@@ -237,9 +239,12 @@ elif args.sentera_flight:
 elif args.sentera2_flight:
     loader = 'sentera2'
     path = args.sentera2_flight
-elif args.umn_flight:
+elif args.umn1_flight:
     loader = 'umn1'
-    path = args.umn_flight
+    path = args.umn1_flight
+elif args.umn3_flight:
+    loader = 'umn3'
+    path = args.umn3_flight
 else:
     loader = None
     path = None
@@ -252,7 +257,8 @@ print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
 if 'air' in data:
     print "airdata records:", len(data['air'])
-print "filter records:", len(data['filter'])
+if 'filter' in data:
+    print "filter records:", len(data['filter'])
 if 'pilot' in data:
     print "pilot records:", len(data['pilot'])
 if 'act' in data:
@@ -271,8 +277,10 @@ elif args.sentera_flight:
     plotname = os.path.basename(args.sentera_flight)
 elif args.sentera2_flight:
     plotname = os.path.basename(args.sentera2_flight)
-elif args.umn_flight:
-    plotname = os.path.basename(args.umn_flight)
+elif args.umn1_flight:
+    plotname = os.path.basename(args.umn1_flight)
+elif args.umn3_flight:
+    plotname = os.path.basename(args.umn3_flight)
 else:
     plotname = "plotname not set correctly"
 
@@ -350,17 +358,18 @@ navalt_flight = []
 vn_flight = []
 ve_flight = []
 vd_flight = []
-for f in data['filter']:
-    t_flight.append(f.time)
-    psi_flight.append(f.psi)
-    the_flight.append(f.the)
-    phi_flight.append(f.phi)
-    navlat_flight.append(f.lat)
-    navlon_flight.append(f.lon)
-    navalt_flight.append(f.alt)
-    vn_flight.append(f.vn)
-    ve_flight.append(f.ve)
-    vd_flight.append(f.vd)
+if 'filter' in data:
+    for f in data['filter']:
+        t_flight.append(f.time)
+        psi_flight.append(f.psi)
+        the_flight.append(f.the)
+        phi_flight.append(f.phi)
+        navlat_flight.append(f.lat)
+        navlon_flight.append(f.lon)
+        navalt_flight.append(f.alt)
+        vn_flight.append(f.vn)
+        ve_flight.append(f.ve)
+        vd_flight.append(f.vd)
 
 r_flight = []
 for i in data['imu']:
@@ -374,16 +383,17 @@ config.sig_w_az = 0.05
 config.sig_w_gx = 0.00175
 config.sig_w_gy = 0.00175
 config.sig_w_gz = 0.00175
-config.sig_a_d  = 0.01
+config.sig_a_d  = 0.02
 config.tau_a    = 100.0
-config.sig_g_d  = 0.0002
-config.tau_g    = 100.0
+config.sig_g_d  = 0.0005
+config.tau_g    = 50.0
 config.sig_gps_p_ne = 3.0
 config.sig_gps_p_d  = 5.0
 config.sig_gps_v_ne = 0.5
 config.sig_gps_v_d  = 1.0
-config.sig_mag      = 0.2
+config.sig_mag      = 1.0
 filter1.set_config(config)
+filter2.set_config(config)
 
 # almost no trust in IMU ...
 # config = nav.structs.NAVconfig()
@@ -472,13 +482,12 @@ if args.px4_ulog:
     aura.save_filter_result(filter_post, data_dict1)
     
 if args.sentera_flight:
-    import data_sentera
     file_ins = os.path.join(args.sentera_flight, "filter-post-ins.txt")
     file_mag = os.path.join(args.sentera_flight, "filter-post-mag.txt")
-    data_sentera.save_filter_result(file_ins, data_dict1)
-    data_sentera.save_filter_result(file_mag, data_dict2)
-    data_sentera.rewrite_pix4d_csv(args.sentera_flight, data_dict2)
-    data_sentera.rewrite_image_metadata_txt(args.sentera_flight, data_dict2)
+    sentera.save_filter_result(file_ins, data_dict1)
+    sentera.save_filter_result(file_mag, data_dict2)
+    #sentera.rewrite_pix4d_csv(args.sentera_flight, data_dict2)
+    #sentera.rewrite_image_metadata_txt(args.sentera_flight, data_dict2)
 
 nsig = 3
 t_store1 = data_dict1.time
@@ -492,7 +501,7 @@ if FLAG_PLOT_ATTITUDE:
 
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
-    # Roll PLot
+    # Roll Plot
     phi_nav = data_dict1.phi
     phi_nav_mag = data_dict2.phi
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
@@ -507,7 +516,7 @@ if FLAG_PLOT_ATTITUDE:
     att_ax[0,1].plot(t_store2,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
     att_ax[0,1].set_ylabel('3*stddev', weight='bold')
 
-    # Pitch PLot
+    # Pitch Plot
     the_nav = data_dict1.the
     the_nav_mag = data_dict2.the
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
@@ -540,6 +549,38 @@ if FLAG_PLOT_ATTITUDE:
     att_ax[2,1].plot(t_store2,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='b')
     att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,1].set_ylabel('3*stddev', weight='bold')
+
+    fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
+
+# plot raw accels (useful for bench calibration)
+if True:
+    ax = data_dict1.ax
+    ay = data_dict1.ay
+    az = data_dict1.az
+    plt.figure()
+    plt.title('Raw Accels')
+    plt.plot(t_store1, ax, label='ax', c='g', lw=2, alpha=.5)
+    plt.plot(t_store1, ay, label='ay', c='b', lw=2, alpha=.5)
+    plt.plot(t_store1, az, label='az', c='r', lw=2, alpha=.5)
+    plt.ylabel('mps^2', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
+    
+    p = data_dict1.p
+    q = data_dict1.q
+    r = data_dict1.r
+    plt.figure()
+    plt.title('Raw Gyros')
+    plt.plot(t_store1, p, label='p', c='g', lw=2, alpha=.5)
+    plt.plot(t_store1, q, label='q', c='b', lw=2, alpha=.5)
+    plt.plot(t_store1, r, label='r', c='r', lw=2, alpha=.5)
+    plt.ylabel('rad/sec', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
+    # print 'size:', len(q), len(r)
+    # for i in range(len(q)):
+    #     if q[i] != r[i]:
+    #         print q[i], r[i]
 
 if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
@@ -619,15 +660,90 @@ if FLAG_PLOT_WIND:
     ax1.legend(loc=4)
     ax2.legend(loc=1)
     ax1.grid()
+    
+comments = """
+Summary
+
+You specified the following parameters:
+filtertype	=	Butterworth
+passtype	=	Lowpass
+ripple	=	
+order	=	2
+samplerate	=	100
+corner1	=	0.628
+corner2	=	
+adzero	=	
+logmin	=	
+Results
+
+Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 6.2800000000e-03 0.0000000000e+00
+raw alpha1    =   0.0062800000
+raw alpha2    =   0.0062800000
+warped alpha1 =   0.0062808149
+warped alpha2 =   0.0062808149
+gain at dc    :   mag = 2.641105046e+03   phase =   0.0000000000 pi
+gain at centre:   mag = 1.867543288e+03   phase =  -0.5000000000 pi
+gain at hf    :   mag = 0.000000000e+00
+
+S-plane zeros:
+
+S-plane poles:
+	 -0.0279049255 + j   0.0279049255
+	 -0.0279049255 + j  -0.0279049255
+
+Z-plane zeros:
+	 -1.0000000000 + j   0.0000000000	2 times
+
+Z-plane poles:
+	  0.9721056401 + j   0.0271371011
+	  0.9721056401 + j  -0.0271371011
+
+Recurrence relation:
+y[n] = (  1 * x[n- 2])
+     + (  2 * x[n- 1])
+     + (  1 * x[n- 0])
+
+     + ( -0.9457257978 * y[n- 2])
+     + (  1.9442112802 * y[n- 1])
+"""
+NZEROS = 2
+NPOLES = 2
+xv = [0.0] * (NZEROS+1)
+yv = [0.0] * (NPOLES+1)
+def my_butter(raw):
+    GAIN = 2.641105045e+03
+
+    xv[0] = xv[1]
+    xv[1] = xv[2]
+    xv[2] = raw / GAIN
+    yv[0] = yv[1]
+    yv[1] = yv[2]
+    yv[2] = (xv[0] + xv[2]) + 2 * xv[1] + ( -0.9457257978 * yv[0]) + ( 1.9442112802 * yv[1])
+    return yv[2]
 
 if 'act' in data and FLAG_PLOT_SYNTH_ASI:
+    # butterworth filter experiment
+    import scipy.signal as signal
+    b1, a1 = signal.butter(2, 0.1)
+    b2, a2 = signal.butter(2, 0.02)
+    print 'b2:', b2, 'a2:', a2
+    air1 = signal.filtfilt(b1, a1, np.array(data_dict2.asi))
+    air2 = signal.filtfilt(b2, a2, np.array(data_dict2.asi))
+    air3 = []
+    for a in data_dict2.asi:
+        a3 = my_butter(a)
+        air3.append(a3)
+        
     fig, ax1 = plt.subplots()
     asi = data_dict2.asi
     synth_asi = data_dict2.synth_asi
     ax1.set_title('Synthetic Airspeed')
     ax1.set_ylabel('Kts', weight='bold')
-    ax1.plot(t_store1, asi, label='Measured ASI', c='r', lw=2, alpha=.8)
+    ax1.plot(t_store1, asi, label='Raw ASI', c='r', lw=2, alpha=.8)
     ax1.plot(t_store1, synth_asi, label='Synthetic ASI', c='b', lw=2, alpha=.8)
+    ax1.plot(t_store1, air1, label='butterworth 0.1', c='g', lw=2, alpha=.8)
+    ax1.plot(t_store1, air2, label='butterworth 0.02', c='y', lw=2, alpha=.8)
+    ax1.plot(t_store1, np.array(air3), label='my_butter 0.628', c='purple', lw=2, alpha=.8)
     ax1.legend(loc=0)
     ax1.grid()
     
@@ -647,6 +763,7 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     r_array = np.array(r_array)
     roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 1, full=True )
     print roll_cal
+    print 'bank bias deg (for L1 config) =', (roll_cal[1] / roll_cal[0]) * 180 / math.pi, 'deg'
     print 'zero turn @ bank =', (-roll_cal[1] / roll_cal[0]) * 180 / math.pi, 'deg'
     xvals, yvals = gen_func(roll_cal, roll_array.min(), roll_array.max(), 100)
     fig, ax1 = plt.subplots()

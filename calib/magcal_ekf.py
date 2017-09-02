@@ -14,7 +14,7 @@ import sys
 
 import navpy
 
-from nav.data import flight_data, flight_interp, imucal
+from aurauas.flightdata import flight_data, flight_interp, imucal
 
 import transformations
 
@@ -95,16 +95,16 @@ if len(data['imu']) == 0:
 # filter_phi = interpolate.interp1d(x, filter_data[:,7])
 # filter_the = interpolate.interp1d(x, filter_data[:,8])
 # filter_psi = interpolate.interp1d(x, filter_data[:,9])
-alt_min = alt_max = data['filter'][0].alt
-for f in data['filter']:
+alt_min = alt_max = data['gps'][0].alt
+for f in data['gps']:
     if f.alt < alt_min: alt_min = f.alt
     if f.alt > alt_max: alt_max = f.alt
 alt_cutoff = alt_min + (alt_max - alt_min) * 0.25
 print "Alt range =", alt_min, alt_max, "cutoff =", alt_cutoff
 
 # determine ideal magnetometer in ned coordinates
-base_lat = data['filter'][0].lat * r2d
-base_lon = data['filter'][0].lon * r2d
+base_lat = data['gps'][0].lat
+base_lon = data['gps'][0].lon
 print "starting at:", base_lat, base_lon
 gm = geomag.geomag.GeoMag("/usr/lib/python2.7/site-packages/geomag/WMM.COF")
 mag = gm.GeoMag(base_lat, base_lon)
@@ -233,7 +233,7 @@ print ' persp:', perspective
 if args.flight:
     data_dir = os.path.abspath(args.flight)
 elif args.sentera_flight:
-    data_dir = os.path.abspath(args.sentera)
+    data_dir = os.path.abspath(args.sentera_flight)
 elif args.px4_sdlog2:
     data_dir = os.path.dirname(os.path.abspath(args.px4_sdlog2))
 
@@ -264,6 +264,13 @@ af_array = np.array(af_data)
 
 
 if args.plot:
+    #print sense_array[0]
+    norms = np.linalg.norm(sense_array, axis=1)
+    print 'norms:', norms
+    norm_array = np.divide(sense_array, np.matrix(norms).T)
+    print 'norm_array', norm_array
+    print 'norm_array[:,0]', np.array(norm_array[:,0].T)[0]
+    print 'ideal_array[:,0]', ideal_array[:,0]
     cal_fig, cal_mag = plt.subplots(3, sharex=True)
     cal_mag[0].plot(sense_array[:,0],ideal_array[:,0],'r.',alpha=0.5,label='EKF Estimate')
     cal_mag[0].plot(sense_array[:,0],af_array[:,0],'g.',alpha=0.5,label='Affine Cal')
@@ -285,6 +292,7 @@ if args.plot:
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(ideal_array[:,0], ideal_array[:,1], ideal_array[:,2], c='b',alpha=0.5,label='Ideal Mag (EKF)')
+    ax.scatter(np.array(norm_array[:,0].T)[0], np.array(norm_array[:,1].T)[0], np.array(norm_array[:,2].T)[0], c='g',alpha=0.5,label='Raw Mag')
     ax.scatter(af_array[:,0], af_array[:,1], af_array[:,2], c='r',alpha=0.5,label='Calibrated Mag')
     ax.set_xlabel('hx')
     ax.set_ylabel('hy')

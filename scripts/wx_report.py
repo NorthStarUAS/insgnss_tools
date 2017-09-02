@@ -4,8 +4,8 @@
 
 import argparse
 
-from nav.data import flight_data, flight_interp
-from nav.weather import forecast
+from aurauas.flightdata import flight_data, flight_interp
+from aurauas.weather import forecast
 
 parser = argparse.ArgumentParser(description='correlate movie data to flight data.')
 parser.add_argument('--flight', help='load specified aura flight log')

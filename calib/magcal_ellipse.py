@@ -13,7 +13,7 @@ import sys
 
 import navpy
 
-from nav.data import flight_data, flight_interp, imucal
+from aurauas.flightdata import flight_data, flight_interp, imucal
 
 import transformations
 

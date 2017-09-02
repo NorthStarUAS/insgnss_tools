@@ -23,7 +23,7 @@ from scipy.optimize import minimize
 import navpy
 
 import data_store
-from nav.data import flight_data
+from aurauas.flightdata import flight_data
 import plots
 
 # filter interfaces
@@ -284,7 +284,7 @@ print "gps time span:", gps_begin, gps_end
 # store the segment config and optimal params so we can use the
 # solution for something at the end of all this.
 segments = []
-segment_length = 45             # seconds
+segment_length = 30             # seconds
 segment_overlap = 0.1           # 10%
 
 start_time = gps_begin
