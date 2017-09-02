@@ -13,7 +13,7 @@ import sys
 
 import navpy
 
-from aurauas.flightdata import flight_data, flight_interp, imucal
+from aurauas.flightdata import flight_loader, flight_interp, imucal
 
 import transformations
 
@@ -62,7 +62,7 @@ if 'recalibrate' in args:
 else:
     recal_file = None
 
-data = flight_data.load(loader, path, recal_file)
+data = flight_loader.load(loader, path, recal_file)
 interp = flight_interp.FlightInterpolate()
 interp.build(data)
 

@@ -19,7 +19,7 @@ import os
 
 import nav.structs
 
-from aurauas.flightdata import flight_data, aura, sentera
+from aurauas.flightdata import flight_loader, aura, sentera
 
 import data_store
 import wind
@@ -252,7 +252,7 @@ if 'recalibrate' in args:
     recal_file = args.recalibrate
 else:
     recal_file = None
-data = flight_data.load(loader, path, recal_file)
+data = flight_loader.load(loader, path, recal_file)
 print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
 if 'air' in data:
@@ -457,7 +457,9 @@ data_dict1, filter1_sec = run_filter(filter1, data)
 
 print "building synthetic air data estimator..."
 if 'act' in data:
-    synth_asi.build()
+    result = synth_asi.build()
+    if not result:
+        FLAG_PLOT_SYNTH_ASI = False
 
 data_dict2, filter2_sec = run_filter(filter2, data)
 

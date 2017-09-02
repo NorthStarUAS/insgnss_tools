@@ -4,7 +4,7 @@
 
 import argparse
 
-from aurauas.flightdata import flight_data, flight_interp
+from aurauas.flightdata import flight_loader, flight_interp
 from aurauas.weather import forecast
 
 parser = argparse.ArgumentParser(description='correlate movie data to flight data.')
@@ -43,7 +43,7 @@ else:
     path = None
     
 recal_file = None
-data = flight_data.load(loader, path, recal_file)
+data = flight_loader.load(loader, path, recal_file)
 print "gps records:", len(data['gps'])
 if len(data['gps']) == 0:
     print "not enough data loaded to continue."

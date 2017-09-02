@@ -39,7 +39,7 @@ def append(phi, the, thr, ele, q, airspeed):
 
 def build():
     if len(phi_list) == 0:
-        return
+        return False
     
     bins = 16
     
@@ -78,6 +78,9 @@ def build():
     q_d = q_range / bins
     asi_d = asi_range / bins
 
+    if abs(thr_d) < 0.0001 or abs(ele_d) < 0.0001:
+        return False
+    
     print 'phi:', phi_range, phi_d
     print 'the:', the_range, the_d
     print 'thr:', thr_range, thr_d
@@ -141,6 +144,7 @@ def build():
                np.array(q_short),
                np.array(asi_short),
                smooth=1.0)
+    return True
 
 def est_airspeed(phi, the, thr, ele, q):
     return rbfi(abs(phi), the, thr, ele, q)

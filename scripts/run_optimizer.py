@@ -23,7 +23,7 @@ from scipy.optimize import minimize
 import navpy
 
 import data_store
-from aurauas.flightdata import flight_data
+from aurauas.flightdata import flight_loader
 import plots
 
 # filter interfaces
@@ -224,7 +224,7 @@ else:
     loader = None
     path = None
 
-data = flight_data.load(loader, path, None)
+data = flight_loader.load(loader, path, None)
 print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
 if 'air' in data:
