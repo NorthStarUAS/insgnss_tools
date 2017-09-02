@@ -10,6 +10,13 @@ mokh0006 at umn dot edu in support of the research performed by the
 UAS and Control Systems groups at the Aerospace Engineering and
 Mechanics Deptarment, University of Minnesota.
 
+# Installation
+
+* Requires the aura-props and aura-flightdata python modules (also available
+  at https://github.com/AuraUAS)
+
+* Run sudo ./setup.py install to compile the EKF modules and install them.
+
 # Supported data log formats:
 
 * Aura text format
