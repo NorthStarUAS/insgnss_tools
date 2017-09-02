@@ -2,7 +2,7 @@
 
 Navigation (EKF) toolbox with python wrappers.  Suitable for use in
 small UAS applications.  The code is structured with dual C++ and
-python interfaces.  It includes a plotting librar for comparing
+python interfaces.  It includes a plotting library for comparing
 filters or configurations.
 
 This code project was original put together by Hamid Mokhtarzadeh
