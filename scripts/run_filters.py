@@ -27,13 +27,6 @@ import synth_asi
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
-parser.add_argument('--aura-flight', help='load specified aura flight log')
-parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
-parser.add_argument('--px4-ulog', help='load specified px4 ulog (csv) base path')
-parser.add_argument('--umn1-flight', help='load specified goldy1 .mat flight log')
-parser.add_argument('--umn3-flight', help='load specified goldy3 .mat flight log')
-parser.add_argument('--sentera-flight', help='load specified sentera flight log')
-parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
 parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
 parser.add_argument('--gps-lag', type=float, default='0.0', help='gps lag in seconds')
 args = parser.parse_args()
@@ -221,38 +214,13 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     elapsed_sec = run_end - run_start
     return data_dict, elapsed_sec
 
-if args.flight:
-    loader = 'aura'
-    path = args.flight
-elif args.aura_flight:
-    loader = 'aura'
-    path = args.aura_flight
-elif args.px4_sdlog2:
-    loader = 'px4_sdlog2'
-    path = args.px4_sdlog2
-elif args.px4_ulog:
-    loader = 'px4_ulog'
-    path = args.px4_ulog
-elif args.sentera_flight:
-    loader = 'sentera1'
-    path = args.sentera_flight
-elif args.sentera2_flight:
-    loader = 'sentera2'
-    path = args.sentera2_flight
-elif args.umn1_flight:
-    loader = 'umn1'
-    path = args.umn1_flight
-elif args.umn3_flight:
-    loader = 'umn3'
-    path = args.umn3_flight
-else:
-    loader = None
-    path = None
+path = args.flight
 if 'recalibrate' in args:
     recal_file = args.recalibrate
 else:
     recal_file = None
-data = flight_loader.load(loader, path, recal_file)
+data, flight_format = flight_loader.load(path, recal_file)
+
 print "imu records:", len(data['imu'])
 print "gps records:", len(data['gps'])
 if 'air' in data:
@@ -267,22 +235,7 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     print "not enough data loaded to continue."
     quit()
 
-if args.flight:
-    plotname = os.path.basename(args.flight)    
-elif args.aura_flight:
-    plotname = os.path.basename(args.aura_flight)
-elif args.px4_sdlog2:
-    plotname = os.path.basename(args.px4_sdlog2)
-elif args.sentera_flight:
-    plotname = os.path.basename(args.sentera_flight)
-elif args.sentera2_flight:
-    plotname = os.path.basename(args.sentera2_flight)
-elif args.umn1_flight:
-    plotname = os.path.basename(args.umn1_flight)
-elif args.umn3_flight:
-    plotname = os.path.basename(args.umn3_flight)
-else:
-    plotname = "plotname not set correctly"
+plotname = os.path.basename(args.flight)    
 
 if False:
     # quick hack estimate gyro biases
@@ -472,24 +425,21 @@ if perc >= 0.0:
 else:
     print "filter2 is %.1f%% slower" % (-perc * 100.0)
 
-if args.flight or args.aura_flight:
-    if args.flight:
-        filter_post = os.path.join(args.flight, "filter-post.txt")
-    elif args.aura_flight:
-        filter_post = os.path.join(args.aura_flight, "filter-post.txt")
+if flight_format == 'aura_csv' or flight_format == 'aura_txt':
+    filter_post = os.path.join(args.flight, "filter-post.txt")
     aura.save_filter_result(filter_post, data_dict1)
 
-if args.px4_ulog:
-    filter_post = args.px4_ulog + "_filter_post.txt"
+if flight_format == 'px4_ulog':
+    filter_post = args.flight + "_filter_post.txt"
     aura.save_filter_result(filter_post, data_dict1)
     
-if args.sentera_flight:
-    file_ins = os.path.join(args.sentera_flight, "filter-post-ins.txt")
-    file_mag = os.path.join(args.sentera_flight, "filter-post-mag.txt")
+if flight_format == 'sentera':
+    file_ins = os.path.join(args.flight, "filter-post-ins.txt")
+    file_mag = os.path.join(args.flight, "filter-post-mag.txt")
     sentera.save_filter_result(file_ins, data_dict1)
     sentera.save_filter_result(file_mag, data_dict2)
-    #sentera.rewrite_pix4d_csv(args.sentera_flight, data_dict2)
-    #sentera.rewrite_image_metadata_txt(args.sentera_flight, data_dict2)
+    #sentera.rewrite_pix4d_csv(args.flight, data_dict2)
+    #sentera.rewrite_image_metadata_txt(args.flight, data_dict2)
 
 nsig = 3
 t_store1 = data_dict1.time
