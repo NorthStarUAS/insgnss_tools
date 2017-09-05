@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import csv
 import fileinput
 import geomag
 from mpl_toolkits.mplot3d import Axes3D
@@ -19,13 +20,7 @@ from aurauas.flightdata import flight_loader, flight_interp, imucal
 import transformations
 
 parser = argparse.ArgumentParser(description='magcal')
-parser.add_argument('--flight', help='load specified aura flight log')
-parser.add_argument('--aura-flight', help='load specified aura flight log')
-parser.add_argument('--px4-sdlog2', help='load specified px4 sdlog2 (csv) flight log')
-parser.add_argument('--px4-ulog', help='load specified px4 ulog (csv) base path')
-parser.add_argument('--umn-flight', help='load specified .mat flight log')
-parser.add_argument('--sentera-flight', help='load specified sentera flight log')
-parser.add_argument('--sentera2-flight', help='load specified sentera2 flight log')
+parser.add_argument('--flight', required=True, help='load specified aura flight log')
 parser.add_argument('--cal', required=True, help='calibration log directory')
 parser.add_argument('--imu-sn', help='specify imu serial number')
 parser.add_argument('--resample-hz', type=float, default=10.0, help='resample rate (hz)')
@@ -37,36 +32,12 @@ args = parser.parse_args()
 g = 9.81
 r2d = 180.0 / math.pi
 
-if args.flight:
-    loader = 'aura'
-    path = args.flight
-elif args.aura_flight:
-    loader = 'aura'
-    path = args.aura_flight
-elif args.px4_sdlog2:
-    loader = 'px4_sdlog2'
-    path = args.px4_sdlog2
-elif args.px4_ulog:
-    loader = 'px4_ulog'
-    path = args.px4_ulog
-elif args.sentera_flight:
-    loader = 'sentera1'
-    path = args.sentera_flight
-elif args.sentera2_flight:
-    loader = 'sentera2'
-    path = args.sentera2_flight
-elif args.umn_flight:
-    loader = 'umn1'
-    path = args.umn_flight
-else:
-    loader = None
-    path = None
 if 'recalibrate' in args:
     recal_file = args.recalibrate
 else:
     recal_file = None
 
-data = flight_loader.load(loader, path, recal_file)
+data, flight_format = flight_loader.load(args.flight, recal_file)
 interp = flight_interp.FlightInterpolate()
 interp.build(data)
 
@@ -115,44 +86,46 @@ print '          norm:', norm
 mag_ned /= norm
 print '    normalized:', mag_ned
 
-# read the events.txt file to determine when aircraft becomes airborne
+# read the events-0.csv file to determine when aircraft becomes airborne
 # (so we can ignore preflight values.)  Update: also to read the IMU
 # serial number.
 xmin = None
 xmax = None
 imu_sn = None
-if args.flight:
-    events_file = os.path.join(args.flight, 'events.txt')
-    fevents = fileinput.input(events_file)
-    for line in fevents:
-        tokens = line.split()
-        if len(tokens) == 3 and tokens[2] == 'airborne' and not xmin:
-            xmin = float(tokens[0])
-            print "airborne (launch) at t =", xmin
-        elif len(tokens) == 5 and tokens[3] == 'complete:' and tokens[4] == 'launch' and not xmax:
-            # haven't found a max yet, so update min
-            xmin = float(tokens[0])
-            print "flight begins at t =", xmin                    
-        elif len(tokens) == 4 and float(tokens[0]) > 0 and tokens[2] == 'on' and tokens[3] == 'ground' and not xmax:
-            t = float(tokens[0])
-            if t - xmin > 60:
-                xmax = float(tokens[0])
-                print "flight complete at t =", xmax
-            else:
-                print "warning ignoring sub 1 minute hop"
-        elif len(tokens) == 6 and tokens[1] == 'APM2:' and tokens[2] == 'Serial' and tokens[3] == 'Number':
-            imu_sn = 'apm2_' + tokens[5]
-        elif len(tokens) == 5 and tokens[1] == 'APM2' and tokens[2] == 'Serial' and tokens[3] == 'Number:':
-            imu_sn = 'apm2_' + tokens[4]
-    if imu_sn:
-        print 'IMU s/n:', imu_sn
-    else:
-        print 'Cannot determine IMU serial number from events.txt file'
-
+if flight_format == 'aura_csv':
+    # scan event-0.csv file for additional info
+    event_file = os.path.join(args.flight, 'event-0.csv')
+    with open(event_file, 'rb') as fevent:
+        reader = csv.DictReader(fevent)
+        for row in reader:
+            time = float(row['timestamp'])
+            msg = row['message']
+            tokens = msg.split()
+            if len(tokens) == 2 and tokens[1] == 'airborne' and not xmin:
+                xmin = time
+                print "airborne (launch) at t =", xmin
+            elif len(tokens) == 4 and tokens[2] == 'complete:' and tokens[3] == 'launch' and not xmax:
+                # haven't found a max yet, so update min
+                xmin = time
+                print "flight begins at t =", xmin                    
+            elif len(tokens) == 3 and time > 0 and tokens[1] == 'on' and tokens[2] == 'ground' and not xmax:
+                t = time
+                if t - xmin > 60:
+                    xmax = time
+                    print "flight complete at t =", xmax
+                else:
+                    print "warning ignoring sub 1 minute hop"
+            elif len(tokens) == 5 and tokens[0] == 'APM2:' and tokens[1] == 'Serial' and tokens[2] == 'Number':
+                auto_sn = int(tokens[4])
+            elif len(tokens) == 4 and tokens[0] == 'APM2' and tokens[1] == 'Serial' and tokens[2] == 'Number:':
+                auto_sn = int(tokens[3])
 if args.imu_sn:
     imu_sn = args.imu_sn
     print 'Using serial number from command line:', imu_sn
-    
+elif auto_sn:
+    imu_sn = auto_sn
+    print 'Autodetected serial number (APM2):', imu_sn
+
 if not imu_sn:
     print 'Cannot continue without an IMU serial number'
     quit()
@@ -202,7 +175,7 @@ for i, x in enumerate( np.linspace(xmin, xmax, trange*args.resample_hz) ):
         print "oops:", hx, hy, hz
     mag_sense = np.array([hx, hy, hz])
     # if abs(psi) < 0.1:
-    if args.flight:
+    if flight_format == 'aura_csv' or flight_format == 'aura_txt':
         ideal_data.append( mag_ideal[:].tolist() )
         sense_data.append( mag_sense[:].tolist() )
     elif alt >= alt_cutoff:
@@ -230,16 +203,11 @@ print ' persp:', perspective
 
 # write calibration data points to file (so we can aggregate over
 # multiple flights later
-if args.flight:
-    data_dir = os.path.abspath(args.flight)
-elif args.sentera_flight:
-    data_dir = os.path.abspath(args.sentera_flight)
-elif args.px4_sdlog2:
-    data_dir = os.path.dirname(os.path.abspath(args.px4_sdlog2))
-
-cal_dir = os.path.join(args.cal, imu_sn)
+data_dir = os.path.abspath(args.flight)
+cal_dir = os.path.join(args.cal, "apm2_" + str(imu_sn))
 if not os.path.exists(cal_dir):
     os.makedirs(cal_dir)
+
 filename = os.path.basename(data_dir) + "-mags.txt"
 mags_file = os.path.join(cal_dir, filename)
 print "mags file:", mags_file
@@ -261,7 +229,6 @@ for i, s in enumerate(sense_array):
     af[:3] /= norm
     af_data.append(af[:3])
 af_array = np.array(af_data)
-
 
 if args.plot:
     #print sense_array[0]
