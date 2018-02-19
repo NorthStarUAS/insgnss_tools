@@ -32,6 +32,9 @@ def append(phi, the, thr, ele, q, airspeed):
             phi_list.append(0.0)
             print 'error:', phi, math.cos(phi)
         the_list.append(the)
+        if thr > 1.1:
+            # catch a umn3 glitch
+            thr = 0
         thr_list.append(thr)
         ele_list.append(ele)
         q_list.append(q)
@@ -143,8 +146,9 @@ def build():
                np.array(ele_short),
                np.array(q_short),
                np.array(asi_short),
-               smooth=1.0)
+               smooth=2.0)
     return True
 
 def est_airspeed(phi, the, thr, ele, q):
-    return rbfi(abs(phi), the, thr, ele, q)
+    val = rbfi(abs(phi), the, thr, ele, q)
+    return val

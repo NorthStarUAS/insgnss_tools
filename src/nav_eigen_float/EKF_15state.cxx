@@ -19,15 +19,15 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "../core/nav_functions.hxx"
+#include "../core/nav_functions_float.hxx"
 #include "EKF_15state.hxx"
 
-const double P_P_INIT = 10.0;
-const double P_V_INIT = 1.0;
-const double P_A_INIT = 0.34906;   // 20 deg
-const double P_HDG_INIT = 3.14159; // 180 deg
-const double P_AB_INIT = 0.9810;   // 0.5*g
-const double P_GB_INIT = 0.01745;  // 5 deg/s
+const float P_P_INIT = 10.0;
+const float P_V_INIT = 1.0;
+const float P_A_INIT = 0.34906;   // 20 deg
+const float P_HDG_INIT = 3.14159; // 180 deg
+const float P_AB_INIT = 0.9810;   // 0.5*g
+const float P_GB_INIT = 0.01745;  // 5 deg/s
 
 const double Rew = 6.359058719353925e+006; // earth radius
 const double Rns = 6.386034030458164e+006; // earth radius
@@ -40,15 +40,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15::set_config(NAVconfig config) {
+void EKF15_float::set_config(NAVconfig config) {
     this->config = config;
 }
 
-NAVconfig EKF15::get_config() {
+NAVconfig EKF15_float::get_config() {
     return config;
 }
 
-void EKF15::default_config()
+void EKF15_float::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -67,13 +67,13 @@ void EKF15::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
+NAVdata EKF15_float::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
     // Assemble the matrices
     // .... gravity, g
-    grav = Vector3d(0.0, 0.0, g);
+    grav = Vector3f(0.0, 0.0, g);
 	
     // ... H
     H.setZero();
@@ -161,11 +161,11 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
+NAVdata EKF15_float::update(IMUdata imu, GPSdata gps) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
-    double tnow = imu.time;
-    double imu_dt = tnow - tprev;
+    float tnow = imu.time;
+    float imu_dt = tnow - tprev;
     tprev = tnow;		
 
     // ==================  Time Update  ===================
@@ -176,21 +176,21 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 	
     // Attitude Update
     // ... Calculate Navigation Rate
-    Vector3d vel_vec(nav.vn, nav.ve, nav.vd);
+    Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
     Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
 	
-    nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
+    // nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
-    Quaterniond dq;
-    dq = Quaterniond(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
+    Quaternionf dq;
+    dq = Quaternionf(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
         // Avoid quaternion flips sign
-        quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
+        quat = Quaternionf(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    Vector3d att_vec = quat2eul(quat);
+    Vector3f att_vec = quat2eul(quat);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
@@ -337,10 +337,10 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 	nav.vd = nav.vd + x(5);
 		
 	// Attitude correction
-	dq = Quaterniond(1.0, x(6), x(7), x(8));
+	dq = Quaternionf(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	Vector3d att_vec = quat2eul(quat);
+	Vector3f att_vec = quat2eul(quat);
 	nav.phi = att_vec(0);
 	nav.the = att_vec(1);
 	nav.psi = att_vec(2);
@@ -390,12 +390,12 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(EKF15)
+BOOST_PYTHON_MODULE(EKF15_float)
 {
-    class_<EKF15>("EKF15")
-        .def("set_config", &EKF15::set_config)
-        .def("init", &EKF15::init)
-        .def("update", &EKF15::update)
+    class_<EKF15_float>("EKF15_float")
+        .def("set_config", &EKF15_float::set_config)
+        .def("init", &EKF15_float::init)
+        .def("update", &EKF15_float::update)
     ;
 }
 

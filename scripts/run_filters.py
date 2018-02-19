@@ -24,11 +24,13 @@ from aurauas.flightdata import flight_loader, aura, sentera
 import data_store
 import wind
 import synth_asi
+import battery
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', help='load specified aura flight log')
 parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
 parser.add_argument('--gps-lag', type=float, default='0.0', help='gps lag in seconds')
+parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
 args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
@@ -41,7 +43,7 @@ FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
 FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND = True
-FLAG_PLOT_SYNTH_ASI = True
+FLAG_PLOT_SYNTH_ASI = False
 FLAG_PLOT_BIASES = True
 SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
 FLAG_WRITE2CSV = False # Write results to CSV file.
@@ -56,6 +58,7 @@ import navpy
 # filter interfaces
 import nav_eigen
 import nav_eigen_mag
+import nav_eigen_float
 import nav_openloop
 #import MadgwickAHRS
 
@@ -86,6 +89,10 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         act_data = data['act']
     else:
         act_data = []
+    if 'health' in data:
+        health_data = data['health']
+    else:
+        health_data = []
         
     data_dict = data_store.data_store()
     # t_store = []
@@ -101,8 +108,11 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     pilotpt = None
     act_index = 0
     actpt = None
+    health_index = 0
+    healthpt = None
     new_gps = 0
     synth_filt_asi = 0
+    battery_model = battery.battery(60.0, 0.01)
     if call_init:
         filter_init = False
     else:
@@ -166,6 +176,13 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             #print act_index, imupt.time, actpt.time, actpt.throttle, actpt.elevator
         elif 'act' in data:
             actpt = act_data[act_index]
+        if 'health' in data:
+            while health_index < len(health_data) - 1 and health_data[health_index].time <= imupt.time:
+                health_index += 1
+            healthpt = health_data[health_index]
+
+        elif 'act' in data:
+            actpt = act_data[act_index]
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
@@ -188,15 +205,21 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
 
             # experimental: synthetic airspeed estimator
             if 'act' in data and synth_asi.rbfi == None:
-                #print airpt.airspeed, actpt.throttle, actpt.elevator
+                # print imupt.time, airpt.airspeed, actpt.throttle, actpt.elevator
                 synth_asi.append(navpt.phi, navpt.the, actpt.throttle,
                                  actpt.elevator, imupt.q, airpt.airspeed)
             elif 'act' in data:
                 asi_kt = synth_asi.est_airspeed(navpt.phi, navpt.the,
                                                 actpt.throttle,
                                                 actpt.elevator, imupt.q)
+                if asi_kt > 100.0:
+                    print imupt.time, navpt.phi, navpt.the, actpt.throttle, actpt.elevator, imupt.q
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
                 data_dict.add_asi(airpt.airspeed, synth_filt_asi)
+
+            # experimental: battery model / estimator
+            if 'health' in data and airpt.airspeed > 10:
+                battery_model.update( actpt.throttle, healthpt.main_vcc, imupt.time )
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -408,11 +431,14 @@ filter2.set_config(config)
 
 data_dict1, filter1_sec = run_filter(filter1, data)
 
-print "building synthetic air data estimator..."
-if 'act' in data:
-    result = synth_asi.build()
-    if not result:
-        FLAG_PLOT_SYNTH_ASI = False
+if args.synthetic_airspeed:
+    print "building synthetic air data estimator..."
+    if 'act' in data:
+        result = synth_asi.build()
+        if result:
+            FLAG_PLOT_SYNTH_ASI = True
+        else:
+            FLAG_PLOT_SYNTH_ASI = False
 
 data_dict2, filter2_sec = run_filter(filter2, data)
 
@@ -502,7 +528,7 @@ if FLAG_PLOT_ATTITUDE:
     att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,1].set_ylabel('3*stddev', weight='bold')
 
-    fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
+    #fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
 # plot raw accels (useful for bench calibration)
 if True:
@@ -584,18 +610,22 @@ if FLAG_PLOT_ALTITUDE:
     plt.legend(loc=0)
     plt.grid()
 
-# Wind Plot
 def gen_func( coeffs, min, max, steps ):
+    miny = None
     xvals = []
     yvals = []
     step = (max - min) / steps
     func = np.poly1d(coeffs)
     for x in np.arange(min, max+step, step):
         y = func(x)
+        if miny == None or abs(y) < miny:
+            miny = abs(y)
+            minx = x
         xvals.append(x)
         yvals.append(y)
-    return xvals, yvals
+    return xvals, yvals, minx, miny
 
+# Wind Plot
 if FLAG_PLOT_WIND:
     fig, ax1 = plt.subplots()
     wind_deg = data_dict2.wind_deg
@@ -708,21 +738,21 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
         vel = math.sqrt(vn*vn + ve*ve)
         phi = data_dict1.phi[i]
         r = data_dict1.r[i]
-        if vel > 8 and abs(phi) <= 0.2:
+        if vel > 8 and abs(phi) <= 0.3:
             roll_array.append(phi)
             r_array.append(r)
     roll_array = np.array(roll_array)
     r_array = np.array(r_array)
-    roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 1, full=True )
+    roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 3, full=True )
     print roll_cal
-    print 'bank bias deg (for L1 config) =', (roll_cal[1] / roll_cal[0]) * 180 / math.pi, 'deg'
-    print 'zero turn @ bank =', (-roll_cal[1] / roll_cal[0]) * 180 / math.pi, 'deg'
-    xvals, yvals = gen_func(roll_cal, roll_array.min(), roll_array.max(), 100)
+    xvals, yvals, minx, miny = gen_func(roll_cal, roll_array.min(), roll_array.max(), 1000)
+    print 'bank bias deg (for L1 config) =', -r2d(minx), 'deg'
+    print 'zero yaw rate @ bank =', r2d(minx), 'deg'
     fig, ax1 = plt.subplots()
     ax1.set_title('Turn Calibration')
     ax1.set_xlabel('Bank angle (rad)', weight='bold')
     ax1.set_ylabel('Turn rate (rad/sec)', weight='bold')
-    ax1.plot(roll_array, r_array, '*', label='bank vs. turn', c='r', lw=2, alpha=.8)
+    ax1.plot(roll_array, r_array, 'x', label='bank vs. turn', c='r', lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
 
 # Top View (Longitude vs. Latitude) Plot

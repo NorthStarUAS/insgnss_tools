@@ -385,11 +385,10 @@ NAVdata EKF15mag::update(IMUdata imu, GPSdata gps) {
 		
 	// State Update
 	x = K * y;
-	denom = (1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
-	denom = sqrt(denom*denom);
-
-	Re = EARTH_RADIUS / sqrt(denom);
-	Rn = EARTH_RADIUS * (1-ECC2) / denom*sqrt(denom);
+	double denom = fabs(1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
+        double denom_sqrt = sqrt(denom);
+	double Re = EARTH_RADIUS / denom_sqrt;
+	double Rn = EARTH_RADIUS * (1-ECC2) * denom_sqrt / denom;
 	nav.alt = nav.alt - x(2);
 	nav.lat = nav.lat + x(0)/(Re + nav.alt);
 	nav.lon = nav.lon + x(1)/(Rn + nav.alt)/cos(nav.lat);

@@ -72,7 +72,6 @@ private:
     Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
 
     Quaterniond quat;
-    double denom, Re, Rn;
     double tprev;
 
     NAVconfig config;

@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NAV_15STATE_HXX
-#define NAV_15STATE_HXX
+#ifndef NAV_15STATE_FLOAT_HXX
+#define NAV_15STATE_FLOAT_HXX
 
 
 #include <math.h>
@@ -27,27 +27,27 @@ using namespace Eigen;
 #include "../core/structs.hxx"
 
 // usefule constants
-const double g = 9.814;
-const double D2R = M_PI / 180.0;
+const float g = 9.814;
+const float D2R = M_PI / 180.0;
 
 // define some types for notational convenience and consistency
-typedef Matrix<double,6,6> Matrix6d;
-typedef Matrix<double,12,12> Matrix12d;
-typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,6,15> Matrix6x15d;
-typedef Matrix<double,15,6> Matrix15x6d;
-typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,6,1> Vector6d;
-typedef Matrix<double,15,1> Vector15d;
+typedef Matrix<float,6,6> Matrix6d;
+typedef Matrix<float,12,12> Matrix12d;
+typedef Matrix<float,15,15> Matrix15d;
+typedef Matrix<float,6,15> Matrix6x15d;
+typedef Matrix<float,15,6> Matrix15x6d;
+typedef Matrix<float,15,12> Matrix15x12d;
+typedef Matrix<float,6,1> Vector6d;
+typedef Matrix<float,15,1> Vector15d;
 
-class EKF15 {
+class EKF15_float {
 
 public:
 
-    EKF15() {
+    EKF15_float() {
 	default_config();
     }
-    ~EKF15() {}
+    ~EKF15_float() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -68,15 +68,16 @@ private:
     Matrix6x15d H;
     Matrix6d R;
     Vector6d y;
-    Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
-    Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
+    Matrix3f C_N2B, C_B2N, I3 /* identity */, temp33;
+    Vector3d pos_ins_ecef, pos_gps, pos_gps_ecef;
+    Vector3f grav, f_b, om_ib, /*nr,*/ pos_ins_ned, pos_gps_ned, dx, mag_ned;
 
-    Quaterniond quat;
-    double tprev;
+    Quaternionf quat;
+    float tprev;
 
     NAVconfig config;
     NAVdata nav;
 };
 
 
-#endif // NAV_15STATE_HXX
+#endif // NAV_15STATE_FLOAT_HXX
