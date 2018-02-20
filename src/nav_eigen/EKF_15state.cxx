@@ -19,7 +19,7 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "../core/nav_functions.hxx"
+#include "../nav_common/nav_functions.hxx"
 #include "EKF_15state.hxx"
 
 const double P_P_INIT = 10.0;

@@ -19,9 +19,8 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "../core/nav_functions.hxx"
-
-#include "../core/coremag.h"
+#include "../nav_common/coremag.h"
+#include "../nav_common/nav_functions.hxx"
 
 #include "EKF_15state_mag.hxx"
 

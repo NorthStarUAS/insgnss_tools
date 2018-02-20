@@ -24,7 +24,7 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../core/structs.hxx"
+#include "../nav_common/structs.hxx"
 
 // usefule constants
 const float g = 9.814;
