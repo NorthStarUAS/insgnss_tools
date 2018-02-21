@@ -76,7 +76,6 @@ private:
     Vector3f grav, f_b, om_ib, /*nr,*/ pos_ins_ned, pos_gps_ned, dx, mag_ned;
 
     Quaternionf quat;
-    float tprev;
 
     IMUdata imu_last;
     NAVconfig config;

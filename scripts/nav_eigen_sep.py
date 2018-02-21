@@ -36,7 +36,7 @@ class filter():
     
     def __init__(self):
         self.ekf = nav.EKF15_sep.EKF15_sep()
-        self.name = 'EKF15_float'
+        self.name = 'EKF15_float_sep'
 
     def set_config(self, config):
         self.ekf.set_config(config)

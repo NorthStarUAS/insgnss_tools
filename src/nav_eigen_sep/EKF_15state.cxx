@@ -139,10 +139,6 @@ void EKF15_sep::init(IMUdata imu, GPSdata gps) {
 	
     imu_last = imu;
 	
-    // Time during initialization
-    tprev = imu.time;
-	
-    //nav.init = 1;
     nav.time = imu.time;
     nav.err_type = data_valid;
 }
@@ -151,8 +147,7 @@ void EKF15_sep::init(IMUdata imu, GPSdata gps) {
 void EKF15_sep::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
-    float imu_dt = imu.time - tprev;
-    tprev = imu.time;
+    float imu_dt = imu.time - imu_last.time;
     
     nav.time = imu.time;
     
@@ -276,7 +271,6 @@ void EKF15_sep::time_update(IMUdata imu) {
 
 void EKF15_sep::measurement_update(GPSdata gps) {
     // ==================  GPS Update  ===================
-    // gps.newData = 0; // Reset the flag
 		
     // Position, converted to NED
     Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
