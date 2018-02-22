@@ -161,20 +161,35 @@ void EKF15_sep::time_update(IMUdata imu) {
     // ... Calculate Navigation Rate
     Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
     Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
-	
-    // Get the new Specific forces and Rotation Rate,
-    // use in the next time update
-    f_b(0) = imu_last.ax - nav.abx;
-    f_b(1) = imu_last.ay - nav.aby;
-    f_b(2) = imu_last.az - nav.abz;
 
-    om_ib(0) = imu_last.p - nav.gbx;
-    om_ib(1) = imu_last.q - nav.gby;
-    om_ib(2) = imu_last.r - nav.gbz;
+    if ( false ) {
+        // Get the new Specific forces and Rotation Rate from previous
+        // frame (k) to use in this frame (k+1).  Rectangular
+        // integration.
+        f_b(0) = imu_last.ax - nav.abx;
+        f_b(1) = imu_last.ay - nav.aby;
+        f_b(2) = imu_last.az - nav.abz;
+
+        om_ib(0) = imu_last.p - nav.gbx;
+        om_ib(1) = imu_last.q - nav.gby;
+        om_ib(2) = imu_last.r - nav.gbz;
+    } else {
+        // Combine the Specific forces and Rotation Rate from previous
+        // frame (k) with current frame (k+1) to use in this frame
+        // (k+1).  Trapazoidal integration.
+        f_b(0) = 0.5 * (imu_last.ax + imu.ax) - nav.abx;
+        f_b(1) = 0.5 * (imu_last.ay + imu.ay) - nav.aby;
+        f_b(2) = 0.5 * (imu_last.az + imu.az) - nav.abz;
+
+        om_ib(0) = 0.5 * (imu_last.p + imu.p) - nav.gbx;
+        om_ib(1) = 0.5 * (imu_last.q + imu.q) - nav.gby;
+        om_ib(2) = 0.5 * (imu_last.r + imu.r) - nav.gbz;
+    }
 
     imu_last = imu;
 
     Quaternionf dq = Quaternionf(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
+    
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
