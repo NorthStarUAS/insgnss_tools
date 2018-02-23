@@ -707,8 +707,9 @@ def my_butter(raw):
 if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     # butterworth filter experiment
     import scipy.signal as signal
-    b1, a1 = signal.butter(2, 0.1)
-    b2, a2 = signal.butter(2, 0.02)
+    nyq = 0.5 * 100             # 1/2 sample hz
+    b1, a1 = signal.butter(2, 2.0 / nyq)
+    b2, a2 = signal.butter(2, 0.8 / nyq)
     print 'b2:', b2, 'a2:', a2
     air1 = signal.filtfilt(b1, a1, np.array(data_dict2.asi))
     air2 = signal.filtfilt(b2, a2, np.array(data_dict2.asi))
@@ -724,8 +725,8 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     ax1.set_ylabel('Kts', weight='bold')
     ax1.plot(t_store1, asi, label='Raw ASI', c='r', lw=2, alpha=.8)
     ax1.plot(t_store1, synth_asi, label='Synthetic ASI', c='b', lw=2, alpha=.8)
-    ax1.plot(t_store1, air1, label='butterworth 0.1', c='g', lw=2, alpha=.8)
-    ax1.plot(t_store1, air2, label='butterworth 0.02', c='y', lw=2, alpha=.8)
+    ax1.plot(t_store1, air1, label='butterworth 2.0', c='g', lw=2, alpha=.8)
+    ax1.plot(t_store1, air2, label='butterworth 0.8', c='y', lw=2, alpha=.8)
     ax1.plot(t_store1, np.array(air3), label='my_butter 0.628', c='purple', lw=2, alpha=.8)
     ax1.legend(loc=0)
     ax1.grid()
