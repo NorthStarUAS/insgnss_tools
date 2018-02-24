@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NAV_15STATE_HXX
-#define NAV_15STATE_HXX
+#ifndef NAV_15STATE_DOUBLE_HXX
+#define NAV_15STATE_DOUBLE_HXX
 
 
 #include <math.h>
@@ -40,14 +40,14 @@ typedef Matrix<double,15,12> Matrix15x12d;
 typedef Matrix<double,6,1> Vector6d;
 typedef Matrix<double,15,1> Vector15d;
 
-class EKF15 {
+class EKF15_double {
 
 public:
 
-    EKF15() {
+    EKF15_double() {
 	default_config();
     }
-    ~EKF15() {}
+    ~EKF15_double() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -79,4 +79,4 @@ private:
 };
 
 
-#endif // NAV_15STATE_HXX
+#endif // NAV_15STATE_DOUBLE_HXX

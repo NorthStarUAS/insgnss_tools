@@ -56,14 +56,14 @@ from matplotlib import pyplot as plt
 import navpy
 
 # filter interfaces
-import nav_eigen
+import nav_eigen_double
 import nav_eigen_mag
 import nav_eigen_float
 import nav_eigen_sep
 import nav_openloop
 #import MadgwickAHRS
 
-filter1 = nav_eigen_float.filter()
+filter1 = nav_eigen_mag.filter()
 #filter1 = nav_mag.filter()
 #filter1 = nav_eigen.filter()
 filter2 = nav_eigen_sep.filter()
@@ -364,10 +364,10 @@ config.sig_a_d  = 0.02
 config.tau_a    = 100.0
 config.sig_g_d  = 0.0005
 config.tau_g    = 50.0
-config.sig_gps_p_ne = 3.0
-config.sig_gps_p_d  = 5.0
-config.sig_gps_v_ne = 0.5
-config.sig_gps_v_d  = 1.0
+config.sig_gps_p_ne = 5.0
+config.sig_gps_p_d  = 10.0
+config.sig_gps_v_ne = 1.0
+config.sig_gps_v_d  = 2.0
 config.sig_mag      = 1.0
 filter1.set_config(config)
 filter2.set_config(config)

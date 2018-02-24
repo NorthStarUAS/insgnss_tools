@@ -40,15 +40,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15::set_config(NAVconfig config) {
+void EKF15_double::set_config(NAVconfig config) {
     this->config = config;
 }
 
-NAVconfig EKF15::get_config() {
+NAVconfig EKF15_double::get_config() {
     return config;
 }
 
-void EKF15::default_config()
+void EKF15_double::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -67,7 +67,7 @@ void EKF15::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
+NAVdata EKF15_double::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -161,7 +161,8 @@ NAVdata EKF15::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
+NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
+    printf("update\n");
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     double tnow = imu.time;
@@ -390,12 +391,12 @@ NAVdata EKF15::update(IMUdata imu, GPSdata gps) {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(EKF15)
+BOOST_PYTHON_MODULE(EKF15_double)
 {
-    class_<EKF15>("EKF15")
-        .def("set_config", &EKF15::set_config)
-        .def("init", &EKF15::init)
-        .def("update", &EKF15::update)
+    class_<EKF15_double>("EKF15_double")
+        .def("set_config", &EKF15_double::set_config)
+        .def("init", &EKF15_double::init)
+        .def("update", &EKF15_double::update)
     ;
 }
 

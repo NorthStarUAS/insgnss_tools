@@ -145,6 +145,7 @@ void EKF15_sep::init(IMUdata imu, GPSdata gps) {
 
 // Main get_nav filter function
 void EKF15_sep::time_update(IMUdata imu) {
+    printf("time update\n");
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;

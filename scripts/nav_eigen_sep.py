@@ -45,7 +45,8 @@ class filter():
         Cimu = mkIMUdata( imu )
         Cgps = mkGPSdata( gps )
         self.ekf.init(Cimu, Cgps)
-        return self.ekf.get_nav()
+        nav = self.ekf.get_nav()
+        return nav
 
     def update(self, imu, gps, filterpt=None):
         Cimu = mkIMUdata( imu )
@@ -53,7 +54,8 @@ class filter():
         if gps.newData:
             Cgps = mkGPSdata( gps )
             self.ekf.measurement_update(Cgps)
-        return self.ekf.get_nav()
+        nav = self.ekf.get_nav()
+        return nav
 
     def close(self):
         pass
