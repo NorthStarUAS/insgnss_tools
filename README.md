@@ -49,7 +49,10 @@ Mechanics Deptarment, University of Minnesota.
   measurement update.  Tends to converge to the exact same solution as
   the non-magnetometer variant over time.  Is more stable in attitude
   and holds the bias estimate more stable.  With a reasonable
-  magnetometer calibration, this version should converge more quickly.
+  magnetometer calibration, this version should converge more quickly
+  and drift less in low dynamic portions of a flight (however the
+  drift that is there will be towards any magnetometer calibration
+  error.)
 
 * nav_eigen_sep: The same algorithm as nav_eigen_float, but with the
   code restructured a bit to enable separating the time update and the
