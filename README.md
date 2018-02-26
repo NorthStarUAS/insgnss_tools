@@ -42,22 +42,34 @@ Mechanics Deptarment, University of Minnesota.
   for input.  Does not need magnetometers.  Uses floating point data
   types as much as possible internally.  Produces the same (or
   practically) the same result as the double version of this
-  algorithm.  For some platforms that done't support double floating
-  point math in hardware, this version may run significantly faster.
+  algorithm.  For some platforms that done't support double precision
+  floating point math in hardware, this version may run significantly
+  faster.
 
-* nav_eigen_mag: 15 state EKF that includes magnetometers in the
+* nav_eigen_sep: The same algorithm as nav_eigen_float, but with the
+  code restructured a bit to enable separating the time update and the
+  measurement update steps into separate functions.  Also adds
+  trapazoidal numerical integration for slightly better results.
+
+* nav_eigen_mag_sep: 15 state EKF that includes magnetometers in the
   measurement update.  Tends to converge to the exact same solution as
   the non-magnetometer variant over time.  Is more stable in attitude
   and holds the bias estimate more stable.  With a reasonable
   magnetometer calibration, this version should converge more quickly
   and drift less in low dynamic portions of a flight (however the
   drift that is there will be towards any magnetometer calibration
-  error.)
+  error.)  Time update and measurement update have been split into
+  separate methods.
 
-* nav_eigen_sep: The same algorithm as nav_eigen_float, but with the
-  code restructured a bit to enable separating the time update and the
-  measurement update steps into separate functions.  Also adds
-  trapazoidal numerical integration for slightly better results.
+* nav_eigen_mag_unified: 15 state EKF that includes magnetometers in
+  the measurement update.  Tends to converge to the exact same
+  solution as the non-magnetometer variant over time.  Is more stable
+  in attitude and holds the bias estimate more stable.  With a
+  reasonable magnetometer calibration, this version should converge
+  more quickly and drift less in low dynamic portions of a flight
+  (however the drift that is there will be towards any magnetometer
+  calibration error.) Time update and measurement update are rolled
+  together into a single unified function.
 
 * nav_openloop: Open-loop integrator.  Given an initial starting
   condition, will integrate position, velocity, and orientation from
