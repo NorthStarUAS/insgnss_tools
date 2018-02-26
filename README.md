@@ -33,17 +33,36 @@ Mechanics Deptarment, University of Minnesota.
 
 # Available filters
 
-* 15 state EKF using only gyro, accels, and gps for input.  Converges
-  to true heading without needing magnetometers.
+* nav_eigen_double: 15 state EKF using only inertial sensors and gps
+  for input.  Converges to true heading without needing magnetometers.
+  Uses double types exclusively for all internal math whether the
+  precision is needed or not.
 
-* 15 state EKF that includes magnetometers in the measurement update.
-  More stable in attitude, but assumes a quality magnetometer
-  calibration.
+* nav_eigen_float: 15 state EKF using only intertial sensors and gps
+  for input.  Does not need magnetometers.  Uses floating point data
+  types as much as possible internally.  Produces the same (or
+  practically) the same result as the double version of this
+  algorithm.  For some platforms that done't support double floating
+  point math in hardware, this version may run significantly faster.
 
-* Piece-wise segment optimizer.
+* nav_eigen_mag: 15 state EKF that includes magnetometers in the
+  measurement update.  Tends to converge to the exact same solution as
+  the non-magnetometer variant over time.  Is more stable in attitude
+  and holds the bias estimate more stable.  With a reasonable
+  magnetometer calibration, this version should converge more quickly.
+
+* nav_eigen_sep: The same algorithm as nav_eigen_float, but with the
+  code restructured a bit to enable separating the time update and the
+  measurement update steps into separate functions.  Also adds
+  trapazoidal numerical integration for slightly better results.
+
+* nav_openloop: Open-loop integrator.  Given an initial starting
+  condition, will integrate position, velocity, and orientation from
+  the inertial data alone.  Shis can be used with the piece-wise
+  segment optimizer.
 
 
-# Features:
+# Script Fron End Features:
 
 * Run two filters (or the same filter with different noise settings)
   and plot the results side by side.
