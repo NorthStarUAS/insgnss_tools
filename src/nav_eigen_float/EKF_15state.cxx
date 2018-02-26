@@ -19,7 +19,7 @@ using std::cout;
 using std::endl;
 #include <stdio.h>
 
-#include "nav_functions_float.hxx"
+#include "../nav_common/nav_functions_float.hxx"
 #include "EKF_15state.hxx"
 
 const float P_P_INIT = 10.0;

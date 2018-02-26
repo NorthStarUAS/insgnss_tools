@@ -15,29 +15,30 @@
 
 
 struct IMUdata {
-    double time;		// seconds
-    double p, q, r;		// rad/sec
-    double ax, ay, az;		// m/sec^2
-    double hx, hy, hz;		// guass
-    double temp;		// C
+    float time;                 // seconds
+    float p, q, r;		// rad/sec
+    float ax, ay, az;		// m/sec^2
+    float hx, hy, hz;		// guass
+    float temp;                 // C
 };
 
 struct GPSdata {
-    double time;		// seconds
+    float time;                 // seconds
     double unix_sec;		// seconds in unix time reference
-    double lat, lon, alt;	// rad, meter
-    double vn, ve, vd;		// m/sec
+    double lat, lon;            // rad
+    float alt;                  // meter
+    float vn, ve, vd;		// m/sec
     int sats;
     bool newData;
 };
 
 struct Airdata {
-    double time;		// seconds
-    double static_press;	// mbar
-    double diff_press;		// pa
-    double temp;		// degree C
-    double airspeed;		// knots
-    double altitude;		// meters
+    float time;                 // seconds
+    float static_press;         // mbar
+    float diff_press;		// pa
+    float temp;                 // degree C
+    float airspeed;		// knots
+    float altitude;		// meters
 };
 
 /// Define status message enum list
@@ -54,43 +55,43 @@ enum errdefs {
 
 /// Navigation filter data structure
 struct NAVdata {
-    double time;             // [sec], timestamp of NAV filter
-    double lat;		     // [rad], geodetic latitude estimate
-    double lon;		     // [rad], geodetic longitude estimate
-    double alt;		     // [m], altitude relative to WGS84 estimate
-    double vn;		     // [m/sec], north velocity estimate
-    double ve;		     // [m/sec], east velocity estimate
-    double vd;		     // [m/sec], down velocity estimate
-    double phi;		     // [rad], Euler roll angle estimate
-    double the;		     // [rad], Euler pitch angle estimate
-    double psi;		     // [rad], Euler yaw angle estimate
-    double qw, qx, qy, qz;   // Quaternion estimate
-    double abx, aby, abz;    // [m/sec^2], accelerometer bias estimate
-    double gbx, gby, gbz;    // [rad/sec], rate gyro bias estimate
-    double Pp0, Pp1, Pp2;    // [rad], covariance estimate for position
-    double Pv0, Pv1, Pv2;    // [rad], covariance estimate for velocity
-    double Pa0, Pa1, Pa2;    // [rad], covariance estimate for angles
-    double Pabx, Paby, Pabz; // [rad], covariance estimate for accelerometer bias
-    double Pgbx, Pgby, Pgbz; // [rad], covariance estimate for rate gyro bias
+    float time;              // [sec], timestamp of NAV filter
+    double lat;              // [rad], geodetic latitude estimate
+    double lon;              // [rad], geodetic longitude estimate
+    float alt;               // [m], altitude relative to WGS84 estimate
+    float vn;                // [m/sec], north velocity estimate
+    float ve;                // [m/sec], east velocity estimate
+    float vd;                // [m/sec], down velocity estimate
+    float phi;               // [rad], Euler roll angle estimate
+    float the;               // [rad], Euler pitch angle estimate
+    float psi;               // [rad], Euler yaw angle estimate
+    float qw, qx, qy, qz;    // Quaternion estimate
+    float abx, aby, abz;     // [m/sec^2], accelerometer bias estimate
+    float gbx, gby, gbz;     // [rad/sec], rate gyro bias estimate
+    float Pp0, Pp1, Pp2;     // [rad], covariance estimate for position
+    float Pv0, Pv1, Pv2;     // [rad], covariance estimate for velocity
+    float Pa0, Pa1, Pa2;     // [rad], covariance estimate for angles
+    float Pabx, Paby, Pabz;  // [rad], covariance estimate for accelerometer bias
+    float Pgbx, Pgby, Pgbz;  // [rad], covariance estimate for rate gyro bias
     enum errdefs err_type;   // NAV filter status
 };
 
 struct NAVconfig {
-    double sig_w_ax;		// m/s^2
-    double sig_w_ay;
-    double sig_w_az;
-    double sig_w_gx;		// rad/s (0.1 deg/s)
-    double sig_w_gy;
-    double sig_w_gz;
-    double sig_a_d;		// 5e-2*g
-    double tau_a;
-    double sig_g_d;		// 0.1 deg/s
-    double tau_g;
-    double sig_gps_p_ne;
-    double sig_gps_p_d;
-    double sig_gps_v_ne;
-    double sig_gps_v_d;
-    double sig_mag;
+    float sig_w_ax;		// m/s^2
+    float sig_w_ay;
+    float sig_w_az;
+    float sig_w_gx;		// rad/s (0.1 deg/s)
+    float sig_w_gy;
+    float sig_w_gz;
+    float sig_a_d;		// 5e-2*g
+    float tau_a;
+    float sig_g_d;		// 0.1 deg/s
+    float tau_g;
+    float sig_gps_p_ne;
+    float sig_gps_p_d;
+    float sig_gps_v_ne;
+    float sig_gps_v_d;
+    float sig_mag;
 };
 
 
