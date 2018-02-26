@@ -40,14 +40,14 @@ typedef Matrix<float,15,12> Matrix15x12f;
 typedef Matrix<float,9,1>   Vector9f;
 typedef Matrix<float,15,1>  Vector15f;
 
-class EKF15_mag {
+class EKF15_mag_unified {
 
 public:
 
-    EKF15_mag() {
+    EKF15_mag_unified() {
 	default_config();
     }
-    ~EKF15_mag() {}
+    ~EKF15_mag_unified() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);

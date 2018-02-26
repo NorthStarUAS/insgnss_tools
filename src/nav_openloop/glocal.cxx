@@ -6,8 +6,6 @@
 
 #include <math.h>
 
-#include <ostream>
-
 #include <math.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>

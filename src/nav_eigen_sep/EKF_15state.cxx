@@ -149,7 +149,6 @@ void EKF15_sep::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
-    
     nav.time = imu.time;
     
     // ==================  Time Update  ===================

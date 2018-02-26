@@ -20,10 +20,9 @@
  * $Id: nav_functions.h 922 2012-10-17 19:14:09Z joh07594 $
  */
 
-//#include "matrix.h"
+
 #ifndef NAV_FUNCTIONS_FLOAT_HXX
 #define NAV_FUNCTIONS_FLOAT_HXX
-
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
@@ -42,7 +41,6 @@ const double ECC2 = 0.0066943799901;         // major eccentricity squared
 // const double Gravity2 = 0.0000059;           // second coefficient for the gravity model
 // const double GravityNom = 9.81;              // nominal gravity
 // const double Schuler2 = 1.533421593170545E-06; // Schuler Frequency (rad/sec) Squared
-
 
 // This function calculates the rate of change of latitude, longitude,
 // and altitude using WGS-84.
@@ -83,6 +81,5 @@ Quaternionf eul2quat(float phi, float the, float psi);
 
 // Quaternion to C_N2B
 Matrix3f quat2dcm(Quaternionf q);
-
 
 #endif	// NAV_FUNCTIONS_FLOAT_HXX
