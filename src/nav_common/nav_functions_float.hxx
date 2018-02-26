@@ -29,26 +29,19 @@
 #include <eigen3/Eigen/Geometry>
 using namespace Eigen;
 
-/*     Define Constants   */
+// Constants
+const double EarthRadius = 6378137.0;        // earth semi-major axis radius (m)
+const double ECC2 = 0.0066943799901;         // major eccentricity squared
 
-#define EARTH_RATE   0.00007292115   		/* rotation rate of earth (rad/sec) */
-#define EARTH_RADIUS 6378137.0         		/* earth semi-major axis radius (m) */
-#define ECCENTRICITY 0.0818191908426 		/* major eccentricity of earth ellipsoid */
-#define ECC2	     0.0066943799901 		/* major eccentricity squared */
-#define FLATTENING   0.0033528106650 		/* flattening of the ellipsoid */
-#define GRAVITY_0    9.7803730       		/* zeroth coefficient for gravity model */
-#define GRAVITY_1    0.0052891       		/* first coefficient for the gravity model */ 
-#define GRAVITY_2    0.0000059       		/* second coefficient for the gravity model */
-#define GRAVITY_NOM  9.81            		/* nominal gravity */ 
-#define SCHULER2     1.533421593170545E-06 	/* Schuler Frequency (rad/sec) Squared */
-#define FT2M         0.3048                	/* feet to meters conversion factor */
-#define KTS2ms       0.5144                	/* Knots to meters/sec conversion factor */
-#define MAG_DEC      0.270944862           	/* magnetic declination of Stanford (rad): 15.15 degrees */
-#define MM2M         0.001                 	/* mm to m */
-
-/* for ecef2lla */
-#define _SQUASH    0.9966471893352525192801545
-#define E2         fabs(1 - _SQUASH*_SQUASH)
+// Constants that are no longer used
+// const double EarthRate = 0.00007292115;      // rotation rate of earth (rad/sec)
+// const double Eccentricity = 0.0818191908426; // major eccentricity of earth ellipsoid
+// const double Flattening = 0.0033528106650;   // flattening of the ellipsoid
+// const double Gravity0 = 9.7803730;           // zeroth coefficient for gravity model
+// const double Gravity1 = 0.0052891;           // first coefficient for the gravity model
+// const double Gravity2 = 0.0000059;           // second coefficient for the gravity model
+// const double GravityNom = 9.81;              // nominal gravity
+// const double Schuler2 = 1.533421593170545E-06; // Schuler Frequency (rad/sec) Squared
 
 
 // This function calculates the rate of change of latitude, longitude,

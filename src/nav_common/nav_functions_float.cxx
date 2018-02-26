@@ -42,8 +42,8 @@ Vector3f llarate(Vector3f V, Vector3d lla) {
     double denom = fabs(1.0 - (ECC2 * sin(lat) * sin(lat)));
     double sqrt_denom = sqrt(denom);
     
-    double Rew = EARTH_RADIUS / sqrt_denom;
-    double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
+    double Rew = EarthRadius / sqrt_denom;
+    double Rns = EarthRadius*(1-ECC2) / (denom*sqrt_denom);
 	
     Vector3f lla_dot;
     lla_dot(0,0) = V(0,0)/(Rns + h);
@@ -62,8 +62,8 @@ Vector3d navrate(Vector3d V, Vector3d lla) {
     double denom = fabs(1.0 - (ECC2 * sin(lat) * sin(lat)));
     double sqrt_denom = sqrt(denom);
     
-    double Rew = EARTH_RADIUS / sqrt_denom;
-    double Rns = EARTH_RADIUS*(1-ECC2) / (denom*sqrt_denom);
+    double Rew = EarthRadius / sqrt_denom;
+    double Rns = EarthRadius*(1-ECC2) / (denom*sqrt_denom);
 	
     Vector3d nr;
     nr(0,0) = V(1,0)/(Rew + h);
@@ -84,7 +84,7 @@ Vector3d lla2ecef(Vector3d lla) {
 
     double denom = fabs(1.0 - (ECC2 * sinlat * sinlat));
 
-    double Rew = EARTH_RADIUS / sqrt(denom);
+    double Rew = EarthRadius / sqrt(denom);
   
     Vector3d ecef;
     ecef(0,0) = (Rew + alt) * coslat * coslon;
@@ -97,9 +97,10 @@ Vector3d lla2ecef(Vector3d lla) {
 // This function calculates the Latitude, Longitude and Altitude given
 // the ECEF Coordinates.
 Vector3d ecef2lla( Vector3d ecef_pos ) {
-    const double ra2 = 1.0/(EARTH_RADIUS*EARTH_RADIUS);
-    const double e2 = E2;
-    const double e4 = E2*E2;
+    const double Squash = 0.9966471893352525192801545;
+    const double ra2 = 1.0/(EarthRadius*EarthRadius);
+    const double e2 = fabs(1 - Squash*Squash);
+    const double e4 = e2*e2;
     
     // according to
     // H. Vermeille,
@@ -119,7 +120,7 @@ Vector3d ecef2lla( Vector3d ecef_pos ) {
 	// ;-)
 	lla(0) = 0.0;
 	lla(1) = 0.0;
-	lla(2) = -EARTH_RADIUS;
+	lla(2) = -EarthRadius;
 	return lla;
     }
     

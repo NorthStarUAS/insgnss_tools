@@ -214,7 +214,7 @@ NAVdata EKF15_float::update(IMUdata imu, GPSdata gps) {
     // ... pos2gs
     F(0,3) = 1.0; 	F(1,4) = 1.0; 	F(2,5) = 1.0;
     // ... gs2pos
-    F(5,2) = -2 * g / EARTH_RADIUS;
+    F(5,2) = -2 * g / EarthRadius;
 	
     // ... gs2att
     temp33 = C_B2N * sk(f_b);
@@ -326,8 +326,8 @@ NAVdata EKF15_float::update(IMUdata imu, GPSdata gps) {
 	x = K * y;
 	double denom = fabs(1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
         double denom_sqrt = sqrt(denom);
-	double Re = EARTH_RADIUS / denom_sqrt;
-	double Rn = EARTH_RADIUS * (1-ECC2) * denom_sqrt / denom;
+	double Re = EarthRadius / denom_sqrt;
+	double Rn = EarthRadius * (1-ECC2) * denom_sqrt / denom;
 	nav.alt = nav.alt - x(2);
 	nav.lat = nav.lat + x(0)/(Re + nav.alt);
 	nav.lon = nav.lon + x(1)/(Rn + nav.alt)/cos(nav.lat);
