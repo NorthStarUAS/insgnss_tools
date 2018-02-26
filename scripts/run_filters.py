@@ -66,7 +66,7 @@ import nav_openloop
 filter1 = nav_eigen_sep.filter()
 #filter1 = nav_mag.filter()
 #filter1 = nav_eigen.filter()
-filter2 = nav_eigen_double.filter()
+filter2 = nav_eigen_mag.filter()
 #filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 

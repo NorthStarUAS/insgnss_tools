@@ -27,18 +27,18 @@ using namespace Eigen;
 #include "../nav_common/structs.hxx"
 
 // usefule constants
-const double g = 9.814;
-const double D2R = M_PI / 180.0;
+const float g = 9.814;
+const float D2R = M_PI / 180.0;
 
 // define some types for notational convenience and consistency
-typedef Matrix<double,9,9>   Matrix9d;
-typedef Matrix<double,12,12> Matrix12d;
-typedef Matrix<double,15,15> Matrix15d;
-typedef Matrix<double,9,15>  Matrix9x15d;
-typedef Matrix<double,15,9>  Matrix15x9d;
-typedef Matrix<double,15,12> Matrix15x12d;
-typedef Matrix<double,9,1>   Vector9d;
-typedef Matrix<double,15,1>  Vector15d;
+typedef Matrix<float,9,9>   Matrix9d;
+typedef Matrix<float,12,12> Matrix12d;
+typedef Matrix<float,15,15> Matrix15d;
+typedef Matrix<float,9,15>  Matrix9x15d;
+typedef Matrix<float,15,9>  Matrix15x9d;
+typedef Matrix<float,15,12> Matrix15x12d;
+typedef Matrix<float,9,1>   Vector9d;
+typedef Matrix<float,15,1>  Vector15d;
 
 class EKF15mag {
 
@@ -68,11 +68,12 @@ private:
     Matrix9x15d H;
     Matrix9d R;
     Vector9d y;
-    Matrix3d C_N2B, C_B2N, I3 /* identity */, temp33;
-    Vector3d grav, f_b, om_ib, nr, pos_ins_ecef, pos_ins_ned, pos_gps, pos_gps_ecef, pos_gps_ned, dx, mag_ned;
+    Matrix3f C_N2B, C_B2N, I3 /* identity */, temp33;
+    Vector3d pos_ins_ecef, pos_gps, pos_gps_ecef;
+    Vector3f grav, f_b, om_ib, pos_ins_ned, pos_gps_ned, dx, mag_ned;
 
-    Quaterniond quat;
-    double tprev;
+    Quaternionf quat;
+    float tprev;
 
     NAVconfig config;
     NAVdata nav;
