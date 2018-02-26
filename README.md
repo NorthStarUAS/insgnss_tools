@@ -33,6 +33,12 @@ Mechanics Deptarment, University of Minnesota.
 
 # Available filters
 
+Note that the eigen in the name denotes use of the Eigen3 matrix
+library.  However, all the earlier non-eigen variants of the filter
+have been depricated so this is rudundant.  It is something I will
+clean up at some point as I continue to test and refine the newer
+variants.
+
 * nav_eigen_double: 15 state EKF using only inertial sensors and gps
   for input.  Converges to true heading without needing magnetometers.
   Uses double types exclusively for all internal math whether the
@@ -52,14 +58,15 @@ Mechanics Deptarment, University of Minnesota.
   trapazoidal numerical integration for slightly better results.
 
 * nav_eigen_mag_sep: 15 state EKF that includes magnetometers in the
-  measurement update.  Tends to converge to the exact same solution as
-  the non-magnetometer variant over time.  Is more stable in attitude
-  and holds the bias estimate more stable.  With a reasonable
-  magnetometer calibration, this version should converge more quickly
-  and drift less in low dynamic portions of a flight (however the
-  drift that is there will be towards any magnetometer calibration
-  error.)  Time update and measurement update have been split into
-  separate methods.
+  measurement update.  Tends to converge to the same solution as the
+  non-magnetometer variant over time.  Is more stable in attitude and
+  holds the bias estimate more stable.  With a reasonable magnetometer
+  calibration, this version should converge more quickly and drift
+  less in low dynamic portions of a flight (however the drift that is
+  there will be towards any magnetometer calibration error.)  With a
+  bad magnetometer calibration, this algorithm can perform
+  significantly worse than the non-mag version.  Time update and
+  measurement update have been split into separate methods.
 
 * nav_eigen_mag_unified: 15 state EKF that includes magnetometers in
   the measurement update.  Tends to converge to the exact same
