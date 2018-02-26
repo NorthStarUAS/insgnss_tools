@@ -57,7 +57,7 @@ import navpy
 
 # filter interfaces
 import nav_eigen_double
-import nav_eigen_mag
+import nav_eigen_mag_sep
 import nav_eigen_float
 import nav_eigen_sep
 import nav_openloop
@@ -66,7 +66,7 @@ import nav_openloop
 filter1 = nav_eigen_sep.filter()
 #filter1 = nav_mag.filter()
 #filter1 = nav_eigen.filter()
-filter2 = nav_eigen_mag.filter()
+filter2 = nav_eigen_mag_sep.filter()
 #filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 

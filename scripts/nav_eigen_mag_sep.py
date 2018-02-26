@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-import nav.EKF15_mag
+import nav.EKF15_mag_sep
 
 def mkIMUdata( src ):
     result = nav.structs.IMUdata()
@@ -34,8 +34,8 @@ def mkGPSdata( src ):
     
 class filter():
     def __init__(self):
-        self.ekf = nav.EKF15_mag.EKF15_mag()
-        self.name = 'EKF15_mag'
+        self.ekf = nav.EKF15_mag_sep.EKF15_mag_sep()
+        self.name = 'EKF15_mag_sep'
 
     def set_config(self, config):
         self.ekf.set_config(config)
@@ -43,13 +43,17 @@ class filter():
     def init(self, imu, gps, filterpt=None):
         Cimu = mkIMUdata( imu )
         Cgps = mkGPSdata( gps )
-        nav = self.ekf.init(Cimu, Cgps)
+        self.ekf.init(Cimu, Cgps)
+        nav = self.ekf.get_nav()
         return nav
 
     def update(self, imu, gps, filterpt=None):
         Cimu = mkIMUdata( imu )
-        Cgps = mkGPSdata( gps )
-        nav = self.ekf.update(Cimu, Cgps)
+        self.ekf.time_update(Cimu)
+        if gps.newData:
+            Cgps = mkGPSdata( gps )
+            self.ekf.measurement_update(Cimu, Cgps)
+        nav = self.ekf.get_nav()
         return nav
 
     def close(self):
