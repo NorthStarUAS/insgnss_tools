@@ -55,10 +55,10 @@ setup(name='navigation',
                       define_macros=[('HAVE_BOOST_PYTHON', '1')],
                       sources=['src/nav_openloop/openloop.cxx',
                                'src/nav_openloop/glocal.cxx',
-                               'src/nav_common/nav_functions_double.cxx'],
+                               'src/nav_eigen_sep/nav_functions_float.cxx'],
                       libraries=['boost_python'],
                       depends=['src/nav_openloop/openloop.hxx',
                                'src/nav_openloop/glocal.hxx',
-                               'src/nav_common/nav_functions.hxx'])
+                               'src/nav_eigen_sep/nav_functions_float.hxx'])
       ],
      )
