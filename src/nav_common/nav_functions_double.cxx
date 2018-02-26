@@ -30,7 +30,7 @@
 #include <eigen3/Eigen/Geometry>
 using namespace Eigen;
 
-#include "nav_functions.hxx"
+#include "nav_functions_double.hxx"
 
 
 // This function calculates the rate of change of latitude, longitude,

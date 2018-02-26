@@ -20,7 +20,7 @@ using std::endl;
 #include <stdio.h>
 
 #include "../nav_common/coremag.h"
-#include "../nav_common/nav_functions.hxx"
+#include "../nav_common/nav_functions_double.hxx"
 
 #include "EKF_15state_mag.hxx"
 
