@@ -21,8 +21,8 @@
  */
 
 //#include "matrix.h"
-#ifndef NAV_FUNCTIONS_HXX
-#define NAV_FUNCTIONS_HXX
+#ifndef NAV_FUNCTIONS_DOUBLE_HXX
+#define NAV_FUNCTIONS_DOUBLE_HXX
 
 
 #include <eigen3/Eigen/Core>
@@ -53,11 +53,11 @@ using namespace Eigen;
 
 // This function calculates the rate of change of latitude, longitude,
 // and altitude using WGS-84.
-Vector3d llarate(Vector3d V, Vector3d lla);
+Vector3d llarated(Vector3d V, Vector3d lla);
 
 // This function calculates the angular velocity of the NED frame,
 // also known as the navigation rate using WGS-84.
-Vector3d navrate(Vector3d V, Vector3d lla);
+Vector3d navrated(Vector3d V, Vector3d lla);
 
 // This function calculates the ECEF Coordinate given the
 // Latitude, Longitude and Altitude.
@@ -69,7 +69,7 @@ Vector3d ecef2lla( Vector3d ecef_pos );
     
 // This function converts a vector in ecef to ned coordinate centered
 // at pos_ref.
-Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref);
+Vector3d ecef2nedd(Vector3d ecef, Vector3d pos_ref);
 
 // Return a quaternion rotation from the earth centered to the
 // simulation usual horizontal local frame from given longitude and
@@ -80,16 +80,16 @@ Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref);
 Quaterniond lla2quat(double lon_rad, double lat_rad);
 
 // This function gives a skew symmetric matrix from a given vector w
-Matrix3d sk(Vector3d w);
+Matrix3d skd(Vector3d w);
 
 // Quaternion to euler angle: returns phi, the, psi as a vector
-Vector3d quat2eul(Quaterniond q);
+Vector3d quat2euld(Quaterniond q);
 
 // Computes a quaternion from the given euler angles
-Quaterniond eul2quat(double phi, double the, double psi);
+Quaterniond eul2quatd(double phi, double the, double psi);
 
 // Quaternion to C_N2B
-Matrix3d quat2dcm(Quaterniond q);
+Matrix3d quat2dcmd(Quaterniond q);
 
 
-#endif	// NAV_FUNCTIONS_HXX
+#endif	// NAV_FUNCTIONS_DOUBLE_HXX

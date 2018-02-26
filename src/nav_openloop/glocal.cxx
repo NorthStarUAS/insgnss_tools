@@ -16,16 +16,17 @@ using namespace Eigen;
 #include "glocal.hxx"
 
 
-Vector3d local_gravity( double lat_rad, double alt_m ) {
-    static double f = 1.0 / 298.257223563; // WGS-84 Flattening.
-    static double e = sqrt( f * (2 - f) ); // Eccentricity.
-    static double omega_ie = 7.292115e-5;  // WGS-84 Earth rate (rad/s).
-    static double R_0 = 6378137;           // WGS-84 equatorial radius (m).
-    static double R_P = R_0 * (1 - f);	   // Polar radius (m).
-    static double mu_E = 3.986004418e14;   // WGS-84 Earth's gravitational
-    static double g_equator = 9.7803253359; // Normal Equatorial Gravity
-    static double g_n_const = 0.00193185265241; // Normal Gravity Constant
+static double f = 1.0 / 298.257223563; // WGS-84 Flattening.
+static double e = sqrt( f * (2 - f) ); // Eccentricity.
+static double omega_ie = 7.292115e-5;  // WGS-84 Earth rate (rad/s).
+static double R_0 = 6378137;           // WGS-84 equatorial radius (m).
+static double R_P = R_0 * (1 - f);	   // Polar radius (m).
+static double mu_E = 3.986004418e14;   // WGS-84 Earth's gravitational
+static double g_equator = 9.7803253359; // Normal Equatorial Gravity
+static double g_n_const = 0.00193185265241; // Normal Gravity Constant
 
+
+Vector3f local_gravity( double lat_rad, float alt_m ) {
     double sin_lat = sin(lat_rad);
     double e_sin_lat = e * sin_lat;
     double g_0 = ( g_equator / (sqrt(1.0 - e_sin_lat*e_sin_lat)) )
@@ -37,7 +38,7 @@ Vector3d local_gravity( double lat_rad, double alt_m ) {
 	* ( 1.0 + f + ( omega_ie_R_0*omega_ie_R_0 ) * (R_P / mu_E) )
         + 3.0 * alt_m_R_0*alt_m_R_0;
 
-    Vector3d glocal(0.0, 0.0, k * g_0);
+    Vector3f glocal(0.0, 0.0, k * g_0);
 
     return glocal;
 }

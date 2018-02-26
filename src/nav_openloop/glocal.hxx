@@ -4,4 +4,4 @@
 // at the wgs84 reference elliposid using the Somigliana model and
 // makes corrections for altitude. 
 
-Vector3d local_gravity( double lat_rad, double alt_m );
+Vector3f local_gravity( double lat_rad, float alt_m );

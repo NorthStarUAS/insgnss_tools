@@ -2,25 +2,29 @@
 using std::cout;
 using std::endl;
 
-#include "../nav_common/nav_functions.hxx"
+#include "../nav_eigen_sep/nav_functions_float.hxx"
 
 #include "glocal.hxx"
 #include "openloop.hxx"
 
-static Vector3d quat_transform1(Quaterniond q, Vector3d v) {
-    Quaterniond tmp1(0.0, v(0), v(1), v(2));
+static Vector3f quat_transform1(Quaternionf q, Vector3f v) {
+    Quaternionf tmp1(0.0, v(0), v(1), v(2));
     //Quaterniond tmp2 = body2ned * tmp1 * ned2body;
-    Quaterniond tmp2 = q * tmp1 * q.inverse();
+    Quaternionf tmp2 = q * tmp1 * q.inverse();
     return tmp2.vec();
 }
-static Vector3d quat_transform(Quaterniond q, Vector3d v) {
-    //Quaterniond tmp1(0.0, v(0), v(1), v(2));
-    //Quaterniond tmp2 = q * tmp1 * q.inverse();
-    //return tmp2.vec();
-    
+
+static Vector3d quat_transformd(Quaterniond q, Vector3d v) {
     double r = 2/q.dot(q);
     Vector3d qimag = q.vec();
     double qr = q.w();
+    return (r*qr*qr - 1)*v + (r*qimag.dot(v))*qimag - (r*qr)*qimag.cross(v);
+}
+
+static Vector3f quat_transformf(Quaternionf q, Vector3f v) {
+    float r = 2/q.dot(q);
+    Vector3f qimag = q.vec();
+    float qr = q.w();
     return (r*qr*qr - 1)*v + (r*qimag.dot(v))*qimag - (r*qr)*qimag.cross(v);
 }
 
@@ -50,11 +54,11 @@ void OpenLoop::set_pos(double lat_rad, double lon_rad, double alt_m) {
     pos_lla = Vector3d(lat_rad, lon_rad, alt_m);
     pos_ecef = lla2ecef(pos_lla);
     glocal_ned = local_gravity( lat_rad, alt_m );
-    ecef2ned = lla2quat(lon_rad, lat_rad);
-    Vector3d pos_lla1 = ecef2lla(pos_ecef);
+    ecef2ned = lla2quat(lon_rad, lat_rad).cast<float>();
+    // Vector3d pos_lla1 = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla1(0)/D2R, pos_lla1(1)/D2R, pos_lla1(2));
     
-    Vector3d t1 = quat_transform(ecef2ned, pos_ecef);
+    // Vector3d t1 = quat_transformd(ecef2ned, pos_ecef);
     // printf("up? %.2f %.2f %.2f\n", t1(0), t1(1), t1(2));
 }
 
@@ -62,7 +66,7 @@ void OpenLoop::set_vel(double vn_ms, double ve_ms, double vd_ms) {
     this->vn_ms = vn_ms;
     this->ve_ms = ve_ms;
     this->vd_ms = vd_ms;
-    vel_ned = Vector3d(vn_ms, ve_ms, vd_ms);
+    vel_ned = Vector3f(vn_ms, ve_ms, vd_ms);
     //printf("set vel_ned: %.2f %.2f %.2f\n", vel_ned(0), vel_ned(1), vel_ned(2));
 }
 
@@ -130,24 +134,24 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az);
     
     // update attitude from gyro
-    double p = (1 + gxs) * imu.p - (gxb + elapsed*gxd) - Fb(0);
-    double q = (1 + gys) * imu.q - (gyb + elapsed*gyd) - Fb(1);
-    double r = (1 + gzs) * imu.r - (gzb + elapsed*gzd) - Fb(2);
-    Quaterniond rot_body = eul2quat(p*dt, q*dt, r*dt);
+    float p = (1 + gxs) * imu.p - (gxb + elapsed*gxd) - Fb(0);
+    float q = (1 + gys) * imu.q - (gyb + elapsed*gyd) - Fb(1);
+    float r = (1 + gzs) * imu.r - (gzb + elapsed*gzd) - Fb(2);
+    Quaternionf rot_body = eul2quat(p*dt, q*dt, r*dt);
     ned2body *= rot_body;
     ned2body.normalize();
     body2ned = ned2body.inverse();
     body2ned.normalize();
-    Vector3d att_vec = quat2eul(ned2body);
+    Vector3f att_vec = quat2eul(ned2body);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
 
     // rotate accelerometer vector into ned frame
-    double ax = (1 + axs) * imu.ax - (axb + elapsed*axd);
-    double ay = (1 + ays) * imu.ay - (ayb + elapsed*ayd);
-    double az = (1 + azs) * imu.az - (azb + elapsed*azd);
-    Vector3d accel_ned = quat_transform(body2ned, Vector3d(ax, ay, az));
+    float ax = (1 + axs) * imu.ax - (axb + elapsed*axd);
+    float ay = (1 + ays) * imu.ay - (ayb + elapsed*ayd);
+    float az = (1 + azs) * imu.az - (azb + elapsed*azd);
+    Vector3f accel_ned = quat_transformf(body2ned, Vector3f(ax, ay, az));
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
@@ -158,10 +162,10 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.ve = vel_ned(1);
     nav.vd = vel_ned(2);
     // transform to ecef frame
-    vel_ecef = quat_transform(ecef2ned.inverse(), vel_ned);
+    vel_ecef = quat_transformf(ecef2ned.inverse(), vel_ned);
     
     // update the position
-    pos_ecef += vel_ecef*dt;
+    pos_ecef += vel_ecef.cast<double>() * dt;
     //printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
     pos_lla = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla(0), pos_lla(1), pos_lla(2));
@@ -178,7 +182,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.abz = azb + elapsed*azd;
 	
     // update ecef2ned transform with just updated position
-    ecef2ned = lla2quat(nav.lon, nav.lat);
+    ecef2ned = lla2quat(nav.lon, nav.lat).cast<float>();
     
     nav.time = imu.time;
 

@@ -35,7 +35,7 @@ using namespace Eigen;
 
 // This function calculates the rate of change of latitude, longitude,
 // and altitude using WGS-84.
-Vector3d llarate(Vector3d V, Vector3d lla) {
+Vector3d llarated(Vector3d V, Vector3d lla) {
     double lat = lla(0,0);
     double h = lla(2,0);
 	
@@ -55,7 +55,7 @@ Vector3d llarate(Vector3d V, Vector3d lla) {
 
 // This function calculates the angular velocity of the NED frame,
 // also known as the navigation rate using WGS-84.
-Vector3d navrate(Vector3d V, Vector3d lla) {
+Vector3d navrated(Vector3d V, Vector3d lla) {
     double lat = lla(0,0);
     double h = lla(2,0);
 	
@@ -151,7 +151,7 @@ Vector3d ecef2lla( Vector3d ecef_pos ) {
 
 // This function converts a vector in ecef to ned coordinate centered
 // at pos_ref.
-Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref) {
+Vector3d ecef2nedd(Vector3d ecef, Vector3d pos_ref) {
     double lat = pos_ref(0,0);
     double lon = pos_ref(1,0);
     double sin_lat = sin(lat);
@@ -173,7 +173,7 @@ Vector3d ecef2ned(Vector3d ecef, Vector3d pos_ref) {
 // frame with x-axis pointing north, the y-axis pointing eastwards and
 // the z axis pointing downwards.  (Returns the ecef2ned
 // transformation as a quaternion.)
-Quaterniond lla2quat(double lon_rad, double lat_rad) {
+Quaterniond lla2quatd(double lon_rad, double lat_rad) {
     Quaterniond q;
     double zd2 = 0.5*lon_rad;
     double yd2 = -0.25*M_PI - 0.5*lat_rad;
@@ -189,7 +189,7 @@ Quaterniond lla2quat(double lon_rad, double lat_rad) {
 }
 
 // This function gives a skew symmetric matrix from a given vector w
-Matrix3d sk(Vector3d w) {
+Matrix3d skd(Vector3d w) {
     Matrix3d C;
 
     C(0,0) = 0.0;	C(0,1) = -w(2,0);	C(0,2) = w(1,0);
@@ -200,7 +200,7 @@ Matrix3d sk(Vector3d w) {
 }
 
 // Quaternion to euler angle: returns phi, the, psi as a vector
-Vector3d quat2eul(Quaterniond q) {
+Vector3d quat2euld(Quaterniond q) {
     double q0, q1, q2, q3;
     double m11, m12, m13, m23, m33;
 	
@@ -224,7 +224,7 @@ Vector3d quat2eul(Quaterniond q) {
 }
 
 // Computes a quaternion from the given euler angles
-Quaterniond eul2quat(double phi, double the, double psi) {
+Quaterniond eul2quatd(double phi, double the, double psi) {
     double sin_psi = sin(psi*0.5);
     double cos_psi = cos(psi*0.5);
     double sin_the = sin(the*0.5);
@@ -242,7 +242,7 @@ Quaterniond eul2quat(double phi, double the, double psi) {
 }
 
 // Quaternion to C_N2B
-Matrix3d quat2dcm(Quaterniond q) {
+Matrix3d quat2dcmd(Quaterniond q) {
     double q0, q1, q2, q3;
     Matrix3d C_N2B;
 

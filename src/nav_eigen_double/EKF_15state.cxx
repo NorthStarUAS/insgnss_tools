@@ -127,7 +127,7 @@ NAVdata EKF15_double::init(IMUdata imu, GPSdata gps) {
     nav.phi = asin(imu.ay/(g*cos(nav.the))); 
     nav.psi = 90*D2R - atan2(imu.hx, imu.hy);
 	
-    quat = eul2quat(nav.phi, nav.the, nav.psi);
+    quat = eul2quatd(nav.phi, nav.the, nav.psi);
     nav.qw = quat.w();
     nav.qx = quat.x();
     nav.qy = quat.y();
@@ -172,7 +172,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
     // ==================  Time Update  ===================
 
     // AHRS Transformations
-    C_N2B = quat2dcm(quat);
+    C_N2B = quat2dcmd(quat);
     C_B2N = C_N2B.transpose();
 	
     // Attitude Update
@@ -180,7 +180,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
     Vector3d vel_vec(nav.vn, nav.ve, nav.vd);
     Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
 	
-    nr = navrate(vel_vec,pos_vec);  /* note: unused, llarate used instead */
+    nr = navrated(vel_vec,pos_vec);  /* note: unused, llarate used instead */
 	
     Quaterniond dq;
     dq = Quaterniond(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
@@ -191,7 +191,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
         quat = Quaterniond(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
     
-    Vector3d att_vec = quat2eul(quat);
+    Vector3d att_vec = quat2euld(quat);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
@@ -205,7 +205,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
     nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(vel_vec, pos_vec);
+    dx = llarated(vel_vec, pos_vec);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
@@ -218,7 +218,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
     F(5,2) = -2 * g / EARTH_RADIUS;
 	
     // ... gs2att
-    temp33 = C_B2N * sk(f_b);
+    temp33 = C_B2N * skd(f_b);
 	
     F(3,6) = -2.0*temp33(0,0);  F(3,7) = -2.0*temp33(0,1);  F(3,8) = -2.0*temp33(0,2);
     F(4,6) = -2.0*temp33(1,0);  F(4,7) = -2.0*temp33(1,1);  F(4,8) = -2.0*temp33(1,2);
@@ -230,7 +230,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
     F(5,9) = -C_B2N(2,0);  F(5,10) = -C_B2N(2,1);  F(5,11) = -C_B2N(2,2);
 	
     // ... att2att
-    temp33 = sk(om_ib);
+    temp33 = skd(om_ib);
     F(6,6) = -temp33(0,0);  F(6,7) = -temp33(0,1);  F(6,8) = -temp33(0,2);
     F(7,6) = -temp33(1,0);  F(7,7) = -temp33(1,1);  F(7,8) = -temp33(1,2);
     F(8,6) = -temp33(2,0);  F(8,7) = -temp33(2,1);  F(8,8) = -temp33(2,2);
@@ -287,7 +287,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
 
 	Vector3d pos_ref = pos_vec;
 	pos_ref(2) = 0.0;
-	pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
+	pos_ins_ned = ecef2nedd(pos_ins_ecef, pos_ref);
 		
 	pos_gps(0) = gps.lat*D2R;
 	pos_gps(1) = gps.lon*D2R;
@@ -295,7 +295,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
 		
 	pos_gps_ecef = lla2ecef(pos_gps);
 		
-	pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
+	pos_gps_ned = ecef2nedd(pos_gps_ecef, pos_ref);
 
 	// Create Measurement: y
 	y(0) = pos_gps_ned(0) - pos_ins_ned(0);
@@ -341,7 +341,7 @@ NAVdata EKF15_double::update(IMUdata imu, GPSdata gps) {
 	dq = Quaterniond(1.0, x(6), x(7), x(8));
 	quat = (quat * dq).normalized();
 		
-	Vector3d att_vec = quat2eul(quat);
+	Vector3d att_vec = quat2euld(quat);
 	nav.phi = att_vec(0);
 	nav.the = att_vec(1);
 	nav.psi = att_vec(2);

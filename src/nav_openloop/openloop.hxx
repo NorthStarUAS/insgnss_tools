@@ -68,12 +68,12 @@ private:
     Matrix3d G;			      // g force gyro bias matrix
     
     Vector3d pos_ecef, pos_lla;
-    Quaterniond ned2body, body2ned;
-    Quaterniond ecef2ned, ned2ecef;
-    Vector3d vel_ned, vel_ecef;
-    Vector3d glocal_ned;
-    double tstart;
-    double tprev;
+    Quaternionf ned2body, body2ned;
+    Quaternionf ecef2ned, ned2ecef;
+    Vector3f vel_ned, vel_ecef;
+    Vector3f glocal_ned;
+    float tstart;
+    float tprev;
     NAVdata nav;
 };
 
