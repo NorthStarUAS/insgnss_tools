@@ -56,10 +56,10 @@ from matplotlib import pyplot as plt
 import navpy
 
 # filter interfaces
+import nav_ekf15
+import nav_ekf15_mag
 import nav_eigen_double
-import nav_eigen_mag_sep
 import nav_eigen_float
-import nav_eigen_sep
 import nav_openloop
 #import MadgwickAHRS
 
