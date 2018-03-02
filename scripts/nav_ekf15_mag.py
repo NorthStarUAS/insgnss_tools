@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-import nav.EKF15_mag_sep
+import nav.EKF15_mag
 
 def mkIMUdata( src ):
     result = nav.structs.IMUdata()
@@ -34,8 +34,8 @@ def mkGPSdata( src ):
     
 class filter():
     def __init__(self):
-        self.ekf = nav.EKF15_mag_sep.EKF15_mag_sep()
-        self.name = 'EKF15_mag_sep'
+        self.ekf = nav.EKF15_mag.EKF15_mag()
+        self.name = 'EKF15_mag'
 
     def set_config(self, config):
         self.ekf.set_config(config)
