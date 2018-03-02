@@ -40,15 +40,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15_sep::set_config(NAVconfig config) {
+void EKF15::set_config(NAVconfig config) {
     this->config = config;
 }
 
-NAVconfig EKF15_sep::get_config() {
+NAVconfig EKF15::get_config() {
     return config;
 }
 
-void EKF15_sep::default_config()
+void EKF15::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -67,7 +67,7 @@ void EKF15_sep::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-void EKF15_sep::init(IMUdata imu, GPSdata gps) {
+void EKF15::init(IMUdata imu, GPSdata gps) {
     I15.setIdentity();
     I3.setIdentity();
 
@@ -125,7 +125,11 @@ void EKF15_sep::init(IMUdata imu, GPSdata gps) {
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
     nav.phi = asin(imu.ay/(g*cos(nav.the))); 
-    nav.psi = 90*D2R - atan2(imu.hx, imu.hy);
+    // this is atan2(x, -y) because the aircraft body X,Y axis are
+    // swapped with the cartesion axes from the top down perspective
+    nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
+    // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi*R2D);
+    // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
 	
@@ -144,8 +148,7 @@ void EKF15_sep::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-void EKF15_sep::time_update(IMUdata imu) {
-    printf("time update\n");
+void EKF15::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
@@ -284,7 +287,7 @@ void EKF15_sep::time_update(IMUdata imu) {
     // ==================  DONE TU  ===================
 }
 
-void EKF15_sep::measurement_update(GPSdata gps) {
+void EKF15::measurement_update(GPSdata gps) {
     // ==================  GPS Update  ===================
 		
     // Position, converted to NED
@@ -362,7 +365,7 @@ void EKF15_sep::measurement_update(GPSdata gps) {
 }
 
 
-NAVdata EKF15_sep::get_nav() {
+NAVdata EKF15::get_nav() {
     nav.qw = quat.w();
     nav.qx = quat.x();
     nav.qy = quat.y();
@@ -379,14 +382,14 @@ NAVdata EKF15_sep::get_nav() {
 #include <boost/python.hpp>
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(EKF15_sep)
+BOOST_PYTHON_MODULE(EKF15)
 {
-    class_<EKF15_sep>("EKF15_sep")
-        .def("set_config", &EKF15_sep::set_config)
-        .def("init", &EKF15_sep::init)
-        .def("time_update", &EKF15_sep::time_update)
-        .def("measurement_update", &EKF15_sep::measurement_update)
-        .def("get_nav", &EKF15_sep::get_nav)
+    class_<EKF15>("EKF15")
+        .def("set_config", &EKF15::set_config)
+        .def("init", &EKF15::init)
+        .def("time_update", &EKF15::time_update)
+        .def("measurement_update", &EKF15::measurement_update)
+        .def("get_nav", &EKF15::get_nav)
     ;
 }
 

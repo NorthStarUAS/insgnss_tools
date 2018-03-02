@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NAV_15STATE_MAG_SEP_HXX
-#define NAV_15STATE_MAG_SEP_HXX
+#ifndef NAV_EKF_15STATE_MAG_HXX
+#define NAV_EKF_15STATE_MAG_HXX
 
 
 #include <math.h>
@@ -28,7 +28,6 @@ using namespace Eigen;
 
 // usefule constants
 const float g = 9.814;
-const float D2R = M_PI / 180.0;
 
 // define some types for notational convenience and consistency
 typedef Matrix<float,9,9>   Matrix9f;
@@ -40,14 +39,14 @@ typedef Matrix<float,15,12> Matrix15x12f;
 typedef Matrix<float,9,1>   Vector9f;
 typedef Matrix<float,15,1>  Vector15f;
 
-class EKF15_mag_sep {
+class EKF15_mag {
 
 public:
 
-    EKF15_mag_sep() {
+    EKF15_mag() {
 	default_config();
     }
-    ~EKF15_mag_sep() {}
+    ~EKF15_mag() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -84,4 +83,4 @@ private:
 };
 
 
-#endif // NAV_15STATE_MAG_SEP_HXX
+#endif // NAV_EKF_15STATE_MAG_HXX
