@@ -35,9 +35,6 @@ args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
 
-#MAT_FILENAME = 'flightdata_595.4961sec.mat'
-T_GPSOFF = 350          # Time, above which, mission->haveGPS set to 0.
-                        # To always keep GPS, set to: -1
 FLAG_PLOT_ATTITUDE = True
 FLAG_PLOT_VELOCITIES = True
 FLAG_PLOT_GROUNDTRACK = True
@@ -45,8 +42,7 @@ FLAG_PLOT_ALTITUDE = True
 FLAG_PLOT_WIND = True
 FLAG_PLOT_SYNTH_ASI = False
 FLAG_PLOT_BIASES = True
-SIGNAL_LIST = [0, 1, 8]  # List of signals [0 to 9] to be plotted
-FLAG_WRITE2CSV = False # Write results to CSV file.
+
 # # # # # END INPUTS # # # # #
 
 import os
@@ -66,7 +62,7 @@ import nav_openloop
 filter1 = nav_ekf15.filter()
 #filter1 = nav_mag.filter()
 #filter1 = nav_eigen.filter()
-filter2 = nav_ekf15_mag.filter()
+filter2 = nav_ekf15.filter()
 #filter2 = nav_openloop.filter()
 #filter2 = MadgwickAHRS.filter()
 
@@ -370,6 +366,11 @@ config.sig_gps_v_ne = 1.0
 config.sig_gps_v_d  = 2.0
 config.sig_mag      = 1.0
 filter1.set_config(config)
+
+config.sig_gps_p_ne = 4.0
+config.sig_gps_p_d  = 16.0
+config.sig_gps_v_ne = 1.0
+config.sig_gps_v_d  = 4.0
 filter2.set_config(config)
 
 # almost no trust in IMU ...
