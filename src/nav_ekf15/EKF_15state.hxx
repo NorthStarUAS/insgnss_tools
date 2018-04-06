@@ -14,9 +14,7 @@
  *
  */
 
-#ifndef NAV_EKF_15STATE_HXX
-#define NAV_EKF_15STATE_HXX
-
+#pragma once
 
 #include <math.h>
 #include <eigen3/Eigen/Core>
@@ -81,6 +79,3 @@ private:
     NAVconfig config;
     NAVdata nav;
 };
-
-
-#endif // NAV_EKF_15STATE_HXX

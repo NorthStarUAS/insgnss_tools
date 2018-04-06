@@ -1,5 +1,4 @@
-#ifndef AURA_NAV_CONSTANTS_HXX
-#define AURA_NAV_CONSTANTS_HXX
+#pragma once
 
 #include <math.h>
 
@@ -27,6 +26,3 @@ const double D2R = M_PI / 180.0; // degrees to radians
 const double R2D = 180.0 / M_PI; // radians to degrees
 const double F2M = 0.3048;       // feets to meters
 const double M2F = 1.0 / F2M;    // meters to feets
-
-
-#endif // AURA_NAV_CONSTANTS_HXX

@@ -10,8 +10,8 @@
 // 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
 //
 //=====================================================================================================
-#ifndef MadgwickAHRS_h
-#define MadgwickAHRS_h
+
+#pragma once
 
 //----------------------------------------------------------------------------------------------------
 // Variable declaration
@@ -25,7 +25,6 @@ extern volatile float q0, q1, q2, q3;	// quaternion of sensor frame relative to 
 void MadgwickAHRSupdate(double time, float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
 void MadgwickAHRSupdateIMU(double time, float gx, float gy, float gz, float ax, float ay, float az);
 
-#endif
 //=====================================================================================================
 // End of file
 //=====================================================================================================

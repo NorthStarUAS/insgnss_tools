@@ -10,9 +10,7 @@
  *
  */
 
-#ifndef NAV_STRUCTS_HXX
-#define NAV_STRUCTS_HXX
-
+#pragma once
 
 struct IMUdata {
     float time;                 // seconds
@@ -93,6 +91,3 @@ struct NAVconfig {
     float sig_gps_v_d;
     float sig_mag;
 };
-
-
-#endif // NAV_STRUCTS_HXX

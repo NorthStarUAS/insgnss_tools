@@ -14,9 +14,7 @@
  *
  */
 
-#ifndef NAV_OPENLOOP_HXX
-#define NAV_OPENLOOP_HXX
-
+#pragma once
 
 #include <math.h>
 #include <eigen3/Eigen/Core>
@@ -76,6 +74,3 @@ private:
     float tprev;
     NAVdata nav;
 };
-
-
-#endif // NAV_OPENLOOP_HXX

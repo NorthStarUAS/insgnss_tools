@@ -20,10 +20,7 @@
  * $Id: nav_functions.h 922 2012-10-17 19:14:09Z joh07594 $
  */
 
-//#include "matrix.h"
-#ifndef NAV_FUNCTIONS_DOUBLE_HXX
-#define NAV_FUNCTIONS_DOUBLE_HXX
-
+#pragma once
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
@@ -90,6 +87,3 @@ Quaterniond eul2quatd(double phi, double the, double psi);
 
 // Quaternion to C_N2B
 Matrix3d quat2dcmd(Quaterniond q);
-
-
-#endif	// NAV_FUNCTIONS_DOUBLE_HXX

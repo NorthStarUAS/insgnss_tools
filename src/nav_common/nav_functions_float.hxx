@@ -20,9 +20,7 @@
  * $Id: nav_functions.h 922 2012-10-17 19:14:09Z joh07594 $
  */
 
-
-#ifndef NAV_FUNCTIONS_FLOAT_HXX
-#define NAV_FUNCTIONS_FLOAT_HXX
+#pragma once
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
@@ -81,5 +79,3 @@ Quaternionf eul2quat(float phi, float the, float psi);
 
 // Quaternion to C_N2B
 Matrix3f quat2dcm(Quaternionf q);
-
-#endif	// NAV_FUNCTIONS_FLOAT_HXX

@@ -33,8 +33,7 @@
 // $Id: coremag.h,v 1.1 2009/01/17 20:28:01 curt Exp $
 
 
-#ifndef _AURA_COREMAG_H
-#define _AURA_COREMAG_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,5 +57,3 @@ double calc_magvar( double lat, double lon, double h, long dat, double* field );
 #ifdef __cplusplus
 }
 #endif
-
-#endif // _AURA_COREMAG_H
