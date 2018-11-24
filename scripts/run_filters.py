@@ -19,7 +19,7 @@ import os
 
 import nav.structs
 
-from aurauas.flightdata import flight_loader, aura, sentera
+from aurauas.flightdata import flight_loader, flight_interp
 
 import data_store
 import wind
@@ -455,11 +455,11 @@ else:
 
 if flight_format == 'aura_csv' or flight_format == 'aura_txt':
     filter_post = os.path.join(args.flight, "filter-post.txt")
-    aura.save_filter_result(filter_post, data_dict1)
+    #flight_loader.save(filter_post, data_dict1)
 
 if flight_format == 'px4_ulog':
     filter_post = args.flight + "_filter_post.txt"
-    aura.save_filter_result(filter_post, data_dict1)
+    flight_loader.save(filter_post, data_dict1)
     
 if flight_format == 'sentera':
     file_ins = os.path.join(args.flight, "filter-post-ins.txt")
