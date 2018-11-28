@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """run_filters.py
 
@@ -127,7 +127,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             if imu_pt.time >= end_time:
                 k_end = k
                 break
-    print k_start, k_end
+    print(k_start, k_end)
     for k in range(k_start, k_end):
         imupt = imu_data[k]
         if gps_index < len(gps_data) - 1:
@@ -183,7 +183,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
-            print "init:", imupt.time, gpspt.time
+            print("init:", imupt.time, gpspt.time)
             navpt = filter.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
@@ -210,7 +210,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
                                                 actpt.throttle,
                                                 actpt.elevator, imupt.q)
                 if asi_kt > 100.0:
-                    print imupt.time, navpt.phi, navpt.the, actpt.throttle, actpt.elevator, imupt.q
+                    print(imupt.time, navpt.phi, navpt.the, actpt.throttle, actpt.elevator, imupt.q)
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
                 data_dict.add_asi(airpt.airspeed, synth_filt_asi)
 
@@ -241,18 +241,18 @@ else:
     recal_file = None
 data, flight_format = flight_loader.load(path, recal_file)
 
-print "imu records:", len(data['imu'])
-print "gps records:", len(data['gps'])
+print("imu records:", len(data['imu']))
+print("gps records:", len(data['gps']))
 if 'air' in data:
-    print "airdata records:", len(data['air'])
+    print("airdata records:", len(data['air']))
 if 'filter' in data:
-    print "filter records:", len(data['filter'])
+    print("filter records:", len(data['filter']))
 if 'pilot' in data:
-    print "pilot records:", len(data['pilot'])
+    print("pilot records:", len(data['pilot']))
 if 'act' in data:
-    print "act records:", len(data['act'])
+    print("act records:", len(data['act']))
 if len(data['imu']) == 0 and len(data['gps']) == 0:
-    print "not enough data loaded to continue."
+    print("not enough data loaded to continue.")
     quit()
 
 plotname = os.path.basename(args.flight)    
@@ -269,7 +269,7 @@ if False:
     p_bias = p_sum / len(data['imu'])
     q_bias = q_sum / len(data['imu'])
     r_bias = r_sum / len(data['imu'])
-    print "bias:", p_bias, q_bias, r_bias
+    print("bias:", p_bias, q_bias, r_bias)
     for imu in data['imu']:
         imu.p -= p_bias
         imu.q -= q_bias
@@ -290,9 +290,9 @@ if False:
         if imu.hx > x_max: x_max = imu.hx
         if imu.hy > y_max: y_max = imu.hy
         if imu.hz > z_max: z_max = imu.hz
-    print "x:", x_min, x_max
-    print "y:", y_min, y_max
-    print "z:", z_min, z_max
+    print("x:", x_min, x_max)
+    print("y:", y_min, y_max)
+    print("z:", z_min, z_max)
     dx = x_max - x_min
     dy = y_max - y_min
     dz = z_max - z_min
@@ -434,7 +434,7 @@ filter2.set_config(config)
 data_dict1, filter1_sec = run_filter(filter1, data)
 
 if args.synthetic_airspeed:
-    print "building synthetic air data estimator..."
+    print("building synthetic air data estimator...")
     if 'act' in data:
         result = synth_asi.build()
         if result:
@@ -444,14 +444,14 @@ if args.synthetic_airspeed:
 
 data_dict2, filter2_sec = run_filter(filter2, data)
 
-print "filter1 time = %.4f" % filter1_sec
-print "filter2 time = %.4f" % filter2_sec
+print("filter1 time = %.4f" % filter1_sec)
+print("filter2 time = %.4f" % filter2_sec)
 diff_sec = filter1_sec - filter2_sec
 perc = diff_sec / filter1_sec
 if perc >= 0.0:
-    print "filter2 is %.1f%% faster" % (perc * 100.0)
+    print("filter2 is %.1f%% faster" % (perc * 100.0))
 else:
-    print "filter2 is %.1f%% slower" % (-perc * 100.0)
+    print("filter2 is %.1f%% slower" % (-perc * 100.0))
 
 if flight_format == 'aura_csv' or flight_format == 'aura_txt':
     filter_post = os.path.join(args.flight, "filter-post.txt")
@@ -711,7 +711,7 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     nyq = 0.5 * 100             # 1/2 sample hz
     b1, a1 = signal.butter(2, 2.0 / nyq)
     b2, a2 = signal.butter(2, 0.8 / nyq)
-    print 'b2:', b2, 'a2:', a2
+    print('b2:', b2, 'a2:', a2)
     air1 = signal.filtfilt(b1, a1, np.array(data_dict2.asi))
     air2 = signal.filtfilt(b2, a2, np.array(data_dict2.asi))
     air3 = []
@@ -747,10 +747,10 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     roll_array = np.array(roll_array)
     r_array = np.array(r_array)
     roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 3, full=True )
-    print roll_cal
+    print(roll_cal)
     xvals, yvals, minx, miny = gen_func(roll_cal, roll_array.min(), roll_array.max(), 1000)
-    print 'bank bias deg (for L1 config) =', -r2d(minx), 'deg'
-    print 'zero yaw rate @ bank =', r2d(minx), 'deg'
+    print('bank bias deg (for L1 config) =', -r2d(minx), 'deg')
+    print('zero yaw rate @ bank =', r2d(minx), 'deg')
     fig, ax1 = plt.subplots()
     ax1.set_title('Turn Calibration')
     ax1.set_xlabel('Bank angle (rad)', weight='bold')

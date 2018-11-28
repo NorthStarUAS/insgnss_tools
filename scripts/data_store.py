@@ -131,28 +131,28 @@ def diff_split(nav1, nav2):
     diff = nav.structs.NAVdata()
     
     diff.time = nav1.time
-    print ' err t =', diff.time
+    print(' err t =', diff.time)
     diff.psi = (nav1.psi - nav2.psi) * 0.5
     diff.the = (nav1.the - nav2.the) * 0.5
     diff.phi = (nav1.phi - nav2.phi) * 0.5
-    print ' att:', diff.phi, diff.the, diff.psi
+    print(' att:', diff.phi, diff.the, diff.psi)
     diff.lat = (nav1.lat - nav2.lat) * 0.5
     diff.lon = (nav1.lon - nav2.lon) * 0.5
     diff.alt = (nav1.alt - nav2.alt) * 0.5
-    print ' pos:', diff.lat, diff.lon, diff.alt
+    print(' pos:', diff.lat, diff.lon, diff.alt)
     diff.vn = (nav1.vn - nav2.vn) * 0.5
     diff.ve = (nav1.ve - nav2.ve) * 0.5
     diff.vd = (nav1.vd - nav2.vd) * 0.5
-    print ' vel:', diff.vn, diff.ve, diff.vd
+    print(' vel:', diff.vn, diff.ve, diff.vd)
 
     diff.abx = (nav1.abx - nav2.abx) * 0.5
     diff.aby = (nav1.aby - nav2.aby) * 0.5
     diff.abz = (nav1.abz - nav2.abz) * 0.5
-    print ' accel bias:', diff.abx, diff.aby, diff.abz
+    print(' accel bias:', diff.abx, diff.aby, diff.abz)
     diff.gbx = (nav1.gbx - nav2.gbx) * 0.5
     diff.gby = (nav1.gby - nav2.gby) * 0.5
     diff.gbz = (nav1.gbz - nav2.gbz) * 0.5
-    print ' gyro bias:', diff.gbx, diff.gby, diff.gbz
+    print(' gyro bias:', diff.gbx, diff.gby, diff.gbz)
         
     # [insgps.Pp0, insgps.Pp1, insgps.Pp2]
     # [insgps.Pv0, insgps.Pv1, insgps.Pv2]

@@ -30,7 +30,7 @@ def append(phi, the, thr, ele, q, airspeed):
             phi_list.append(abs(phi))
         except:
             phi_list.append(0.0)
-            print 'error:', phi, math.cos(phi)
+            print('error:', phi, math.cos(phi))
         the_list.append(the)
         if thr > 1.1:
             # catch a umn3 glitch
@@ -84,12 +84,12 @@ def build():
     if abs(thr_d) < 0.0001 or abs(ele_d) < 0.0001:
         return False
     
-    print 'phi:', phi_range, phi_d
-    print 'the:', the_range, the_d
-    print 'thr:', thr_range, thr_d
-    print 'ele:', ele_range, ele_d
-    print 'q:', q_range, q_d
-    print 'asi:', asi_range, asi_d
+    print('phi:', phi_range, phi_d)
+    print('the:', the_range, the_d)
+    print('thr:', thr_range, thr_d)
+    print('ele:', ele_range, ele_d)
+    print('q:', q_range, q_d)
+    print('asi:', asi_range, asi_d)
 
     ba_array = np.zeros((bins, bins, bins, bins, bins))
     ba_count = np.zeros((bins, bins, bins, bins, bins))
@@ -137,7 +137,7 @@ def build():
                             ele_short.append(ele_min + ele_d * (i4 + 0.5))
                             q_short.append(q_min + q_d * (i5 + 0.5))
                             asi_short.append(val)
-    print 'short len:', len(asi_short)
+    print('short len:', len(asi_short))
 
     global rbfi
     rbfi = Rbf(np.array(phi_short),

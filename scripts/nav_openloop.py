@@ -43,7 +43,7 @@ class filter():
     def update(self, imu, gps, filt):
         resync = False
         if resync and filt.time > self.filter_sync + 300:
-            print 'resync:', filt.time
+            print('resync:', filt.time)
             self.filter_sync = filt.time
             nav = self.init(imu, gps, filt)
         else:
