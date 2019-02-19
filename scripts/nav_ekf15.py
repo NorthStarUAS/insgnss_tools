@@ -3,6 +3,7 @@ import os
 import sys
 
 import nav.EKF15
+import nav.openloop
 
 def mkIMUdata( src ):
     result = nav.structs.IMUdata()
@@ -36,6 +37,10 @@ class filter():
     
     def __init__(self):
         self.ekf = nav.EKF15.EKF15()
+        self.openloop = nav.openloop.openloop()
+        self.gps_lag_frames = 10
+        self.imu_queue = []
+        
         self.name = 'EKF15'
 
     def set_config(self, config):
@@ -44,17 +49,30 @@ class filter():
     def init(self, imu, gps, filterpt=None):
         Cimu = mkIMUdata( imu )
         Cgps = mkGPSdata( gps )
+        while len(self.imu_queue) < self.gps_lag_frames:
+            self.imu_queue.append(Cimu)
         self.ekf.init(Cimu, Cgps)
         nav = self.ekf.get_nav()
         return nav
 
     def update(self, imu, gps, filterpt=None):
         Cimu = mkIMUdata( imu )
+
+        # queue delay
+        self.imu_queue.insert(0, Cimu)
+        Cimu = self.imu_queue.pop()
+        
         self.ekf.time_update(Cimu)
         if gps.newData:
             Cgps = mkGPSdata( gps )
             self.ekf.measurement_update(Cgps)
         nav = self.ekf.get_nav()
+
+        # forward propagate
+        self.openloop.init_by_nav(nav)
+        for imu in reversed(self.imu_queue):
+            nav = self.openloop.update(imu)
+            
         return nav
 
     def close(self):
