@@ -3,7 +3,7 @@
 from setuptools import setup, Extension
 
 setup(name='navigation',
-      version='1.0',
+      version='1.1',
       description='Navigation Tools',
       author='Curtis L. Olson',
       author_email='curtolson@flightgear.org',
