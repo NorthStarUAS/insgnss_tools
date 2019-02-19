@@ -46,7 +46,7 @@ enum errdefs {
     gps_nolock,			// No GPS lock
     data_valid,			// Data valid
     noPacketHeader,		// Some data received, but cannot find packet header
-    incompletePacket,	// Packet header found, but complete packet not received
+    incompletePacket, // Packet header found, but complete packet not received
     TU_only,			// NAV filter, time update only
     gps_aided,			// NAV filter, GPS aided
 };

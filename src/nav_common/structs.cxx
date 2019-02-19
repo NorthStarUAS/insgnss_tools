@@ -2,7 +2,6 @@
 // associated structures.
 
 #include "structs.hxx"
-#include "wgs84.hxx"
 
 #include <boost/python.hpp>
 using namespace boost::python;
