@@ -40,6 +40,9 @@ class filter():
         nav = self.ekf.update(imu)
         return nav
 
+    def init_by_nav(self, filt):
+        self.ekf.init_by_nav(filt)
+
     def update(self, imu, gps, filt):
         resync = False
         if resync and filt.time > self.filter_sync + 300:
