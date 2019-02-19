@@ -33,55 +33,22 @@ Mechanics Deptarment, University of Minnesota.
 
 # Available filters
 
-Note that the eigen in the name denotes use of the Eigen3 matrix
-library.  However, all the earlier non-eigen variants of the filter
-have been depricated so this is rudundant.  It is something I will
-clean up at some point as I continue to test and refine the newer
-variants.
+* nav_ekf15: 15 state EKF using only intertial sensors and gps for
+  input.  Does not need magnetometers.  Uses floating point data types
+  as much as possible internally.
 
-* nav_eigen_double: 15 state EKF using only inertial sensors and gps
-  for input.  Converges to true heading without needing magnetometers.
-  Uses double types exclusively for all internal math whether the
-  precision is needed or not.
-
-* nav_eigen_float: 15 state EKF using only intertial sensors and gps
-  for input.  Does not need magnetometers.  Uses floating point data
-  types as much as possible internally.  Produces the same (or
-  practically) the same result as the double version of this
-  algorithm.  For some platforms that done't support double precision
-  floating point math in hardware, this version may run significantly
-  faster.
-
-* nav_eigen_sep: The same algorithm as nav_eigen_float, but with the
-  code restructured a bit to enable separating the time update and the
-  measurement update steps into separate functions.  Also adds
-  trapazoidal numerical integration for slightly better results.
-
-* nav_eigen_mag_sep: 15 state EKF that includes magnetometers in the
+* nav_ekf15_mag: 15 state EKF that includes magnetometers in the
   measurement update.  Tends to converge to the same solution as the
-  non-magnetometer variant over time.  Is more stable in attitude and
-  holds the bias estimate more stable.  With a reasonable magnetometer
-  calibration, this version should converge more quickly and drift
-  less in low dynamic portions of a flight (however the drift that is
-  there will be towards any magnetometer calibration error.)  With a
-  bad magnetometer calibration, this algorithm can perform
-  significantly worse than the non-mag version.  Time update and
-  measurement update have been split into separate methods.
+  non-magnetometer variant over time during dynamic motion.  In slow
+  moving situations magnetometer error will dominate the computations.
+  The quality of this filter is closely linked to the quality of the
+  magnetometer calibration (or lack of magnetic field disturbances.)
 
-* nav_eigen_mag_unified: 15 state EKF that includes magnetometers in
-  the measurement update.  Tends to converge to the exact same
-  solution as the non-magnetometer variant over time.  Is more stable
-  in attitude and holds the bias estimate more stable.  With a
-  reasonable magnetometer calibration, this version should converge
-  more quickly and drift less in low dynamic portions of a flight
-  (however the drift that is there will be towards any magnetometer
-  calibration error.) Time update and measurement update are rolled
-  together into a single unified function.
-
-* nav_openloop: Open-loop integrator.  Given an initial starting
-  condition, will integrate position, velocity, and orientation from
-  the inertial data alone.  Shis can be used with the piece-wise
-  segment optimizer.
+* nav_openloop: Open-loop integrator (forward propagation only.)
+  Given an initial starting condition, will integrate position,
+  velocity, and orientation from the inertial data alone.  This can be
+  used with the piece-wise segment optimizer or used to forward
+  propagate an EKF solution computed slightly in the past.
 
 
 # Script Fron End Features:
