@@ -23,7 +23,7 @@
 using namespace Eigen;
 
 #include "../nav_common/structs.hxx"
-#include "../nav_common/nav_functions_double.hxx"
+#include "../nav_common/nav_functions_float.hxx"
 
 // usefule constants
 const double g = 9.814;
@@ -37,33 +37,35 @@ public:
     ~OpenLoop() {}
 
     // main interface
-    void init(double lat_deg, double lon_deg, double alt_m,
-	      double vn_ms, double ve_ms, double vd_ms,
-	      double phi_deg, double the_deg, double psi_deg);
-    void set_pos(double lat_deg, double lon_deg, double alt_m);
-    void set_vel(double vn_ms, double ve_ms, double vd_ms);
-    void set_att(double phi_deg, double the_deg, double psi_deg);
-    void set_gyro_calib(double gxb, double gyb, double gzb,
-			double gxd, double gyd, double gzd);
-    void set_accel_calib(double axb, double ayb, double azb,
-			 double axd, double ayd, double azd);
-    void set_G(double x11, double x12, double x13,
-	       double x21, double x22, double x23,
-	       double x31, double x32, double x33);
+    void init(double lat_deg, double lon_deg, float alt_m,
+	      float vn_ms, float ve_ms, float vd_ms,
+	      float phi_deg, float the_deg, float psi_deg);
+    void init_by_nav(NAVdata);
+    void set_pos(double lat_deg, double lon_deg, float alt_m);
+    void set_vel(float vn_ms, float ve_ms, float vd_ms);
+    void set_att(float phi_deg, float the_deg, float psi_deg);
+    void set_gyro_calib(float gxb, float gyb, float gzb,
+			float gxd, float gyd, float gzd);
+    void set_accel_calib(float axb, float ayb, float azb,
+			 float axd, float ayd, float azd);
+    // void set_G(float x11, float x12, float x13,
+    //            float x21, float x22, float x23,
+    //            float x31, float x32, float x33);
     NAVdata update(IMUdata imu /*, GPSdata gps*/);
     
 private:
 
-    double lat_rad, lon_rad, alt_m;   // location
-    double vn_ms, ve_ms, vd_ms;	      // ned vel
-    double phi_rad, the_rad, psi_rad; // euler attitude
-    double gxb, gyb, gzb;	      // gyro biases
-    double gxs, gys, gzs;	      // gyro scale factors
-    double gxd, gyd, gzd;	      // gyro time variation
-    double axb, ayb, azb;	      // accel biases
-    double axs, ays, azs;	      // accel scale factor
-    double axd, ayd, azd;	      // accel time variation
-    Matrix3d G;			      // g force gyro bias matrix
+    double lat_rad, lon_rad;          // position
+    float alt_m;                      // altitude
+    float vn_ms, ve_ms, vd_ms;	      // ned vel
+    float phi_rad, the_rad, psi_rad; // euler attitude
+    float gxb, gyb, gzb;	      // gyro biases
+    //float gxs, gys, gzs;	      // gyro scale factors
+    //float gxd, gyd, gzd;	      // gyro time variation
+    float axb, ayb, azb;	      // accel biases
+    //float axs, ays, azs;	      // accel scale factor
+    //float axd, ayd, azd;	      // accel time variation
+    //Matrix3d G;		      // g force gyro bias matrix
     
     Vector3d pos_ecef, pos_lla;
     Quaternionf ned2body, body2ned;
