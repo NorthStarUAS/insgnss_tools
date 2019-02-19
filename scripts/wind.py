@@ -18,7 +18,7 @@ filt_we = lowpass.LowPassFilter(time_factor, 0.0)
 filt_ps = lowpass.LowPassFilter(time_factor*4.0, 1.0)
 last_time = 0.0
 
-def update_wind(time, airspeed_kt, yaw_rad, vn, ve):
+def update(time, airspeed_kt, yaw_rad, vn, ve):
     global last_time
     global filt_wn
     global filt_we
