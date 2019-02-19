@@ -21,6 +21,7 @@ import nav.structs
 
 from aurauas.flightdata import flight_loader, flight_interp
 
+import alpha_beta
 import data_store
 import wind
 import synth_asi
@@ -54,17 +55,11 @@ import navpy
 # filter interfaces
 import nav_ekf15
 import nav_ekf15_mag
-import nav_eigen_double
-import nav_eigen_float
 import nav_openloop
-#import MadgwickAHRS
 
 filter1 = nav_ekf15.filter()
-#filter1 = nav_mag.filter()
-#filter1 = nav_eigen.filter()
 filter2 = nav_ekf15.filter()
 #filter2 = nav_openloop.filter()
-#filter2 = MadgwickAHRS.filter()
 
 r2d = 180.0 / math.pi
 mps2kt = 1.94384
@@ -192,21 +187,25 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         if filter_init:
             # experimental: run wind estimator
             # print airpt.airspeed
-            (wn, we, ps) = wind.update_wind(imupt.time, airpt.airspeed,
-                                            navpt.psi, navpt.vn, navpt.ve)
+            (wn, we, ps) = wind.update(imupt.time, airpt.airspeed,
+                                       navpt.psi, navpt.vn, navpt.ve)
             #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
             wind_deg = 90 - math.atan2(wn, we) * r2d
             if wind_deg < 0: wind_deg += 360.0
             wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
             #print wn, we, ps, wind_deg, wind_kt
 
+            # experimental: synthetic alpha/beta
+            if airpt.airspeed > 10:
+                alpha_beta.update(navpt, airpt, imupt, wn, we)
+            
             # experimental: synthetic airspeed estimator
             if 'act' in data and synth_asi.rbfi == None:
                 # print imupt.time, airpt.airspeed, actpt.throttle, actpt.elevator
-                synth_asi.append(navpt.phi, navpt.the, actpt.throttle,
+                synth_asi.append(imupt.az, navpt.the, actpt.throttle,
                                  actpt.elevator, imupt.q, airpt.airspeed)
             elif 'act' in data:
-                asi_kt = synth_asi.est_airspeed(navpt.phi, navpt.the,
+                asi_kt = synth_asi.est_airspeed(imupt.az, navpt.the,
                                                 actpt.throttle,
                                                 actpt.elevator, imupt.q)
                 if asi_kt > 100.0:
@@ -368,9 +367,9 @@ config.sig_mag      = 1.0
 filter1.set_config(config)
 
 config.sig_gps_p_ne = 4.0
-config.sig_gps_p_d  = 16.0
-config.sig_gps_v_ne = 1.0
-config.sig_gps_v_d  = 4.0
+config.sig_gps_p_d  = 12.0
+config.sig_gps_v_ne = 0.5
+config.sig_gps_v_d  = 2.0
 filter2.set_config(config)
 
 # almost no trust in IMU ...
@@ -472,6 +471,8 @@ if flight_format == 'sentera':
 nsig = 3
 t_store1 = data_dict1.time
 t_store2 = data_dict2.time
+
+alpha_beta.gen_stats()
 
 # Plotting
 r2d = np.rad2deg
@@ -757,6 +758,19 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     ax1.set_ylabel('Turn rate (rad/sec)', weight='bold')
     ax1.plot(roll_array, r_array, 'x', label='bank vs. turn', c='r', lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
+
+# plot alpha vs. CL (estimate)
+cl_array = np.array(alpha_beta.cl_array)
+alpha_array = np.array(alpha_beta.alpha_array)
+cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 1, full=True )
+print(cl_cal)
+xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
+fig, ax1 = plt.subplots()
+ax1.set_title('Alpha/CL')
+ax1.set_xlabel('Alpha (est, deg)', weight='bold')
+ax1.set_ylabel('CL', weight='bold')
+ax1.plot(alpha_array, cl_array, 'x', label='alpha vs CL', c='r', lw=2, alpha=.8)
+ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
