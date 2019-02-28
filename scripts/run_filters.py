@@ -456,6 +456,11 @@ if flight_format == 'aura_csv' or flight_format == 'aura_txt':
     filter_post = os.path.join(args.flight, "filter-post.txt")
     #flight_loader.save(filter_post, data_dict1)
 
+if flight_format == 'umn3':
+    basedir = os.path.dirname(args.flight)
+    filter_post = os.path.join(basedir, "filter-post.csv")
+    flight_loader.save(filter_post, data_dict1)
+
 if flight_format == 'px4_ulog':
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, data_dict1)
