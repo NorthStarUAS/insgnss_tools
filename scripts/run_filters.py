@@ -366,10 +366,11 @@ config.sig_gps_v_d  = 2.0
 config.sig_mag      = 1.0
 filter1.set_config(config)
 
-config.sig_gps_p_ne = 4.0
-config.sig_gps_p_d  = 12.0
-config.sig_gps_v_ne = 0.5
-config.sig_gps_v_d  = 2.0
+# more trust in gps (sentera camera, low change in velocity?)
+config.sig_gps_p_ne = 2.0
+config.sig_gps_p_d  = 4.0
+config.sig_gps_v_ne = 0.3
+config.sig_gps_v_d  = 0.6
 filter2.set_config(config)
 
 # almost no trust in IMU ...
@@ -466,12 +467,8 @@ if flight_format == 'px4_ulog':
     flight_loader.save(filter_post, data_dict1)
     
 if flight_format == 'sentera':
-    file_ins = os.path.join(args.flight, "filter-post-ins.txt")
-    file_mag = os.path.join(args.flight, "filter-post-mag.txt")
-    sentera.save_filter_result(file_ins, data_dict1)
-    sentera.save_filter_result(file_mag, data_dict2)
-    #sentera.rewrite_pix4d_csv(args.flight, data_dict2)
-    #sentera.rewrite_image_metadata_txt(args.flight, data_dict2)
+    filter_post = args.flight + "_filter_post.txt"
+    flight_loader.save(filter_post, data_dict1)
 
 nsig = 3
 t_store1 = data_dict1.time
@@ -765,17 +762,18 @@ if 'act' in data and FLAG_PLOT_SYNTH_ASI:
     ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
 
 # plot alpha vs. CL (estimate)
-cl_array = np.array(alpha_beta.cl_array)
-alpha_array = np.array(alpha_beta.alpha_array)
-cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 1, full=True )
-print(cl_cal)
-xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
-fig, ax1 = plt.subplots()
-ax1.set_title('Alpha/CL')
-ax1.set_xlabel('Alpha (est, deg)', weight='bold')
-ax1.set_ylabel('CL', weight='bold')
-ax1.plot(alpha_array, cl_array, 'x', label='alpha vs CL', c='r', lw=2, alpha=.8)
-ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
+if len(alpha_beta.cl_array):
+    cl_array = np.array(alpha_beta.cl_array)
+    alpha_array = np.array(alpha_beta.alpha_array)
+    cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 1, full=True )
+    print(cl_cal)
+    xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
+    fig, ax1 = plt.subplots()
+    ax1.set_title('Alpha/CL')
+    ax1.set_xlabel('Alpha (est, deg)', weight='bold')
+    ax1.set_ylabel('CL', weight='bold')
+    ax1.plot(alpha_array, cl_array, 'x', label='alpha vs CL', c='r', lw=2, alpha=.8)
+    ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:

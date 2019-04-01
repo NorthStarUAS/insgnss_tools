@@ -8,6 +8,11 @@ s = 6.62                        # square feet
 L = 6.0                         # lbs (need to weigh with camera!)
 d = 0.002308                    # density @ 1000' on a standard day
 
+# values for our Mjolnir
+s = 8.28                        # square feet
+L = 16.0                        # lbs (need to weigh with camera!)
+d = 0.002308                    # density @ 1000' on a standard day
+
 r2d = 180.0 / math.pi
 mps2kt = 1.94384
 kt2mps = 1.0 / mps2kt
@@ -61,8 +66,9 @@ def update(navpt, airpt, imupt, wn, we):
 def gen_stats():
     global cl_array
     global alpha_array
-    cl_array = np.array(cl_array)
-    alpha_array = np.array(alpha_array)
-    cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 2, full=True )
-    print('alpha/CL function coeffs:', cl_cal)
+    if len(cl_array):
+        cl_array = np.array(cl_array)
+        alpha_array = np.array(alpha_array)
+        cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 2, full=True )
+        print('alpha/CL function coeffs:', cl_cal)
  
