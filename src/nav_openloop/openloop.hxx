@@ -22,12 +22,9 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
+#include "../nav_common/constants.hxx"
 #include "../nav_common/structs.hxx"
 #include "../nav_common/nav_functions_float.hxx"
-
-// usefule constants
-const double g = 9.814;
-const double D2R = M_PI / 180.0;
 
 class OpenLoop {
 

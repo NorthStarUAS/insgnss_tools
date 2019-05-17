@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-import nav.structs
+import navigation.structs
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0

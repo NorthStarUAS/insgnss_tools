@@ -2,10 +2,10 @@ import numpy as np
 import os
 import sys
 
-import nav.EKF15_mag
+import navigation.filters
 
 def mkIMUdata( src ):
-    result = nav.structs.IMUdata()
+    result = navigation.structs.IMUdata()
     result.time = src.time
     result.p = src.p
     result.q = src.q
@@ -20,7 +20,7 @@ def mkIMUdata( src ):
     return result
 
 def mkGPSdata( src ):
-    result = nav.structs.GPSdata()
+    result = navigation.structs.GPSdata()
     result.time = src.time
     result.lat = src.lat
     result.lon = src.lon
@@ -34,7 +34,7 @@ def mkGPSdata( src ):
     
 class filter():
     def __init__(self):
-        self.ekf = nav.EKF15_mag.EKF15_mag()
+        self.ekf = navigation.filters.EKF15_mag()
         self.name = 'EKF15_mag'
 
     def set_config(self, config):

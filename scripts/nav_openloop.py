@@ -2,11 +2,11 @@ import numpy as np
 import os
 import sys
 
-import nav.openloop
+import navigation.filters
 
 class filter():
     def __init__(self):
-        self.ekf = nav.openloop.openloop()
+        self.ekf = navigation.filters.OpenLoop()
         self.name = 'Open Loop'
         self.filter_sync = 0.0
 

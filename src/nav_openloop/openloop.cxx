@@ -205,25 +205,3 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 
     return nav;
 }
-
-
-// The following constructs a python interface for this class.
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(openloop)
-{
-    class_<OpenLoop>("openloop")
-        .def("init", &OpenLoop::init)
-        .def("init_by_nav", &OpenLoop::init_by_nav)
-        .def("set_pos", &OpenLoop::set_pos)
-        .def("set_vel", &OpenLoop::set_vel)
-        .def("set_att", &OpenLoop::set_att)
-        .def("set_gyro_calib", &OpenLoop::set_gyro_calib)
-        // .def("set_G", &OpenLoop::set_G)
-        .def("set_accel_calib", &OpenLoop::set_accel_calib)
-        .def("update", &OpenLoop::update)
-    ;
-}
-

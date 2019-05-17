@@ -373,24 +373,3 @@ NAVdata EKF15::get_nav() {
 	
     return nav;
 }
-
-
-#ifdef HAVE_BOOST_PYTHON
-
-// The following constructs a python interface for this class.
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(EKF15)
-{
-    class_<EKF15>("EKF15")
-        .def("set_config", &EKF15::set_config)
-        .def("init", &EKF15::init)
-        .def("time_update", &EKF15::time_update)
-        .def("measurement_update", &EKF15::measurement_update)
-        .def("get_nav", &EKF15::get_nav)
-    ;
-}
-
-#endif // HAVE_BOOST_PYTHON

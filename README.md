@@ -59,8 +59,8 @@ Mechanics Deptarment, University of Minnesota.
 * Core filters are written in C/C++ but the infrastructure, data
   loading, and plotting is handled in python.
 
-* Uses boost/python so that the same core C++ code can be used from
-  either C++ or python applications.
+* Uses pybind11 so that the same core C++ code can be used from either
+  C++ or python applications.
 
 
 # Calibration:

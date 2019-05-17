@@ -21,6 +21,9 @@
 #define _SQUASH    0.9966471893352525192801545
 #define E2         fabs(1 - _SQUASH*_SQUASH)
 
+// useful constants
+const float g = 9.814;
+
 /* additional constants */
 const double D2R = M_PI / 180.0; // degrees to radians
 const double R2D = 180.0 / M_PI; // radians to degrees

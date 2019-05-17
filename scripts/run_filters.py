@@ -17,7 +17,7 @@ import numpy as np
 import time
 import os
 
-import nav.structs
+import navigation.structs
 
 from aurauas.flightdata import flight_loader, flight_interp
 
@@ -94,7 +94,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     run_start = time.time()
     gps_index = 0
     air_index = 0
-    airpt = nav.structs.Airdata()
+    airpt = navigation.structs.Airdata()
     filter_index = 0
     pilot_index = 0
     pilotpt = None
@@ -348,7 +348,7 @@ for i in data['imu']:
     r_flight.append(i.r)
     
 # Default config
-config = nav.structs.NAVconfig()
+config = navigation.structs.NAVconfig()
 config.sig_w_ax = 0.05
 config.sig_w_ay = 0.05
 config.sig_w_az = 0.05
@@ -374,7 +374,7 @@ config.sig_gps_v_d  = 0.6
 filter2.set_config(config)
 
 # almost no trust in IMU ...
-# config = nav.structs.NAVconfig()
+# config = navigation.structs.NAVconfig()
 # config.sig_w_ax = 2.0
 # config.sig_w_ay = 2.0
 # config.sig_w_az = 2.0
@@ -393,7 +393,7 @@ filter2.set_config(config)
 # filter2.set_config(config)
 
 # less than default trust in IMU ...
-# config = nav.structs.NAVconfig()
+# config = navigation.structs.NAVconfig()
 # config.sig_w_ax = 0.1
 # config.sig_w_ay = 0.1
 # config.sig_w_az = 0.1
@@ -413,7 +413,7 @@ filter2.set_config(config)
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-# config = nav.structs.NAVconfig()
+# config = navigation.structs.NAVconfig()
 # config.sig_w_ax = 0.02
 # config.sig_w_ay = 0.02
 # config.sig_w_az = 0.02

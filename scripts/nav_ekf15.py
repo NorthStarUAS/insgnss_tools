@@ -2,11 +2,10 @@ import numpy as np
 import os
 import sys
 
-import nav.EKF15
-import nav.openloop
+import navigation.filters
 
 def mkIMUdata( src ):
-    result = nav.structs.IMUdata()
+    result = navigation.structs.IMUdata()
     result.time = src.time
     result.p = src.p
     result.q = src.q
@@ -21,7 +20,7 @@ def mkIMUdata( src ):
     return result
 
 def mkGPSdata( src ):
-    result = nav.structs.GPSdata()
+    result = navigation.structs.GPSdata()
     result.time = src.time
     result.lat = src.lat
     result.lon = src.lon
@@ -36,8 +35,8 @@ def mkGPSdata( src ):
 class filter():
     
     def __init__(self):
-        self.ekf = nav.EKF15.EKF15()
-        self.openloop = nav.openloop.openloop()
+        self.ekf = navigation.filters.EKF15()
+        self.openloop = navigation.filters.OpenLoop()
         self.gps_lag_frames = 10
         self.imu_queue = []
         

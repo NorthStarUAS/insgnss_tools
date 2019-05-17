@@ -3,12 +3,14 @@
 
 #include "structs.hxx"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#ifdef HAVE_PYBIND11
 
-BOOST_PYTHON_MODULE(structs)
-{
-    class_<IMUdata>("IMUdata")
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
+PYBIND11_MODULE(structs, m) {
+    py::class_<IMUdata>(m, "IMUdata")
+        .def(py::init<>())
 	.def_readwrite("time", &IMUdata::time)
 	.def_readwrite("p", &IMUdata::p)
 	.def_readwrite("q", &IMUdata::q)
@@ -19,10 +21,10 @@ BOOST_PYTHON_MODULE(structs)
  	.def_readwrite("hx", &IMUdata::hx)
  	.def_readwrite("hy", &IMUdata::hy)
  	.def_readwrite("hz", &IMUdata::hz)
- 	.def_readwrite("temp", &IMUdata::temp)
-    ;
+ 	.def_readwrite("temp", &IMUdata::temp);
     
-    class_<GPSdata>("GPSdata")
+    py::class_<GPSdata>(m, "GPSdata")
+        .def(py::init<>())
 	.def_readwrite("time", &GPSdata::time)
 	.def_readwrite("lat", &GPSdata::lat)
 	.def_readwrite("lon", &GPSdata::lon)
@@ -31,19 +33,19 @@ BOOST_PYTHON_MODULE(structs)
 	.def_readwrite("ve", &GPSdata::ve)
 	.def_readwrite("vd", &GPSdata::vd)
 	.def_readwrite("sats", &GPSdata::sats)
-	.def_readwrite("newData", &GPSdata::newData)
-    ;
-
-    class_<Airdata>("Airdata")
+	.def_readwrite("newData", &GPSdata::newData);
+    
+    py::class_<Airdata>(m, "Airdata")
+        .def(py::init<>())
 	.def_readwrite("time", &Airdata::time)
 	.def_readwrite("static_press", &Airdata::static_press)
 	.def_readwrite("diff_press", &Airdata::diff_press)
 	.def_readwrite("temp", &Airdata::temp)
 	.def_readwrite("airspeed", &Airdata::airspeed)
-	.def_readwrite("altitude", &Airdata::altitude)
-    ;
+	.def_readwrite("altitude", &Airdata::altitude);
 
-    class_<NAVdata>("NAVdata")
+    py::class_<NAVdata>(m, "NAVdata")
+        .def(py::init<>())
 	.def_readonly("time", &NAVdata::time)
 	.def_readonly("lat", &NAVdata::lat)
 	.def_readonly("lon", &NAVdata::lon)
@@ -78,10 +80,10 @@ BOOST_PYTHON_MODULE(structs)
 	.def_readonly("Pabz", &NAVdata::Pabz)
 	.def_readonly("Pgbx", &NAVdata::Pgbx)
 	.def_readonly("Pgby", &NAVdata::Pgby)
-	.def_readonly("Pgbz", &NAVdata::Pgbz)
-    ;
+	.def_readonly("Pgbz", &NAVdata::Pgbz);
 
-    class_<NAVconfig>("NAVconfig")
+    py::class_<NAVconfig>(m, "NAVconfig")
+        .def(py::init<>())
 	.def_readwrite("sig_w_ax", &NAVconfig::sig_w_ax)
 	.def_readwrite("sig_w_ay", &NAVconfig::sig_w_ay)
 	.def_readwrite("sig_w_az", &NAVconfig::sig_w_az)
@@ -96,6 +98,7 @@ BOOST_PYTHON_MODULE(structs)
 	.def_readwrite("sig_gps_p_d", &NAVconfig::sig_gps_p_d)
 	.def_readwrite("sig_gps_v_ne", &NAVconfig::sig_gps_v_ne)
 	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
-	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
-    ;
+	.def_readwrite("sig_mag", &NAVconfig::sig_mag);
 }
+
+#endif
