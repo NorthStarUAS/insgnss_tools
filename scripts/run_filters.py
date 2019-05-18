@@ -23,7 +23,6 @@ import navigation.structs
 from aurauas.flightdata import flight_loader, flight_interp
 
 import alpha_beta
-# import data_store
 import wind
 import synth_asi
 import battery
@@ -37,13 +36,13 @@ args = parser.parse_args()
 
 # # # # # START INPUTS # # # # #
 
-FLAG_PLOT_ATTITUDE = True
-FLAG_PLOT_VELOCITIES = True
-FLAG_PLOT_GROUNDTRACK = True
-FLAG_PLOT_ALTITUDE = True
-FLAG_PLOT_WIND = True
-FLAG_PLOT_SYNTH_ASI = False
-FLAG_PLOT_BIASES = True
+PLOT = { 'ATTITUDE': True,
+         'VELOCITIES': True,
+         'GROUNDTRACK': True,
+         'ALTITUDE': True,
+         'WIND': True,
+         'SYNTH_ASI': False,
+         'BIASES': True }
 
 # # # # # END INPUTS # # # # #
 
@@ -87,7 +86,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     else:
         health_data = []
         
-    data_dict = { 'nav': [], 'imu': [], 'wind': [] }
+    results = { 'nav': [], 'imu': [], 'wind': [] }
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
@@ -211,7 +210,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
                 if asi_kt > 100.0:
                     print(imupt.time, navpt.phi, navpt.the, actpt.throttle, actpt.elevator, imupt.q)
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
-                data_dict.add_asi(airpt.airspeed, synth_filt_asi)
+                results.add_asi(airpt.airspeed, synth_filt_asi)
 
             # experimental: battery model / estimator
             if 'health' in data and airpt.airspeed > 10:
@@ -220,12 +219,12 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict['nav'].append(navpt.as_dict())
-            data_dict['imu'].append(imupt.__dict__)
-            data_dict['wind'].append( { 'time': navpt.time,
-                                        'wind_deg': wind_deg,
-                                        'wind_kt': wind_kt,
-                                        'pitot_scale': ps } )
+            results['nav'].append(navpt.as_dict())
+            results['imu'].append(imupt.__dict__)
+            results['wind'].append( { 'time': navpt.time,
+                                      'wind_deg': wind_deg,
+                                      'wind_kt': wind_kt,
+                                      'pitot_scale': ps } )
 
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -235,7 +234,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     filter.close()
     run_end = time.time()
     elapsed_sec = run_end - run_start
-    return data_dict, elapsed_sec
+    return results, elapsed_sec
 
 path = args.flight
 if 'recalibrate' in args:
@@ -307,7 +306,7 @@ if False:
         imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
-# pandas the flight data for plotting
+# make a pandas data frame from the flight data for plotting
 tmp = []
 for g in data['gps']:
     tmp.append(g.__dict__)
@@ -408,11 +407,7 @@ data_dict1, filter1_sec = run_filter(filter1, data)
 if args.synthetic_airspeed:
     print("building synthetic air data estimator...")
     if 'act' in data:
-        result = synth_asi.build()
-        if result:
-            FLAG_PLOT_SYNTH_ASI = True
-        else:
-            FLAG_PLOT_SYNTH_ASI = False
+        PLOT['SYNTH_ASI'] = synth_asi.build()
 
 data_dict2, filter2_sec = run_filter(filter2, data)
 
@@ -457,7 +452,7 @@ alpha_beta.gen_stats()
 nsig = 3
 r2d = np.rad2deg
 
-if FLAG_PLOT_ATTITUDE:
+if PLOT['ATTITUDE']:
     #Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
     #Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
 
@@ -532,7 +527,7 @@ if True:
     #     if q[i] != r[i]:
     #         print q[i], r[i]
 
-if FLAG_PLOT_VELOCITIES:
+if PLOT['VELOCITIES']:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
@@ -563,7 +558,7 @@ if FLAG_PLOT_VELOCITIES:
     ax3.grid()
 
 # Altitude Plot
-if FLAG_PLOT_ALTITUDE:
+if PLOT['ALTITUDE']:
     plt.figure()
     plt.title('ALTITUDE')
     plt.plot(df0_gps['time'], df0_gps['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -590,7 +585,7 @@ def gen_func( coeffs, min, max, steps ):
     return xvals, yvals, minx, miny
 
 # Wind Plot
-if FLAG_PLOT_WIND:
+if PLOT['WIND']:
     fig, ax1 = plt.subplots()
     ax1.set_title('Wind')
     ax1.set_ylabel('Degrees', weight='bold')
@@ -664,7 +659,7 @@ def my_butter(raw):
     yv[2] = (xv[0] + xv[2]) + 2 * xv[1] + ( -0.9457257978 * yv[0]) + ( 1.9442112802 * yv[1])
     return yv[2]
 
-if 'act' in data and FLAG_PLOT_SYNTH_ASI:
+if 'act' in data and PLOT['SYNTH_ASI']:
     # butterworth filter experiment
     import scipy.signal as signal
     nyq = 0.5 * 100             # 1/2 sample hz
@@ -732,7 +727,7 @@ if len(alpha_beta.cl_array):
     ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
 
 # Top View (Longitude vs. Latitude) Plot
-if FLAG_PLOT_GROUNDTRACK:
+if PLOT['GROUNDTRACK']:
     plt.figure()
     plt.title(plotname, fontsize=10)
     plt.ylabel('Latitude (degrees)', weight='bold')
@@ -744,7 +739,7 @@ if FLAG_PLOT_GROUNDTRACK:
     plt.grid()
     plt.legend(loc=0)
     
-if FLAG_PLOT_BIASES:
+if PLOT['BIASES']:
     bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
     # Gyro Biases
