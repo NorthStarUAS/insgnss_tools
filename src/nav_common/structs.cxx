@@ -21,7 +21,9 @@ PYBIND11_MODULE(structs, m) {
  	.def_readwrite("hx", &IMUdata::hx)
  	.def_readwrite("hy", &IMUdata::hy)
  	.def_readwrite("hz", &IMUdata::hz)
- 	.def_readwrite("temp", &IMUdata::temp);
+ 	.def_readwrite("temp", &IMUdata::temp)
+        .def("as_dict", &IMUdata::as_dict)
+        ;
     
     py::class_<GPSdata>(m, "GPSdata")
         .def(py::init<>())
@@ -33,7 +35,9 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("ve", &GPSdata::ve)
 	.def_readwrite("vd", &GPSdata::vd)
 	.def_readwrite("sats", &GPSdata::sats)
-	.def_readwrite("newData", &GPSdata::newData);
+	.def_readwrite("newData", &GPSdata::newData)
+        .def("as_dict", &GPSdata::as_dict)
+        ;
     
     py::class_<Airdata>(m, "Airdata")
         .def(py::init<>())
@@ -42,7 +46,9 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("diff_press", &Airdata::diff_press)
 	.def_readwrite("temp", &Airdata::temp)
 	.def_readwrite("airspeed", &Airdata::airspeed)
-	.def_readwrite("altitude", &Airdata::altitude);
+	.def_readwrite("altitude", &Airdata::altitude)
+        .def("as_dict", &Airdata::as_dict)
+        ;
 
     py::class_<NAVdata>(m, "NAVdata")
         .def(py::init<>())
@@ -80,7 +86,9 @@ PYBIND11_MODULE(structs, m) {
 	.def_readonly("Pabz", &NAVdata::Pabz)
 	.def_readonly("Pgbx", &NAVdata::Pgbx)
 	.def_readonly("Pgby", &NAVdata::Pgby)
-	.def_readonly("Pgbz", &NAVdata::Pgbz);
+	.def_readonly("Pgbz", &NAVdata::Pgbz)
+        .def("as_dict", &NAVdata::as_dict)
+        ;
 
     py::class_<NAVconfig>(m, "NAVconfig")
         .def(py::init<>())
@@ -98,7 +106,9 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("sig_gps_p_d", &NAVconfig::sig_gps_p_d)
 	.def_readwrite("sig_gps_v_ne", &NAVconfig::sig_gps_v_ne)
 	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
-	.def_readwrite("sig_mag", &NAVconfig::sig_mag);
+	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
+        .def("as_dict", &NAVconfig::as_dict)
+        ;
 }
 
 #endif

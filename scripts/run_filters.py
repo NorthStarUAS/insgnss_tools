@@ -16,13 +16,14 @@ import math
 import numpy as np
 import time
 import os
+import pandas as pd
 
 import navigation.structs
 
 from aurauas.flightdata import flight_loader, flight_interp
 
 import alpha_beta
-import data_store
+# import data_store
 import wind
 import synth_asi
 import battery
@@ -86,8 +87,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     else:
         health_data = []
         
-    data_dict = data_store.data_store()
-    # t_store = []
+    data_dict = { 'nav': [], 'imu': [], 'wind': [] }
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
@@ -220,8 +220,12 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            data_dict.append(navpt, imupt)
-            data_dict.add_wind(wind_deg, wind_kt, ps)
+            data_dict['nav'].append(navpt.as_dict())
+            data_dict['imu'].append(imupt.__dict__)
+            data_dict['wind'].append( { 'time': navpt.time,
+                                        'wind_deg': wind_deg,
+                                        'wind_kt': wind_kt,
+                                        'pitot_scale': ps } )
 
         # Increment time up one step for the next iteration of the
         # while loop.
@@ -303,50 +307,18 @@ if False:
         imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
-# rearrange flight data for plotting
-t_gps = []
-lat_gps = []
-lon_gps = []
-alt_gps = []
-vn_gps = []
-ve_gps = []
-vd_gps = []
+# pandas the flight data for plotting
+tmp = []
 for g in data['gps']:
-    t_gps.append(g.time)
-    lat_gps.append(g.lat)
-    lon_gps.append(g.lon)
-    alt_gps.append(g.alt)
-    vn_gps.append(g.vn)
-    ve_gps.append(g.ve)
-    vd_gps.append(g.vd)
+    tmp.append(g.__dict__)
+df0_gps = pd.DataFrame(tmp)
 
-t_flight = []
-psi_flight = []
-the_flight = []
-phi_flight = []
-navlat_flight = []
-navlon_flight = []
-navalt_flight = []
-vn_flight = []
-ve_flight = []
-vd_flight = []
+tmp = []
 if 'filter' in data:
     for f in data['filter']:
-        t_flight.append(f.time)
-        psi_flight.append(f.psi)
-        the_flight.append(f.the)
-        phi_flight.append(f.phi)
-        navlat_flight.append(f.lat)
-        navlon_flight.append(f.lon)
-        navalt_flight.append(f.alt)
-        vn_flight.append(f.vn)
-        ve_flight.append(f.ve)
-        vd_flight.append(f.vd)
+        tmp.append(f.__dict__)
+df0_nav = pd.DataFrame(tmp)
 
-r_flight = []
-for i in data['imu']:
-    r_flight.append(i.r)
-    
 # Default config
 config = navigation.structs.NAVconfig()
 config.sig_w_ax = 0.05
@@ -470,66 +442,67 @@ if flight_format == 'sentera':
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, data_dict1)
 
-nsig = 3
-t_store1 = data_dict1.time
-t_store2 = data_dict2.time
+df1_nav = pd.DataFrame(data_dict1['nav'])
+df1_imu = pd.DataFrame(data_dict1['imu'])
+df1_wind = pd.DataFrame(data_dict1['wind'])
+
+df2_nav = pd.DataFrame(data_dict2['nav'])
+df2_imu = pd.DataFrame(data_dict2['imu'])
+df2_wind = pd.DataFrame(data_dict2['wind'])
 
 alpha_beta.gen_stats()
 
 # Plotting
+
+nsig = 3
 r2d = np.rad2deg
+
 if FLAG_PLOT_ATTITUDE:
-    Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
-    Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
+    #Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
+    #Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
 
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
-    phi_nav = data_dict1.phi
-    phi_nav_mag = data_dict2.phi
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
-    att_ax[0,0].plot(t_flight, r2d(phi_flight), label='On Board', c='g', alpha=.5)
-    att_ax[0,0].plot(t_store1, r2d(phi_nav), label=filter1.name, c='r', alpha=.8)
-    att_ax[0,0].plot(t_store2, r2d(phi_nav_mag), label=filter2.name, c='b', alpha=.8)
+    att_ax[0,0].plot(df0_nav['time'], r2d(df0_nav['phi']), label='On Board', c='g', alpha=.5)
+    att_ax[0,0].plot(df1_nav['time'], r2d(df1_nav['phi']), label=filter1.name, c='r', alpha=.8)
+    att_ax[0,0].plot(df2_nav['time'], r2d(df2_nav['phi']), label=filter2.name, c='b', alpha=.8)
     att_ax[0,0].grid()
 
-    att_ax[0,1].plot(t_store1,nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
-    att_ax[0,1].plot(t_store1,-nsig*np.rad2deg(np.sqrt(Patt1[:,0])),c='r')
-    att_ax[0,1].plot(t_store2,nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
-    att_ax[0,1].plot(t_store2,-nsig*np.rad2deg(np.sqrt(Patt2[:,0])),c='b')
+    att_ax[0,1].plot(df1_nav['time'],nsig*np.rad2deg(np.sqrt(df1_nav['Pa0'])),c='r')
+    att_ax[0,1].plot(df1_nav['time'],-nsig*np.rad2deg(np.sqrt(df1_nav['Pa0'])),c='r')
+    att_ax[0,1].plot(df2_nav['time'],nsig*np.rad2deg(np.sqrt(df2_nav['Pa0'])),c='b')
+    att_ax[0,1].plot(df2_nav['time'],-nsig*np.rad2deg(np.sqrt(df2_nav['Pa0'])),c='b')
     att_ax[0,1].set_ylabel('3*stddev', weight='bold')
 
     # Pitch Plot
-    the_nav = data_dict1.the
-    the_nav_mag = data_dict2.the
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
-    att_ax[1,0].plot(t_flight, r2d(the_flight), label='On Board', c='g', alpha=.5)
-    att_ax[1,0].plot(t_store1, r2d(the_nav), label=filter1.name, c='r', alpha=.8)
-    att_ax[1,0].plot(t_store2, r2d(the_nav_mag), label=filter2.name,c='b', alpha=.8)
+    att_ax[1,0].plot(df0_nav['time'], r2d(df0_nav['the']), label='On Board', c='g', alpha=.5)
+    att_ax[1,0].plot(df1_nav['time'], r2d(df1_nav['the']), label=filter1.name, c='r', alpha=.8)
+    att_ax[1,0].plot(df2_nav['time'], r2d(df2_nav['the']), label=filter2.name,c='b', alpha=.8)
     att_ax[1,0].grid()
 
-    att_ax[1,1].plot(t_store1,nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='r')
-    att_ax[1,1].plot(t_store1,-nsig*np.rad2deg(np.sqrt(Patt1[:,1])),c='r')
-    att_ax[1,1].plot(t_store2,nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='b')
-    att_ax[1,1].plot(t_store2,-nsig*np.rad2deg(np.sqrt(Patt2[:,1])),c='b')
+    att_ax[1,1].plot(df1_nav['time'],nsig*np.rad2deg(np.sqrt(df1_nav['Pa1'])),c='r')
+    att_ax[1,1].plot(df1_nav['time'],-nsig*np.rad2deg(np.sqrt(df1_nav['Pa1'])),c='r')
+    att_ax[1,1].plot(df2_nav['time'],nsig*np.rad2deg(np.sqrt(df2_nav['Pa1'])),c='b')
+    att_ax[1,1].plot(df2_nav['time'],-nsig*np.rad2deg(np.sqrt(df2_nav['Pa1'])),c='b')
     att_ax[1,1].set_ylabel('3*stddev', weight='bold')
 
     # Yaw Plot
-    psi_nav = data_dict1.psi
-    psi_nav_mag = data_dict2.psi
     att_ax[2,0].set_title(plotname, fontsize=10)
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
-    att_ax[2,0].plot(t_flight, r2d(psi_flight), label='On Board', c='g', alpha=.5)
-    att_ax[2,0].plot(t_store1, r2d(psi_nav), label=filter1.name, c='r', alpha=.8)
-    att_ax[2,0].plot(t_store2, r2d(psi_nav_mag), label=filter2.name,c='b', alpha=.8)
+    att_ax[2,0].plot(df0_nav['time'], r2d(df0_nav['psi']), label='On Board', c='g', alpha=.5)
+    att_ax[2,0].plot(df1_nav['time'], r2d(df1_nav['psi']), label=filter1.name, c='r', alpha=.8)
+    att_ax[2,0].plot(df2_nav['time'], r2d(df2_nav['psi']), label=filter2.name,c='b', alpha=.8)
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
     
-    att_ax[2,1].plot(t_store1,nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='r')
-    att_ax[2,1].plot(t_store1,-nsig*np.rad2deg(np.sqrt(Patt1[:,2])),c='r')
-    att_ax[2,1].plot(t_store2,nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='b')
-    att_ax[2,1].plot(t_store2,-nsig*np.rad2deg(np.sqrt(Patt2[:,2])),c='b')
+    att_ax[2,1].plot(df1_nav['time'],nsig*np.rad2deg(np.sqrt(df1_nav['Pa2'])),c='r')
+    att_ax[2,1].plot(df1_nav['time'],-nsig*np.rad2deg(np.sqrt(df1_nav['Pa2'])),c='r')
+    att_ax[2,1].plot(df2_nav['time'],nsig*np.rad2deg(np.sqrt(df2_nav['Pa2'])),c='b')
+    att_ax[2,1].plot(df2_nav['time'],-nsig*np.rad2deg(np.sqrt(df2_nav['Pa2'])),c='b')
     att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,1].set_ylabel('3*stddev', weight='bold')
 
@@ -537,26 +510,20 @@ if FLAG_PLOT_ATTITUDE:
 
 # plot raw accels (useful for bench calibration)
 if True:
-    ax = data_dict1.ax
-    ay = data_dict1.ay
-    az = data_dict1.az
     plt.figure()
     plt.title('Raw Accels')
-    plt.plot(t_store1, ax, label='ax', c='g', lw=2, alpha=.5)
-    plt.plot(t_store1, ay, label='ay', c='b', lw=2, alpha=.5)
-    plt.plot(t_store1, az, label='az', c='r', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['ax'], label='ax', c='g', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['ay'], label='ay', c='b', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['az'], label='az', c='r', lw=2, alpha=.5)
     plt.ylabel('mps^2', weight='bold')
     plt.legend(loc=0)
     plt.grid()
     
-    p = data_dict1.p
-    q = data_dict1.q
-    r = data_dict1.r
     plt.figure()
     plt.title('Raw Gyros')
-    plt.plot(t_store1, p, label='p', c='g', lw=2, alpha=.5)
-    plt.plot(t_store1, q, label='q', c='b', lw=2, alpha=.5)
-    plt.plot(t_store1, r, label='r', c='r', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['p'], label='p', c='g', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['q'], label='q', c='b', lw=2, alpha=.5)
+    plt.plot(df1_imu['time'], df1_imu['r'], label='r', c='r', lw=2, alpha=.5)
     plt.ylabel('rad/sec', weight='bold')
     plt.legend(loc=0)
     plt.grid()
@@ -569,48 +536,40 @@ if FLAG_PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
-    vn_nav = data_dict1.vn
-    vn_nav_mag = data_dict2.vn
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(t_gps, vn_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax1.plot(t_flight, vn_flight, label='On Board', c='k', lw=2, alpha=.5)
-    ax1.plot(t_store1, vn_nav, label=filter1.name, c='r', lw=2, alpha=.8)
-    ax1.plot(t_store2, vn_nav_mag, label=filter2.name,c='b', lw=2, alpha=.8)
+    ax1.plot(df0_gps['time'], df0_gps['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax1.plot(df0_nav['time'], df0_nav['vn'], label='On Board', c='k', lw=2, alpha=.5)
+    ax1.plot(df1_nav['time'], df1_nav['vn'], label=filter1.name, c='r', lw=2, alpha=.8)
+    ax1.plot(df2_nav['time'], df2_nav['vn'], label=filter2.name,c='b', lw=2, alpha=.8)
     ax1.grid()
     ax1.legend(loc=0)
 
     # ve Plot
-    ve_nav = data_dict1.ve
-    ve_nav_mag = data_dict2.ve
     ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(t_gps, ve_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax2.plot(t_flight, ve_flight, label='On Board', c='k', lw=2, alpha=.5)
-    ax2.plot(t_store1, ve_nav, label=filter1.name, c='r', lw=2, alpha=.8)
-    ax2.plot(t_store2, ve_nav_mag, label=filter2.name,c='b', lw=2, alpha=.8)
+    ax2.plot(df0_gps['time'], df0_gps['ve'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax2.plot(df0_nav['time'], df0_nav['ve'], label='On Board', c='k', lw=2, alpha=.5)
+    ax2.plot(df1_nav['time'], df1_nav['ve'], label=filter1.name, c='r', lw=2, alpha=.8)
+    ax2.plot(df2_nav['time'], df2_nav['ve'], label=filter2.name,c='b', lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
-    vd_nav = data_dict1.vd
-    vd_nav_mag = data_dict2.vd
     ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(t_gps, vd_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax3.plot(t_flight, vd_flight, label='On Board', c='k', lw=2, alpha=.5)
-    ax3.plot(t_store1, vd_nav, label=filter1.name, c='r', lw=2, alpha=.8)
-    ax3.plot(t_store2, vd_nav_mag, label=filter2.name, c='b',lw=2, alpha=.8)
+    ax3.plot(df0_gps['time'], df0_gps['vd'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax3.plot(df0_nav['time'], df0_nav['vd'], label='On Board', c='k', lw=2, alpha=.5)
+    ax3.plot(df1_nav['time'], df1_nav['vd'], label=filter1.name, c='r', lw=2, alpha=.8)
+    ax3.plot(df2_nav['time'], df2_nav['vd'], label=filter2.name, c='b',lw=2, alpha=.8)
     ax3.set_xlabel('TIME (SECONDS)', weight='bold')
     ax3.grid()
 
 # Altitude Plot
 if FLAG_PLOT_ALTITUDE:
-    navalt = data_dict1.alt
-    nav_magalt = data_dict2.alt
     plt.figure()
     plt.title('ALTITUDE')
-    plt.plot(t_gps, alt_gps, '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    plt.plot(t_flight, navalt_flight, label='On Board', c='k', lw=2, alpha=.5)
-    plt.plot(t_store1, navalt, label=filter1.name, c='r', lw=2, alpha=.8)
-    plt.plot(t_store2, nav_magalt, label=filter2.name, c='b', lw=2, alpha=.8)
+    plt.plot(df0_gps['time'], df0_gps['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(df0_nav['time'], df0_nav['alt'], label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(df1_nav['time'], df1_nav['alt'], label=filter1.name, c='r', lw=2, alpha=.8)
+    plt.plot(df2_nav['time'], df2_nav['alt'], label=filter2.name, c='b', lw=2, alpha=.8)
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
@@ -633,21 +592,18 @@ def gen_func( coeffs, min, max, steps ):
 # Wind Plot
 if FLAG_PLOT_WIND:
     fig, ax1 = plt.subplots()
-    wind_deg = data_dict2.wind_deg
-    wind_kt = data_dict2.wind_kt
-    pitot_scale = data_dict2.pitot_scale
     ax1.set_title('Wind')
     ax1.set_ylabel('Degrees', weight='bold')
-    ax1.plot(t_store1, wind_deg, label='Direction (deg)', c='r', lw=2, alpha=.8)
+    ax1.plot(df1_wind['time'], df1_wind['wind_deg'], label='Direction (deg)', c='r', lw=2, alpha=.8)
 
     ax2 = ax1.twinx()
-    ax2.plot(t_store1, wind_kt, label='Speed (kt)', c='b', lw=2, alpha=.8)
-    ax2.plot(t_store1, pitot_scale, label='Pitot Scale', c='k', lw=2, alpha=.8)
+    ax2.plot(df1_wind['time'], df1_wind['wind_kt'], label='Speed (kt)', c='b', lw=2, alpha=.8)
+    ax2.plot(df1_wind['time'], df1_wind['pitot_scale'], label='Pitot Scale', c='k', lw=2, alpha=.8)
     ax2.set_ylabel('Knots', weight='bold')
     ax1.legend(loc=4)
     ax2.legend(loc=1)
     ax1.grid()
-    
+
 comments = """
 Summary
 
@@ -777,18 +733,14 @@ if len(alpha_beta.cl_array):
 
 # Top View (Longitude vs. Latitude) Plot
 if FLAG_PLOT_GROUNDTRACK:
-    navlat = data_dict1.lat
-    navlon = data_dict1.lon
-    nav_maglat = data_dict2.lat
-    nav_maglon = data_dict2.lon
     plt.figure()
     plt.title(plotname, fontsize=10)
-    plt.ylabel('LATITUDE (DEGREES)', weight='bold')
-    plt.xlabel('LONGITUDE (DEGREES)', weight='bold')
-    plt.plot(lon_gps, lat_gps, '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    plt.plot(r2d(navlon_flight), r2d(navlat_flight), label='On Board', c='k', lw=2, alpha=.5)
-    plt.plot(r2d(navlon), r2d(navlat), label=filter1.name, c='r', lw=2, alpha=.8)
-    plt.plot(r2d(nav_maglon), r2d(nav_maglat), label=filter2.name, c='b', lw=2, alpha=.8)
+    plt.ylabel('Latitude (degrees)', weight='bold')
+    plt.xlabel('Longitude (degrees)', weight='bold')
+    plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(r2d(df0_nav['lon']), r2d(df0_nav['lat']), label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter1.name, c='r', lw=2, alpha=.8)
+    plt.plot(r2d(df2_nav['lon']), r2d(df2_nav['lat']), label=filter2.name, c='b', lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     
@@ -797,39 +749,39 @@ if FLAG_PLOT_BIASES:
 
     # Gyro Biases
     bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
-    bias_ax[0,0].plot(t_store1, r2d(data_dict1.p_bias), label=filter1.name, c='r')
-    bias_ax[0,0].plot(t_store2, r2d(data_dict2.p_bias), label=filter2.name, c='b')
+    bias_ax[0,0].plot(df1_nav['time'], r2d(df1_nav['gbx']), label=filter1.name, c='r')
+    bias_ax[0,0].plot(df2_nav['time'], r2d(df2_nav['gbx']), label=filter2.name, c='b')
     bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,0].grid()
     
     bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
-    bias_ax[1,0].plot(t_store1, r2d(data_dict1.q_bias), label=filter1.name, c='r')
-    bias_ax[1,0].plot(t_store2, r2d(data_dict2.q_bias), label=filter2.name, c='b')
+    bias_ax[1,0].plot(df1_nav['time'], r2d(df1_nav['gby']), label=filter1.name, c='r')
+    bias_ax[1,0].plot(df2_nav['time'], r2d(df2_nav['gby']), label=filter2.name, c='b')
     bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,0].grid()
     
     bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
-    bias_ax[2,0].plot(t_store1, r2d(data_dict1.r_bias), label=filter1.name, c='r')
-    bias_ax[2,0].plot(t_store2, r2d(data_dict2.r_bias), label=filter2.name, c='b')
+    bias_ax[2,0].plot(df1_nav['time'], r2d(df1_nav['gbz']), label=filter1.name, c='r')
+    bias_ax[2,0].plot(df2_nav['time'], r2d(df2_nav['gbz']), label=filter2.name, c='b')
     bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[2,0].grid()
     
     # Accel Biases
     bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
-    bias_ax[0,1].plot(t_store1, data_dict1.ax_bias, label=filter1.name, c='r')
-    bias_ax[0,1].plot(t_store2, data_dict2.ax_bias, label=filter2.name, c='b')
+    bias_ax[0,1].plot(df1_nav['time'], df1_nav['abx'], label=filter1.name, c='r')
+    bias_ax[0,1].plot(df2_nav['time'], df2_nav['abx'], label=filter2.name, c='b')
     bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,1].grid()
     
     bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
-    bias_ax[1,1].plot(t_store1, data_dict1.ay_bias, label=filter1.name, c='r')
-    bias_ax[1,1].plot(t_store2, data_dict2.ay_bias, label=filter2.name, c='b')
+    bias_ax[1,1].plot(df1_nav['time'], df1_nav['aby'], label=filter1.name, c='r')
+    bias_ax[1,1].plot(df2_nav['time'], df2_nav['aby'], label=filter2.name, c='b')
     bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,1].grid()
     
     bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
-    bias_ax[2,1].plot(t_store1, data_dict1.az_bias, label=filter1.name, c='r')
-    bias_ax[2,1].plot(t_store2, data_dict2.az_bias, label=filter2.name, c='b')
+    bias_ax[2,1].plot(df1_nav['time'], df1_nav['abz'], label=filter1.name, c='r')
+    bias_ax[2,1].plot(df2_nav['time'], df2_nav['abz'], label=filter2.name, c='b')
     bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[2,1].grid()
     bias_ax[2,1].legend(loc=1)

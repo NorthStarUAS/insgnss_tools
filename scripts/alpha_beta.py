@@ -59,7 +59,7 @@ def update(navpt, airpt, imupt, wn, we):
         cl_array.append(CL)
         alpha_array.append(alpha)
         #print("alpha: %.2f lf: %.2f CL: %.06f v: %.1f (%.1f)" % (alpha, lf, CL, v, v_est))
-        print("%.3f, %.3f, %.06f, %.1f, %.1f" % (af, lff, CL, v, v_est))
+        # print("%.3f, %.3f, %.06f, %.1f, %.1f" % (af, lff, CL, v, v_est))
     
     return alpha, beta, CL
 
