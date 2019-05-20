@@ -22,7 +22,40 @@ PYBIND11_MODULE(structs, m) {
  	.def_readwrite("hy", &IMUdata::hy)
  	.def_readwrite("hz", &IMUdata::hz)
  	.def_readwrite("temp", &IMUdata::temp)
-        .def("as_dict", &IMUdata::as_dict)
+        .def("as_dict",
+             [](const IMUdata &imu) {
+                 py::dict result;
+                 result["time"] = imu.time;
+                 result["p"] = imu.p;
+                 result["q"] = imu.q;
+                 result["r"] = imu.r;
+                 result["ax"] = imu.ax;
+                 result["ay"] = imu.ay;
+                 result["az"] = imu.az;
+                 result["hx"] = imu.hx;
+                 result["hy"] = imu.hy;
+                 result["hz"] = imu.hz;
+                 result["temp"] = imu.temp;
+                 return result;
+             }
+         )
+        .def("from_dict",
+             [](IMUdata &imu, const py::dict &d) {
+                 IMUdata result;
+                 imu.time = py::float_(d["time"]);
+                 imu.p = py::float_(d["p"]);
+                 imu.q = py::float_(d["q"]);
+                 imu.r = py::float_(d["r"]);
+                 imu.ax = py::float_(d["ax"]);
+                 imu.ay = py::float_(d["ay"]);
+                 imu.az = py::float_(d["az"]);
+                 imu.hx = py::float_(d["hx"]);
+                 imu.hy = py::float_(d["hy"]);
+                 imu.hz = py::float_(d["hz"]);
+                 imu.temp = py::float_(d["temp"]);
+                 return result;
+             }
+         )
         ;
     
     py::class_<GPSdata>(m, "GPSdata")
@@ -36,7 +69,37 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("vd", &GPSdata::vd)
 	.def_readwrite("sats", &GPSdata::sats)
 	.def_readwrite("newData", &GPSdata::newData)
-        .def("as_dict", &GPSdata::as_dict)
+        .def("as_dict",
+             [](const GPSdata &gps) {
+                 py::dict result;
+                 result["time"] = gps.time;
+                 result["unix_sec"] = gps.unix_sec;
+                 result["lat"] = gps.lat;
+                 result["lon"] = gps.lon;
+                 result["alt"] = gps.alt;
+                 result["vn"] = gps.vn;
+                 result["ve"] = gps.ve;
+                 result["vd"] = gps.vd;
+                 result["sats"] = gps.sats;
+                 return result;
+             }
+         )
+        .def("from_dict",
+             [](GPSdata &gps, const py::dict &d) {
+                 GPSdata result;
+                 gps.time = py::float_(d["time"]);
+                 gps.unix_sec = py::float_(d["unix_sec"]);
+                 gps.lat = py::float_(d["lat"]);
+                 gps.lon = py::float_(d["lon"]);
+                 gps.alt = py::float_(d["alt"]);
+                 gps.vn = py::float_(d["vn"]);
+                 gps.ve = py::float_(d["ve"]);
+                 gps.vd = py::float_(d["vd"]);
+                 gps.sats = py::int_(d["sats"]);
+                 gps.newData = py::bool_(d["newData"]);
+                 return result;
+              }
+         )
         ;
     
     py::class_<Airdata>(m, "Airdata")
@@ -47,7 +110,18 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("temp", &Airdata::temp)
 	.def_readwrite("airspeed", &Airdata::airspeed)
 	.def_readwrite("altitude", &Airdata::altitude)
-        .def("as_dict", &Airdata::as_dict)
+        .def("as_dict",
+             [](const Airdata &airdata) {
+                 py::dict result;
+                 result["time"] = airdata.time;
+                 result["static_press"] = airdata.static_press;
+                 result["diff_press"] = airdata.diff_press;
+                 result["temp"] = airdata.temp;
+                 result["airspeed"] = airdata.airspeed;
+                 result["altitude"] = airdata.altitude;
+                 return result;
+             }
+         )
         ;
 
     py::class_<NAVdata>(m, "NAVdata")
@@ -87,7 +161,47 @@ PYBIND11_MODULE(structs, m) {
 	.def_readonly("Pgbx", &NAVdata::Pgbx)
 	.def_readonly("Pgby", &NAVdata::Pgby)
 	.def_readonly("Pgbz", &NAVdata::Pgbz)
-        .def("as_dict", &NAVdata::as_dict)
+        .def("as_dict",
+             [](const NAVdata &nav) {
+                 py::dict result;
+                 result["time"] = nav.time;
+                 result["lat"] = nav.lat;
+                 result["lon"] = nav.lon;
+                 result["alt"] = nav.alt;
+                 result["vn"] = nav.vn;
+                 result["ve"] = nav.ve;
+                 result["vd"] = nav.vd;
+                 result["phi"] = nav.phi;
+                 result["the"] = nav.the;
+                 result["psi"] = nav.psi;
+                 result["qw"] = nav.qw;
+                 result["qx"] = nav.qx;
+                 result["qy"] = nav.qy;
+                 result["qz"] = nav.qz;
+                 result["abx"] = nav.abx;
+                 result["aby"] = nav.aby;
+                 result["abz"] = nav.abz;
+                 result["gbx"] = nav.gbx;
+                 result["gby"] = nav.gby;
+                 result["gbz"] = nav.gbz;
+                 result["Pp0"] = nav.Pp0;
+                 result["Pp1"] = nav.Pp1;
+                 result["Pp2"] = nav.Pp2;
+                 result["Pv0"] = nav.Pv0;
+                 result["Pv1"] = nav.Pv1;
+                 result["Pv2"] = nav.Pv2;
+                 result["Pa0"] = nav.Pa0;
+                 result["Pa1"] = nav.Pa1;
+                 result["Pa2"] = nav.Pa2;
+                 result["Pabx"] = nav.Pabx;
+                 result["Paby"] = nav.Paby;
+                 result["Pabz"] = nav.Pabz;
+                 result["Pgbx"] = nav.Pgbx;
+                 result["Pgby"] = nav.Pgby;
+                 result["Pgbz"] = nav.Pgbz;
+                 return result;
+             }
+         )
         ;
 
     py::class_<NAVconfig>(m, "NAVconfig")
@@ -107,7 +221,27 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("sig_gps_v_ne", &NAVconfig::sig_gps_v_ne)
 	.def_readwrite("sig_gps_v_d", &NAVconfig::sig_gps_v_d)
 	.def_readwrite("sig_mag", &NAVconfig::sig_mag)
-        .def("as_dict", &NAVconfig::as_dict)
+        .def("as_dict",
+             [](const NAVconfig &config) {
+                 py::dict result;
+                 result["sig_w_ax"] = config.sig_w_ax;
+                 result["sig_w_ay"] = config.sig_w_ay;
+                 result["sig_w_az"] = config.sig_w_az;
+                 result["sig_w_gx"] = config.sig_w_gx;
+                 result["sig_w_gy"] = config.sig_w_gy;
+                 result["sig_w_gz"] = config.sig_w_gz;
+                 result["sig_a_d"] = config.sig_a_d;
+                 result["tau_a"] = config.tau_a;
+                 result["sig_g_d"] = config.sig_g_d;
+                 result["tau_g"] = config.tau_g;
+                 result["sig_gps_p_ne"] = config.sig_gps_p_ne;
+                 result["sig_gps_p_d"] = config.sig_gps_p_d;
+                 result["sig_gps_v_ne"] = config.sig_gps_v_ne;
+                 result["sig_gps_v_d"] = config.sig_gps_v_d;
+                 result["sig_mag"] = config.sig_mag;
+                 return result;
+             }
+         )
         ;
 }
 
