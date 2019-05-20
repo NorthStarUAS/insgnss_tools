@@ -127,48 +127,48 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         if gps_index < len(gps_data) - 1:
             # walk the gps counter forward as needed
             newData = 0
-            while gps_index < len(gps_data) - 1 and gps_data[gps_index+1].time - args.gps_lag <= imupt.time:
+            while gps_index < len(gps_data) - 1 and gps_data[gps_index+1]['time'] - args.gps_lag <= imupt['time']:
                 gps_index += 1
                 newData = 1
             gpspt = gps_data[gps_index]
-            gpspt.newData = newData
+            gpspt['newData'] = newData
         else:
             # no more gps data, stay on the last record
             gpspt = gps_data[gps_index]
-            gpspt.newData = 0
-        #print gpspt.time
+            gpspt['newData'] = 0
+        #print gpspt['time']
         if air_index < len(air_data) - 1:
             # walk the airdata counter forward as needed
-            while air_index < len(air_data) - 1 and air_data[air_index+1].time <= imupt.time:
+            while air_index < len(air_data) - 1 and air_data[air_index+1]['time'] <= imupt['time']:
                 air_index += 1
             airpt = air_data[air_index]
         elif len(air_data):
             # no more air data, stay on the last record
             airpt = air_data[air_index]
-        # print airpt.time
+        # print airpt['time']
         # walk the filter counter forward as needed
         if len(filter_data):
-            while filter_index < len(filter_data) - 1 and filter_data[filter_index].time <= imupt.time:
+            while filter_index < len(filter_data) - 1 and filter_data[filter_index]['time'] <= imupt['time']:
                 filter_index += 1
             filterpt = filter_data[filter_index]
         else:
             filterpt = nav.structs.NAVdata()
-        #print "t(imu) = " + str(imupt.time) + " t(gps) = " + str(gpspt.time)
+        #print "t(imu) = " + str(imupt['time']) + " t(gps) = " + str(gpspt['time'])
         if 'pilot' in data:
-            while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index].time <= imupt.time:
+            while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index]['time'] <= imupt['time']:
                 pilot_index += 1
             pilotpt = pilot_data[pilot_index]
         elif 'pilot' in data:
             pilotpt = pilot_data[pilot_index]
         if 'act' in data:
-            while act_index < len(act_data) - 1 and act_data[act_index].time <= imupt.time:
+            while act_index < len(act_data) - 1 and act_data[act_index]['time'] <= imupt['time']:
                 act_index += 1
             actpt = act_data[act_index]
-            #print act_index, imupt.time, actpt.time, actpt.throttle, actpt.elevator
+            #print act_index, imupt['time'], actpt['time'], actpt.throttle, actpt.elevator
         elif 'act' in data:
             actpt = act_data[act_index]
         if 'health' in data:
-            while health_index < len(health_data) - 1 and health_data[health_index].time <= imupt.time:
+            while health_index < len(health_data) - 1 and health_data[health_index]['time'] <= imupt['time']:
                 health_index += 1
             healthpt = health_data[health_index]
 
@@ -177,7 +177,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
 
         # If k is at the initialization time init_nav else get_nav
         if not filter_init and gps_index > 0:
-            print("init:", imupt.time, gpspt.time)
+            print("init:", imupt['time'], gpspt['time'])
             navpt = filter.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
@@ -186,8 +186,8 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         if filter_init:
             # experimental: run wind estimator
             # print airpt.airspeed
-            (wn, we, ps) = wind.update(imupt.time, airpt.airspeed,
-                                       navpt.psi, navpt.vn, navpt.ve)
+            (wn, we, ps) = wind.update(imupt['time'], airpt['airspeed'],
+                                       navpt['psi'], navpt['vn'], navpt['ve'])
             #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
             wind_deg = 90 - math.atan2(wn, we) * r2d
             if wind_deg < 0: wind_deg += 360.0
@@ -195,33 +195,36 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             #print wn, we, ps, wind_deg, wind_kt
 
             # experimental: synthetic alpha/beta
-            if airpt.airspeed > 10:
+            if airpt['airspeed'] > 10:
                 alpha_beta.update(navpt, airpt, imupt, wn, we)
             
             # experimental: synthetic airspeed estimator
             if 'act' in data and synth_asi.rbfi == None:
-                # print imupt.time, airpt.airspeed, actpt.throttle, actpt.elevator
-                synth_asi.append(imupt.az, navpt.the, actpt.throttle,
-                                 actpt.elevator, imupt.q, airpt.airspeed)
+                # print imupt['time'], airpt.airspeed, actpt.throttle, actpt.elevator
+                synth_asi.append(imupt['az'], navpt['the'], actpt['throttle'],
+                                 actpt['elevator'], imupt['q'],
+                                 airpt['airspeed'])
             elif 'act' in data:
-                asi_kt = synth_asi.est_airspeed(imupt.az, navpt.the,
-                                                actpt.throttle,
-                                                actpt.elevator, imupt.q)
+                asi_kt = synth_asi.est_airspeed(imupt['az'], navpt['the'],
+                                                actpt['throttle'],
+                                                actpt['elevator'], imupt['q'])
                 if asi_kt > 100.0:
-                    print(imupt.time, navpt.phi, navpt.the, actpt.throttle, actpt.elevator, imupt.q)
+                    print(imupt['time'], navpt['phi'], navpt['the'], actpt.throttle, actpt.elevator, imupt.q)
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
                 results.add_asi(airpt.airspeed, synth_filt_asi)
 
             # experimental: battery model / estimator
-            if 'health' in data and airpt.airspeed > 10:
-                battery_model.update( actpt.throttle, healthpt.main_vcc, imupt.time )
+            if 'health' in data and airpt['airspeed'] > 10:
+                battery_model.update( actpt['throttle'],
+                                      healthpt['main_vcc'],
+                                      imupt['time'] )
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            results['nav'].append(navpt.as_dict())
-            results['imu'].append(imupt.__dict__)
-            results['wind'].append( { 'time': navpt.time,
+            results['nav'].append(navpt)
+            results['imu'].append(imupt)
+            results['wind'].append( { 'time': navpt['time'],
                                       'wind_deg': wind_deg,
                                       'wind_kt': wind_kt,
                                       'pitot_scale': ps } )
@@ -307,16 +310,8 @@ if False:
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
 # make a pandas data frame from the flight data for plotting
-tmp = []
-for g in data['gps']:
-    tmp.append(g.__dict__)
-df0_gps = pd.DataFrame(tmp)
-
-tmp = []
-if 'filter' in data:
-    for f in data['filter']:
-        tmp.append(f.__dict__)
-df0_nav = pd.DataFrame(tmp)
+df0_gps = pd.DataFrame(data['gps'])
+df0_nav = pd.DataFrame(data['filter'])
 
 # Default config
 config = navigation.structs.NAVconfig()
@@ -330,10 +325,10 @@ config.sig_a_d  = 0.02
 config.tau_a    = 100.0
 config.sig_g_d  = 0.0005
 config.tau_g    = 50.0
-config.sig_gps_p_ne = 5.0
-config.sig_gps_p_d  = 10.0
-config.sig_gps_v_ne = 1.0
-config.sig_gps_v_d  = 2.0
+config.sig_gps_p_ne = 2.0
+config.sig_gps_p_d  = 6.0
+config.sig_gps_v_ne = 0.5
+config.sig_gps_v_d  = 1.5
 config.sig_mag      = 1.0
 filter1.set_config(config)
 

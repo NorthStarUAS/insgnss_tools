@@ -32,8 +32,8 @@ def update(navpt, airpt, imupt, wn, we):
     global cl_array
     global a_array
     
-    C_N2B = navpy.angle2dcm(navpt.psi, navpt.the, navpt.phi)
-    vel = np.array([navpt.vn + wn, navpt.ve + we, navpt.vd])
+    C_N2B = navpy.angle2dcm(navpt['psi'], navpt['the'], navpt['phi'])
+    vel = np.array([navpt['vn'] + wn, navpt['ve'] + we, navpt['vd']])
     # mag = np.linalg.norm(vel)
     # wind = np.linalg.norm(np.array([wn, we]))
     # print('vel:', vel, "(%.2f) %.2f %.2f" % (airpt.airspeed / mps2kt, mag, wind) )
@@ -43,8 +43,8 @@ def update(navpt, airpt, imupt, wn, we):
     alpha = math.atan2(vel_body[2], bx) * r2d
     # print(imupt.time, 'vel_body:', vel_body, "beta: %.2f alpha: %.2f" % (beta, alpha))
 
-    v = airpt.airspeed * kt2mps * m2ft # feet per second
-    lf = imupt.az / g
+    v = airpt['airspeed'] * kt2mps * m2ft # feet per second
+    lf = imupt['az'] / g
     CL = 2.0 * (L * lf) / (d * v*v * s) # Coefficient of Lift
 
     # test fit
