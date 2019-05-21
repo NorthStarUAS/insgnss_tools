@@ -13,14 +13,20 @@ Many updates: Curtis L. Olson
 
 import argparse
 import math
+from matplotlib import pyplot as plt
 import numpy as np
-import time
 import os
 import pandas as pd
-
-import navigation.structs
+import time
 
 from aurauas.flightdata import flight_loader, flight_interp
+import navpy
+
+# filter interfaces
+import navigation.structs
+import nav_ekf15
+import nav_ekf15_mag
+import nav_openloop
 
 import alpha_beta
 import wind
@@ -34,8 +40,7 @@ parser.add_argument('--gps-lag', type=float, default='0.0', help='gps lag in sec
 parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
 args = parser.parse_args()
 
-# # # # # START INPUTS # # # # #
-
+# Select output plots
 PLOT = { 'ATTITUDE': True,
          'VELOCITIES': True,
          'GROUNDTRACK': True,
@@ -43,19 +48,6 @@ PLOT = { 'ATTITUDE': True,
          'WIND': True,
          'SYNTH_ASI': False,
          'BIASES': True }
-
-# # # # # END INPUTS # # # # #
-
-import os
-import csv
-import numpy as np
-from matplotlib import pyplot as plt
-import navpy
-
-# filter interfaces
-import nav_ekf15
-import nav_ekf15_mag
-import nav_openloop
 
 filter1 = nav_ekf15.filter()
 filter2 = nav_ekf15.filter()
