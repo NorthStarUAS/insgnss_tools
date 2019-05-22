@@ -35,9 +35,8 @@ import synth_asi
 import battery
 
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--flight', help='load specified aura flight log')
+parser.add_argument('--flight', required=True, help='flight data log')
 parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
-parser.add_argument('--gps-lag', type=float, default='0.0', help='gps lag in seconds')
 parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
 args = parser.parse_args()
 
@@ -108,30 +107,13 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
             healthpt = {}
 
         # Init the filter if we have gps data (and haven't already init'd)
-        if not filter_init and 'newData' in gpspt:
+        if not filter_init and 'time' in gpspt:
             # print("init:", imupt['time'], gpspt['time'])
             navpt = filter.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
             navpt = filter.update(imupt, gpspt, filterpt)
 
-        if filter_init:
-            # experimental: synthetic airspeed estimator
-            if 'act' in data and synth_asi.rbfi == None:
-                # print imupt['time'], airpt.airspeed, actpt.throttle, actpt.elevator
-                synth_asi.append(imupt['az'], navpt['the'], actpt['throttle'],
-                                 actpt['elevator'], imupt['q'],
-                                 airpt['airspeed'])
-            elif 'act' in data:
-                asi_kt = synth_asi.est_airspeed(imupt['az'], navpt['the'],
-                                                actpt['throttle'],
-                                                actpt['elevator'], imupt['q'])
-                if asi_kt > 100.0:
-                    print(imupt['time'], navpt['phi'], navpt['the'], actpt.throttle, actpt.elevator, imupt.q)
-                synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
-                results.add_asi(airpt.airspeed, synth_filt_asi)
-
-            
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
@@ -344,7 +326,6 @@ if True:
                 airspeed = record['air']['airspeed']
             if 'filter' in record:
                 psi = record['filter']['psi']
-                print('psi:', psi)
                 vn = record['filter']['vn']
                 ve = record['filter']['ve']
             if airspeed > 10.0:
@@ -433,6 +414,7 @@ if True:
 
 if True:
     print("Generating battery model:")
+    battery_model = battery.battery(60.0, 0.01)
     actpt = {}
     healthpt = {}
     iter = flight_interp.IterateGroup(data)
@@ -465,8 +447,6 @@ df2_nav = pd.DataFrame(data_dict2['nav'])
 df2_nav.set_index('time', inplace=True, drop=False)
 df2_imu = pd.DataFrame(data_dict2['imu'])
 df2_imu.set_index('time', inplace=True, drop=False)
-
-alpha_beta.gen_stats()
 
 # Plotting
 
