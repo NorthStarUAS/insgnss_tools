@@ -18,8 +18,9 @@ import numpy as np
 import os
 import pandas as pd
 import time
+from tqdm import tqdm
 
-from aurauas.flightdata import flight_loader
+from aurauas.flightdata import flight_loader, flight_interp
 import navpy
 
 # filter interfaces
@@ -54,142 +55,67 @@ filter2 = nav_ekf15.filter()
 #filter2 = nav_openloop.filter()
 
 r2d = 180.0 / math.pi
+d2r = math.pi / 180.0
 mps2kt = 1.94384
 
 def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
-    # for convenience ...
-    imu_data = data['imu'].to_dict(orient='records')
-    gps_data = data['gps'].to_dict(orient='records')
-    if 'air' in data:
-        air_data = data['air'].to_dict(orient='records')
-    else:
-        air_data = []
-    filter_data = data['filter'].to_dict(orient='records')
-    if 'pilot' in data:
-        pilot_data = data['pilot'].to_dict(orient='records')
-    else:
-        pilot_data = []
-    if 'act' in data:
-        act_data = data['act'].to_dict(orient='records')
-    else:
-        act_data = []
-    if 'health' in data:
-        health_data = data['health'].to_dict(orient='records')
-    else:
-        health_data = []
-        
-    results = { 'nav': [], 'imu': [], 'wind': [] }
+    results = { 'nav': [], 'imu': [] }
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     run_start = time.time()
-    gps_index = 0
-    air_index = 0
-    airpt = navigation.structs.Airdata()
-    filter_index = 0
-    pilot_index = 0
-    pilotpt = None
-    act_index = 0
-    actpt = None
-    health_index = 0
-    healthpt = None
-    new_gps = 0
+    gpspt = {}
+    airpt = {}
+    pilotpt = {}
+    actpt = {}
+    healthpt = {}
     synth_filt_asi = 0
     battery_model = battery.battery(60.0, 0.01)
     if call_init:
         filter_init = False
     else:
         filter_init = True
-    k_start = 0
-    if start_time != None:
-        for k, imu_pt in enumerate(imu_data):
-            #print(k_start, imu_pt.time, start_time)
-            if imu_pt.time >= start_time:
-                k_start = k
-                break
-    k_end = len(imu_data)
-    if end_time != None:
-        for k, imu_pt in enumerate(imu_data):
-            if imu_pt.time >= end_time:
-                k_end = k
-                break
-    print(k_start, k_end)
-    for k in range(k_start, k_end):
-        imupt = imu_data[k]
-        if gps_index < len(gps_data) - 1:
-            # walk the gps counter forward as needed
-            newData = 0
-            while gps_index < len(gps_data) - 1 and gps_data[gps_index+1]['time'] - args.gps_lag <= imupt['time']:
-                gps_index += 1
-                newData = 1
-            gpspt = gps_data[gps_index]
-            gpspt['newData'] = newData
-        else:
-            # no more gps data, stay on the last record
-            gpspt = gps_data[gps_index]
-            gpspt['newData'] = 0
-        #print gpspt['time']
-        if air_index < len(air_data) - 1:
-            # walk the airdata counter forward as needed
-            while air_index < len(air_data) - 1 and air_data[air_index+1]['time'] <= imupt['time']:
-                air_index += 1
-            airpt = air_data[air_index]
-        elif len(air_data):
-            # no more air data, stay on the last record
-            airpt = air_data[air_index]
-        # print airpt['time']
-        # walk the filter counter forward as needed
-        if len(filter_data):
-            while filter_index < len(filter_data) - 1 and filter_data[filter_index]['time'] <= imupt['time']:
-                filter_index += 1
-            filterpt = filter_data[filter_index]
-        else:
-            filterpt = nav.structs.NAVdata()
-        #print "t(imu) = " + str(imupt['time']) + " t(gps) = " + str(gpspt['time'])
-        if 'pilot' in data:
-            while pilot_index < len(pilot_data) - 1 and pilot_data[pilot_index]['time'] <= imupt['time']:
-                pilot_index += 1
-            pilotpt = pilot_data[pilot_index]
-        elif 'pilot' in data:
-            pilotpt = pilot_data[pilot_index]
-        if 'act' in data:
-            while act_index < len(act_data) - 1 and act_data[act_index]['time'] <= imupt['time']:
-                act_index += 1
-            actpt = act_data[act_index]
-            #print act_index, imupt['time'], actpt['time'], actpt.throttle, actpt.elevator
-        elif 'act' in data:
-            actpt = act_data[act_index]
-        if 'health' in data:
-            while health_index < len(health_data) - 1 and health_data[health_index]['time'] <= imupt['time']:
-                health_index += 1
-            healthpt = health_data[health_index]
 
-        elif 'act' in data:
-            actpt = act_data[act_index]
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        imupt = record['imu']
+        if 'gps' in record:
+            gpspt = record['gps']
+            gpspt['newData'] = True
+        else:
+            gpspt = {}
+            gpspt['newData'] = False
+        if 'air' in record:
+            airpt = record['air']
+        else:
+            airpt = {}
+        if 'nav' in record:
+            filterpt = record['nav']
+        else:
+            filterpt = {}
+        if 'pilot' in record:
+            pilotpt = record['pilot']
+        else:
+            pilotpt = {}
+        if 'act' in record:
+            actpt = record['act']
+        else:
+            actpt = {}
+        if 'health' in record:
+            healthpt = record['health']
+        else:
+            healthpt = {}
 
-        # If k is at the initialization time init_nav else get_nav
-        if not filter_init and gps_index > 0:
-            print("init:", imupt['time'], gpspt['time'])
+        # Init the filter if we have gps data (and haven't already init'd)
+        if not filter_init and 'newData' in gpspt:
+            # print("init:", imupt['time'], gpspt['time'])
             navpt = filter.init(imupt, gpspt, filterpt)
             filter_init = True
         elif filter_init:
             navpt = filter.update(imupt, gpspt, filterpt)
 
         if filter_init:
-            # experimental: run wind estimator
-            # print airpt.airspeed
-            (wn, we, ps) = wind.update(imupt['time'], airpt['airspeed'],
-                                       navpt['psi'], navpt['vn'], navpt['ve'])
-            #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
-            wind_deg = 90 - math.atan2(wn, we) * r2d
-            if wind_deg < 0: wind_deg += 360.0
-            wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
-            #print wn, we, ps, wind_deg, wind_kt
-
-            # experimental: synthetic alpha/beta
-            if airpt['airspeed'] > 10:
-                alpha_beta.update(navpt, airpt, imupt, wn, we)
-            
             # experimental: synthetic airspeed estimator
             if 'act' in data and synth_asi.rbfi == None:
                 # print imupt['time'], airpt.airspeed, actpt.throttle, actpt.elevator
@@ -205,26 +131,13 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
                 synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
                 results.add_asi(airpt.airspeed, synth_filt_asi)
 
-            # experimental: battery model / estimator
-            if 'health' in data and airpt['airspeed'] > 10:
-                battery_model.update( actpt['throttle'],
-                                      healthpt['main_vcc'],
-                                      imupt['time'] )
             
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
             results['nav'].append(navpt)
             results['imu'].append(imupt)
-            results['wind'].append( { 'time': navpt['time'],
-                                      'wind_deg': wind_deg,
-                                      'wind_kt': wind_kt,
-                                      'pitot_scale': ps } )
-
-        # Increment time up one step for the next iteration of the
-        # while loop.
-        k += 1
-
+            
     # proper cleanup
     filter.close()
     run_end = time.time()
@@ -237,6 +150,9 @@ if 'recalibrate' in args:
 else:
     recal_file = None
 data, flight_format = flight_loader.load(path, recal_file)
+
+print("Creating interpolation structures..")
+interp = flight_interp.InterpolationGroup(data)
 
 print("imu records:", len(data['imu']))
 print("gps records:", len(data['gps']))
@@ -253,28 +169,13 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     quit()
 
 plotname = os.path.basename(args.flight)    
-#df.loc[:,"Score1"].mean()
-print('p mean (dps):', data['imu'].loc[:,'p'].mean()*r2d)
-print('q mean (dps):', data['imu'].loc[:,'q'].mean()*r2d)
-print('r mean (dps):', data['imu'].loc[:,'r'].mean()*r2d)
 
 if False:
-    # quick hack estimate gyro biases
-    p_sum = 0.0
-    q_sum = 0.0
-    r_sum = 0.0
-    for imu in data['imu']:
-        p_sum += imu.p
-        q_sum += imu.q
-        r_sum += imu.r
-    p_bias = p_sum / len(data['imu'])
-    q_bias = q_sum / len(data['imu'])
-    r_bias = r_sum / len(data['imu'])
-    print("bias:", p_bias, q_bias, r_bias)
-    for imu in data['imu']:
-        imu.p -= p_bias
-        imu.q -= q_bias
-        imu.r -= r_bias
+    # quick hack estimate gyro biases (would be better to only do this
+    # while they are stable or at least not flying
+    print('p mean (dps):', data['imu'].loc[:,'p'].mean()*r2d)
+    print('q mean (dps):', data['imu'].loc[:,'q'].mean()*r2d)
+    print('r mean (dps):', data['imu'].loc[:,'r'].mean()*r2d)
 
 if False:
     # quick rough hack at a magnetometer calibration
@@ -424,6 +325,135 @@ if flight_format == 'sentera':
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, data_dict1)
 
+if True:
+    print("Estimating winds aloft:")
+    winds = []
+    airspeed = 0
+    psi = 0
+    vn = 0
+    ve = 0
+    wind_deg = 0
+    wind_kt = 0
+    ps = 0
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            t = record['imu']['time']
+            if 'air' in record:
+                airspeed = record['air']['airspeed']
+            if 'filter' in record:
+                psi = record['filter']['psi']
+                print('psi:', psi)
+                vn = record['filter']['vn']
+                ve = record['filter']['ve']
+            if airspeed > 10.0:
+                (wn, we, ps) = wind.update(t, airspeed, psi, vn, ve)
+                #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
+                wind_deg = 90 - math.atan2(wn, we) * r2d
+                if wind_deg < 0: wind_deg += 360.0
+                wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
+                #print wn, we, ps, wind_deg, wind_kt
+            # make sure we log one record per each imu record
+            winds.append( { 'time': t,
+                            'wind_deg': wind_deg,
+                            'wind_kt': wind_kt,
+                            'pitot_scale': ps } )
+    data_dict1['wind'] = winds
+
+if False:
+    # estimate wind (via interpolation)
+    print("Estimating winds aloft (via interpolation):")
+    for i, imu in enumerate(tqdm(data['imu'])):
+        #print(data['imu'].iloc[i,:].to_dict())
+        t = imu['time']
+        air = interp.query(t, 'air')
+        nav = interp.query(t, 'filter')
+        (wn, we, ps) = wind.update(imu['time'], air['airspeed'],
+                                   nav['psi'], nav['vn'], nav['ve'])
+        #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
+        wind_deg = 90 - math.atan2(wn, we) * r2d
+        if wind_deg < 0: wind_deg += 360.0
+        wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
+        #print wn, we, ps, wind_deg, wind_kt
+    
+if True:
+    print("Estimating alpha/beta (experimental):")
+    navpt = {}
+    airpt = {}
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            imupt = record['imu']
+            if 'air' in record:
+                airpt = record['air']
+                airspeed = airpt['airspeed']
+            if 'filter' in record:
+                navpt = record['filter']
+            if airspeed > 10.0:
+                # assumes we've calculated and logged the wind series
+                wind = data_dict1['wind'][i]
+                wind_rad = 0.5*math.pi - wind['wind_deg']*d2r
+                we = math.cos(wind_rad)
+                wn = math.sin(wind_rad)
+                alpha_beta.update(navpt, airpt, imupt, wn, we)
+    alpha_beta.gen_stats()
+
+if True:
+    print("Generating synthetic airspeed model:")
+    actpt = {}
+    airpt = {}
+    navpt = {}
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            imupt = record['imu']
+            if 'act' in record:
+                actpt = record['act']
+            if 'air' in record:
+                airpt = record['air']
+            if 'filter' in record:
+                navpt = record['filter']
+            if 'time' in actpt and 'time' in navpt and 'time' in airpt:
+                synth_asi.append(imupt['az'], navpt['the'], actpt['throttle'],
+                                 actpt['elevator'], imupt['q'],
+                                 airpt['airspeed'])
+
+# use synthetic airspeed estimator
+# for each record:
+#   asi_kt = synth_asi.est_airspeed(imupt['az'], navpt['the'],
+#                                   actpt['throttle'],
+#                                   actpt['elevator'], imupt['q'])
+#   if asi_kt > 100.0:
+#       print(imupt['time'], navpt['phi'], navpt['the'], actpt.throttle, actpt.elevator, imupt.q)
+#       synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
+#       results.add_asi(airpt.airspeed, synth_filt_asi)
+
+if True:
+    print("Generating battery model:")
+    actpt = {}
+    healthpt = {}
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            imupt = record['imu']
+            if 'act' in record:
+                actpt = record['act']
+            if 'health' in record:
+                healthpt = record['health']
+            if 'time' in actpt and 'time' in healthpt:
+                battery_model.update( actpt['throttle'],
+                                      healthpt['main_vcc'],
+                                      imupt['time'] )
+
+df0_gps = pd.DataFrame(data['gps'])
+df0_gps.set_index('time', inplace=True, drop=False)
+df0_nav = pd.DataFrame(data['filter'])
+df0_nav.set_index('time', inplace=True, drop=False)
+
 df1_nav = pd.DataFrame(data_dict1['nav'])
 df1_nav.set_index('time', inplace=True, drop=False)
 df1_imu = pd.DataFrame(data_dict1['imu'])
@@ -435,8 +465,6 @@ df2_nav = pd.DataFrame(data_dict2['nav'])
 df2_nav.set_index('time', inplace=True, drop=False)
 df2_imu = pd.DataFrame(data_dict2['imu'])
 df2_imu.set_index('time', inplace=True, drop=False)
-df2_wind = pd.DataFrame(data_dict2['wind'])
-df2_wind.set_index('time', inplace=True, drop=False)
 
 alpha_beta.gen_stats()
 
@@ -453,7 +481,7 @@ if PLOT['ATTITUDE']:
 
     # Roll Plot
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
-    att_ax[0,0].plot(r2d(data['filter']['phi']), label='On Board', c='g', alpha=.5)
+    att_ax[0,0].plot(r2d(df0_nav['phi']), label='On Board', c='g', alpha=.5)
     att_ax[0,0].plot(r2d(df1_nav['phi']), label=filter1.name, c='r', alpha=.8)
     att_ax[0,0].plot(r2d(df2_nav['phi']), label=filter2.name, c='b', alpha=.8)
     att_ax[0,0].grid()
@@ -466,7 +494,7 @@ if PLOT['ATTITUDE']:
 
     # Pitch Plot
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
-    att_ax[1,0].plot(r2d(data['filter']['the']), label='On Board', c='g', alpha=.5)
+    att_ax[1,0].plot(r2d(df0_nav['the']), label='On Board', c='g', alpha=.5)
     att_ax[1,0].plot(r2d(df1_nav['the']), label=filter1.name, c='r', alpha=.8)
     att_ax[1,0].plot(r2d(df2_nav['the']), label=filter2.name,c='b', alpha=.8)
     att_ax[1,0].grid()
@@ -480,7 +508,7 @@ if PLOT['ATTITUDE']:
     # Yaw Plot
     att_ax[2,0].set_title(plotname, fontsize=10)
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
-    att_ax[2,0].plot(r2d(data['filter']['psi']), label='On Board', c='g', alpha=.5)
+    att_ax[2,0].plot(r2d(df0_nav['psi']), label='On Board', c='g', alpha=.5)
     att_ax[2,0].plot(r2d(df1_nav['psi']), label=filter1.name, c='r', alpha=.8)
     att_ax[2,0].plot(r2d(df2_nav['psi']), label=filter2.name,c='b', alpha=.8)
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
@@ -526,8 +554,8 @@ if PLOT['VELOCITIES']:
     # vn Plot
     ax1.set_title(plotname, fontsize=10)
     ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(data['gps']['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax1.plot(data['filter']['vn'], label='On Board', c='k', lw=2, alpha=.5)
+    ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax1.plot(df0_nav['vn'], label='On Board', c='k', lw=2, alpha=.5)
     ax1.plot(df1_nav['vn'], label=filter1.name, c='r', lw=2, alpha=.8)
     ax1.plot(df2_nav['vn'], label=filter2.name,c='b', lw=2, alpha=.8)
     ax1.grid()
@@ -535,16 +563,16 @@ if PLOT['VELOCITIES']:
 
     # ve Plot
     ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(data['gps']['ve'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax2.plot(data['filter']['ve'], label='On Board', c='k', lw=2, alpha=.5)
+    ax2.plot(df0_gps['ve'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax2.plot(df0_nav['ve'], label='On Board', c='k', lw=2, alpha=.5)
     ax2.plot(df1_nav['ve'], label=filter1.name, c='r', lw=2, alpha=.8)
     ax2.plot(df2_nav['ve'], label=filter2.name,c='b', lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
     ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(data['gps']['vd'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    ax3.plot(data['filter']['vd'], label='On Board', c='k', lw=2, alpha=.5)
+    ax3.plot(df0_gps['vd'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax3.plot(df0_nav['vd'], label='On Board', c='k', lw=2, alpha=.5)
     ax3.plot(df1_nav['vd'], label=filter1.name, c='r', lw=2, alpha=.8)
     ax3.plot(df2_nav['vd'], label=filter2.name, c='b',lw=2, alpha=.8)
     ax3.set_xlabel('TIME (SECONDS)', weight='bold')
@@ -554,8 +582,8 @@ if PLOT['VELOCITIES']:
 if PLOT['ALTITUDE']:
     plt.figure()
     plt.title('ALTITUDE')
-    plt.plot(data['gps']['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    plt.plot(data['filter']['alt'], label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(df0_gps['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(df0_nav['alt'], label='On Board', c='k', lw=2, alpha=.5)
     plt.plot(df1_nav['alt'], label=filter1.name, c='r', lw=2, alpha=.8)
     plt.plot(df2_nav['alt'], label=filter2.name, c='b', lw=2, alpha=.8)
     plt.ylabel('ALTITUDE (METERS)', weight='bold')
@@ -725,8 +753,8 @@ if PLOT['GROUNDTRACK']:
     plt.title(plotname, fontsize=10)
     plt.ylabel('Latitude (degrees)', weight='bold')
     plt.xlabel('Longitude (degrees)', weight='bold')
-    plt.plot(data['gps']['lon'], data['gps']['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    plt.plot(r2d(data['filter']['lon']), r2d(data['filter']['lat']), label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(r2d(df0_nav['lon']), r2d(df0_nav['lat']), label='On Board', c='k', lw=2, alpha=.5)
     plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter1.name, c='r', lw=2, alpha=.8)
     plt.plot(r2d(df2_nav['lon']), r2d(df2_nav['lat']), label=filter2.name, c='b', lw=2, alpha=.8)
     plt.grid()

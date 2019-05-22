@@ -31,7 +31,7 @@ def update(time, airspeed_kt, yaw_rad, vn, ve):
 
     if dt > 0.0 and airspeed_kt >= 10.0:
         # update values if 'flying' and time has elapsed
-        psi = math.pi * 0.5 - yaw_rad
+        psi = 0.5*math.pi - yaw_rad
 
         # estimate body velocity
         ue = math.cos(psi) * (airspeed_kt * filt_ps.value * kt2mps)
