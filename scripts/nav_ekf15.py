@@ -5,36 +5,7 @@ import sys
 from navigation.structs import IMUdata, GPSdata
 import navigation.filters
 
-def mkIMUdata( src ):
-    result = navigation.structs.IMUdata()
-    result.time = src.time
-    result.p = src.p
-    result.q = src.q
-    result.r = src.r
-    result.ax = src.ax
-    result.ay = src.ay
-    result.az = src.az
-    result.hx = src.hx
-    result.hy = src.hy
-    result.hz = src.hz
-    result.temp = src.temp
-    return result
-
-def mkGPSdata( src ):
-    result = navigation.structs.GPSdata()
-    result.time = src.time
-    result.lat = src.lat
-    result.lon = src.lon
-    result.alt = src.alt
-    result.vn = src.vn
-    result.ve = src.ve
-    result.vd = src.vd
-    result.sats = src.sats
-    result.newData = src.newData
-    return result
-    
 class filter():
-    
     def __init__(self):
         self.ekf = navigation.filters.EKF15()
         self.openloop = navigation.filters.OpenLoop()
