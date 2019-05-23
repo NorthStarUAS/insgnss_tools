@@ -412,8 +412,8 @@ if True:
 #       synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
 #       results.add_asi(airpt.airspeed, synth_filt_asi)
 
-if True:
-    print("Generating battery model:")
+if False:
+    print("Generating experimental battery model:")
     battery_model = battery.battery(60.0, 0.01)
     actpt = {}
     healthpt = {}
