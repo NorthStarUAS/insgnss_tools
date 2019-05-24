@@ -16,7 +16,6 @@ import time
 from tqdm import tqdm
 
 from aurauas.flightdata import flight_loader, flight_interp
-import navpy
 
 # filter interfaces
 import navigation.structs
@@ -26,15 +25,14 @@ import nav_openloop
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
+parser.add_argument('--gps-lag-sec', type=float, default=0.2,
+                    help='gps lag (sec)')
 args = parser.parse_args()
-
-filter1 = nav_ekf15.filter()
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
-mps2kt = 1.94384
 
-def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
+def run_filter(filter, data):
     results = []
     
     # Using while loop starting at k (set to kstart) and going to end
@@ -45,11 +43,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
     pilotpt = {}
     actpt = {}
     healthpt = {}
-
-    if call_init:
-        filter_init = False
-    else:
-        filter_init = True
+    filter_init = False
 
     iter = flight_interp.IterateGroup(data)
     for i in tqdm(range(iter.size())):
@@ -112,6 +106,9 @@ print("Creating interpolation structures..")
 interp = flight_interp.InterpolationGroup(data)
 
 print("imu records:", len(data['imu']))
+imu_dt = (data['imu'][-1]['time'] - data['imu'][0]['time']) \
+    / float(len(data['imu']))
+print("imu dt: %.3f" % imu_dt)
 print("gps records:", len(data['gps']))
 if 'air' in data:
     print("airdata records:", len(data['air']))
@@ -125,7 +122,7 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     print("not enough data loaded to continue.")
     quit()
 
-plotname = os.path.basename(args.flight)    
+filter1 = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
 
 # Default config
 config = navigation.structs.NAVconfig()
@@ -142,7 +139,7 @@ config.tau_g    = 50.0
 config.sig_gps_p_ne = 2.0
 config.sig_gps_p_d  = 6.0
 config.sig_gps_v_ne = 0.5
-config.sig_gps_v_d  = 1.5
+config.sig_gps_v_d  = 4.0
 config.sig_mag      = 1.0
 filter1.set_config(config)
 
@@ -206,6 +203,10 @@ filter1.set_config(config)
 nav, filter1_sec = run_filter(filter1, data)
 print("filter1 time = %.4f" % filter1_sec)
 
+# Plotting Section
+
+plotname = os.path.basename(args.flight)    
+
 df0_gps = pd.DataFrame(data['gps'])
 df0_gps.set_index('time', inplace=True, drop=False)
 df0_nav = pd.DataFrame(data['filter'])
@@ -214,14 +215,12 @@ df0_nav.set_index('time', inplace=True, drop=False)
 df1_nav = pd.DataFrame(nav)
 df1_nav.set_index('time', inplace=True, drop=False)
 
-# Plots
-
 r2d = np.rad2deg
 
 # Attitude
 att_fig, att_ax = plt.subplots(3, 1, sharex=True)
 
-att_ax[0].set_title(plotname, fontsize=10)
+att_ax[0].set_title("Attitude")
 att_ax[0].set_ylabel('Roll (deg)', weight='bold')
 att_ax[0].plot(r2d(df1_nav['phi']), label=filter1.name)
 att_ax[0].grid()
@@ -240,7 +239,7 @@ att_ax[2].legend(loc=1)
 fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
 # vn Plot
-ax1.set_title(plotname, fontsize=10)
+ax1.set_title("Velocity")
 ax1.set_ylabel('vn (mps)', weight='bold')
 ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', alpha=.5)
 ax1.plot(df1_nav['vn'], label=filter1.name)
@@ -269,9 +268,32 @@ plt.ylabel('Altitude (m)', weight='bold')
 plt.legend(loc=0)
 plt.grid()
 
-# Top View (Longitude vs. Latitude) Plot
+if False:
+    # Experimental map plot
+    import cartopy.crs as ccrs
+    import cartopy.io.img_tiles as cimgt
+    w = df0_gps['lon'].max() - df0_gps['lon'].min()
+    h = df0_gps['lat'].max() - df0_gps['lat'].min()
+
+    request = cimgt.OSM()
+    fig, ax = plt.subplots(subplot_kw=dict(projection=request.crs))
+    # (xmin, xmax, ymin, ymax)
+    extent = [ df0_gps['lon'].min() - 1.1*w,
+               df0_gps['lon'].max() + 1.1*w,
+               df0_gps['lat'].min() - 1.1*h,
+               df0_gps['lat'].max() + 1.1*h ]
+    ax.set_extent(extent)
+    ax.add_image(request, 10)
+
+    # do coordinate conversion of (x,y)
+    xynps = ax.projection.transform_points(ccrs.Geodetic(),
+                                           np.array(df0_gps['lon']),
+                                           np.array(df0_gps['lat']))
+    plt.plot(xynps[:,0], xynps[:,1])        
+
+# Top down flight track plot
 plt.figure()
-plt.title('Ground track', fontsize=10)
+plt.title('Ground track')
 plt.ylabel('Latitude (degrees)', weight='bold')
 plt.xlabel('Longitude (degrees)', weight='bold')
 plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', alpha=.5)
@@ -283,33 +305,35 @@ plt.legend(loc=0)
 bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
 # Gyro Biases
-bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
+bias_ax[0,0].set_title("IMU Biases")
+bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
 bias_ax[0,0].plot(r2d(df1_nav['gbx']), label=filter1.name)
 bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[0,0].grid()
 
-bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
+bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
 bias_ax[1,0].plot(r2d(df1_nav['gby']), label=filter1.name)
 bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[1,0].grid()
 
-bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
+bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
 bias_ax[2,0].plot(r2d(df1_nav['gbz']), label=filter1.name)
 bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[2,0].grid()
 
 # Accel Biases
-bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
+bias_ax[0,1].set_title("Accel Biases")
+bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
 bias_ax[0,1].plot(df1_nav['abx'], label=filter1.name)
 bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[0,1].grid()
 
-bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
+bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
 bias_ax[1,1].plot(df1_nav['aby'], label=filter1.name)
 bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[1,1].grid()
 
-bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
+bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
 bias_ax[2,1].plot(df1_nav['abz'], label=filter1.name)
 bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[2,1].grid()
