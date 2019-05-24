@@ -41,7 +41,6 @@ PYBIND11_MODULE(structs, m) {
          )
         .def("from_dict",
              [](IMUdata &imu, const py::dict &d) {
-                 IMUdata result;
                  imu.time = py::float_(d["time"]);
                  imu.p = py::float_(d["p"]);
                  imu.q = py::float_(d["q"]);
@@ -53,7 +52,6 @@ PYBIND11_MODULE(structs, m) {
                  imu.hy = py::float_(d["hy"]);
                  imu.hz = py::float_(d["hz"]);
                  imu.temp = py::float_(d["temp"]);
-                 return result;
              }
          )
         ;
@@ -86,7 +84,6 @@ PYBIND11_MODULE(structs, m) {
          )
         .def("from_dict",
              [](GPSdata &gps, const py::dict &d) {
-                 GPSdata result;
                  gps.time = py::float_(d["time"]);
                  gps.unix_sec = py::float_(d["unix_sec"]);
                  gps.lat = py::float_(d["lat"]);
@@ -97,7 +94,6 @@ PYBIND11_MODULE(structs, m) {
                  gps.vd = py::float_(d["vd"]);
                  gps.sats = py::int_(d["sats"]);
                  gps.newData = py::bool_(d["newData"]);
-                 return result;
               }
          )
         ;
@@ -240,6 +236,25 @@ PYBIND11_MODULE(structs, m) {
                  result["sig_gps_v_d"] = config.sig_gps_v_d;
                  result["sig_mag"] = config.sig_mag;
                  return result;
+             }
+         )
+        .def("from_dict",
+             [](NAVconfig &config, const py::dict &d) {
+                 config.sig_w_ax = py::float_(d["sig_w_ax"]);
+                 config.sig_w_ay = py::float_(d["sig_w_ay"]);
+                 config.sig_w_az = py::float_(d["sig_w_az"]);
+                 config.sig_w_gx = py::float_(d["sig_w_gx"]);
+                 config.sig_w_gy = py::float_(d["sig_w_gy"]);
+                 config.sig_w_gz = py::float_(d["sig_w_gz"]);
+                 config.sig_a_d = py::float_(d["sig_a_d"]);
+                 config.tau_a = py::float_(d["tau_a"]);
+                 config.sig_g_d = py::float_(d["sig_g_d"]);
+                 config.tau_g = py::float_(d["tau_g"]);
+                 config.sig_gps_p_ne = py::float_(d["sig_gps_p_ne"]);
+                 config.sig_gps_p_d = py::float_(d["sig_gps_p_d"]);
+                 config.sig_gps_v_ne = py::float_(d["sig_gps_v_ne"]);
+                 config.sig_gps_v_d = py::float_(d["sig_gps_v_d"]);
+                 config.sig_mag = py::float_(d["sig_mag"]);
              }
          )
         ;
