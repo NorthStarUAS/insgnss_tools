@@ -19,7 +19,7 @@ class filter():
         Cconfig.from_dict(config)
         self.ekf.set_config(Cconfig)
         
-    def init(self, imu, gps, filterpt=None):
+    def init(self, imu, gps):
         Cimu = IMUdata()
         Cimu.from_dict(imu)
         Cgps = GPSdata()
@@ -30,7 +30,7 @@ class filter():
         nav = self.ekf.get_nav()
         return nav.as_dict()
 
-    def update(self, imu, gps, filterpt=None):
+    def update(self, imu, gps):
         Cimu = IMUdata()
         Cimu.from_dict(imu)
 
@@ -43,12 +43,13 @@ class filter():
             Cgps = GPSdata()
             Cgps.from_dict( gps )
             self.ekf.measurement_update(Cgps)
-        nav_lag = self.ekf.get_nav()
+        nav = self.ekf.get_nav()
 
-        # forward propagate from the lagged solution to new
-        self.openloop.init_by_nav(nav_lag)
-        for imu in reversed(self.imu_queue):
-            nav = self.openloop.update(imu)
+        if len(self.imu_queue):
+            # forward propagate from the lagged solution to new
+            self.openloop.init_by_nav(nav)
+            for imu in reversed(self.imu_queue):
+                nav = self.openloop.update(imu)
             
         return nav.as_dict()
 
