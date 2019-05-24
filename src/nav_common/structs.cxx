@@ -66,7 +66,6 @@ PYBIND11_MODULE(structs, m) {
 	.def_readwrite("ve", &GPSdata::ve)
 	.def_readwrite("vd", &GPSdata::vd)
 	.def_readwrite("sats", &GPSdata::sats)
-	.def_readwrite("newData", &GPSdata::newData)
         .def("as_dict",
              [](const GPSdata &gps) {
                  py::dict result;
@@ -93,7 +92,6 @@ PYBIND11_MODULE(structs, m) {
                  gps.ve = py::float_(d["ve"]);
                  gps.vd = py::float_(d["vd"]);
                  gps.sats = py::int_(d["sats"]);
-                 gps.newData = py::bool_(d["newData"]);
               }
          )
         ;

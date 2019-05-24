@@ -27,7 +27,6 @@ struct GPSdata {
     float alt;                  // meter
     float vn, ve, vd;		// m/sec
     int sats;
-    bool newData;
 };
 
 struct Airdata {
