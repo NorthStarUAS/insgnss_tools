@@ -23,7 +23,6 @@ from tqdm import tqdm
 from aurauas.flightdata import flight_loader, flight_interp
 
 # filter interfaces
-import navigation.structs
 import nav_ekf15
 import nav_ekf15_mag
 import nav_openloop
@@ -56,19 +55,13 @@ r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
 mps2kt = 1.94384
 
-def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
+def run_filter(filter, data, call_init=True):
     results = []
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     run_start = time.time()
     gpspt = {}
-    airpt = {}
-    pilotpt = {}
-    actpt = {}
-    healthpt = {}
-    synth_filt_asi = 0
-    battery_model = battery.battery(60.0, 0.01)
     if call_init:
         filter_init = False
     else:
@@ -80,38 +73,16 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         imupt = record['imu']
         if 'gps' in record:
             gpspt = record['gps']
-            gpspt['newData'] = True
         else:
             gpspt = {}
-            gpspt['newData'] = False
-        if 'air' in record:
-            airpt = record['air']
-        else:
-            airpt = {}
-        if 'nav' in record:
-            filterpt = record['nav']
-        else:
-            filterpt = {}
-        if 'pilot' in record:
-            pilotpt = record['pilot']
-        else:
-            pilotpt = {}
-        if 'act' in record:
-            actpt = record['act']
-        else:
-            actpt = {}
-        if 'health' in record:
-            healthpt = record['health']
-        else:
-            healthpt = {}
 
         # Init the filter if we have gps data (and haven't already init'd)
         if not filter_init and 'time' in gpspt:
             # print("init:", imupt['time'], gpspt['time'])
-            navpt = filter.init(imupt, gpspt, filterpt)
+            navpt = filter.init(imupt, gpspt)
             filter_init = True
         elif filter_init:
-            navpt = filter.update(imupt, gpspt, filterpt)
+            navpt = filter.update(imupt, gpspt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -187,87 +158,88 @@ if False:
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
 # Default config
-config = navigation.structs.NAVconfig()
-config.sig_w_ax = 0.05
-config.sig_w_ay = 0.05
-config.sig_w_az = 0.05
-config.sig_w_gx = 0.00175
-config.sig_w_gy = 0.00175
-config.sig_w_gz = 0.00175
-config.sig_a_d  = 0.02
-config.tau_a    = 100.0
-config.sig_g_d  = 0.0005
-config.tau_g    = 50.0
-config.sig_gps_p_ne = 2.0
-config.sig_gps_p_d  = 6.0
-config.sig_gps_v_ne = 0.5
-config.sig_gps_v_d  = 1.5
-config.sig_mag      = 1.0
+config = {
+    'sig_w_ax': 0.05,
+    'sig_w_ay': 0.05,
+    'sig_w_az': 0.05,
+    'sig_w_gx': 0.00175,
+    'sig_w_gy': 0.00175,
+    'sig_w_gz': 0.00175,
+    'sig_a_d': 0.02,
+    'tau_a': 100.0,
+    'sig_g_d': 0.0005,
+    'tau_g': 50.0,
+    'sig_gps_p_ne': 2.0,
+    'sig_gps_p_d': 6.0,
+    'sig_gps_v_ne': 0.5,
+    'sig_gps_v_d': 1.5,
+    'sig_mag': 1.0
+}
 filter1.set_config(config)
 
 # more trust in gps (sentera camera, low change in velocity?)
-config.sig_gps_p_ne = 2.0
-config.sig_gps_p_d  = 4.0
-config.sig_gps_v_ne = 0.3
-config.sig_gps_v_d  = 0.6
+config['sig_gps_p_ne'] = 2.0
+config['sig_gps_p_d'] = 4.0
+config['sig_gps_v_ne'] = 0.3
+config['sig_gps_v_d'] = 0.6
 filter2.set_config(config)
 
 # almost no trust in IMU ...
-# config = navigation.structs.NAVconfig()
-# config.sig_w_ax = 2.0
-# config.sig_w_ay = 2.0
-# config.sig_w_az = 2.0
-# config.sig_w_gx = 0.1
-# config.sig_w_gy = 0.1
-# config.sig_w_gz = 0.1
-# config.sig_a_d  = 0.1
-# config.tau_a    = 100.0
-# config.sig_g_d  = 0.00873
-# config.tau_g    = 50.0
-# config.sig_gps_p_ne = 3.0
-# config.sig_gps_p_d  = 5.0
-# config.sig_gps_v_ne = 0.5
-# config.sig_gps_v_d  = 1.0
-# config.sig_mag      = 0.2
+# config': navigation.structs.NAVconfig()
+# 'sig_w_ax': 2.0,
+# 'sig_w_ay': 2.0,
+# 'sig_w_az': 2.0,
+# 'sig_w_gx': 0.1,
+# 'sig_w_gy': 0.1,
+# 'sig_w_gz': 0.1,
+# 'sig_a_d': 0.1,
+# 'tau_a': 100.0,
+# 'sig_g_d': 0.00873,
+# 'tau_g': 50.0,
+# 'sig_gps_p_ne': 3.0,
+# 'sig_gps_p_d': 5.0,
+# 'sig_gps_v_ne': 0.5,
+# 'sig_gps_v_d': 1.0,
+# 'sig_mag': 0.2,
 # filter2.set_config(config)
 
 # less than default trust in IMU ...
-# config = navigation.structs.NAVconfig()
-# config.sig_w_ax = 0.1
-# config.sig_w_ay = 0.1
-# config.sig_w_az = 0.1
-# config.sig_w_gx = 0.003
-# config.sig_w_gy = 0.003
-# config.sig_w_gz = 0.003
-# config.sig_a_d  = 0.1
-# config.tau_a    = 100.0
-# config.sig_g_d  = 0.00873
-# config.tau_g    = 50.0
-# config.sig_gps_p_ne = 3.0
-# config.sig_gps_p_d  = 5.0
-# config.sig_gps_v_ne = 0.5
-# config.sig_gps_v_d  = 1.0
-# config.sig_mag      = 0.2
+# config': navigation.structs.NAVconfig()
+# 'sig_w_ax': 0.1,
+# 'sig_w_ay': 0.1
+# 'sig_w_az': 0.1,
+# 'sig_w_gx': 0.003,
+# 'sig_w_gy': 0.003,
+# 'sig_w_gz': 0.003,
+# 'sig_a_d': 0.1,
+# 'tau_a': 100.0,
+# 'sig_g_d': 0.00873,
+# 'tau_g': 50.0,
+# 'sig_gps_p_ne': 3.0,
+# 'sig_gps_p_d': 5.0,
+# 'sig_gps_v_ne': 0.5,
+# 'sig_gps_v_d': 1.0,
+# 'sig_mag': 0.2,
 # filter1.set_config(config)
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-# config = navigation.structs.NAVconfig()
-# config.sig_w_ax = 0.02
-# config.sig_w_ay = 0.02
-# config.sig_w_az = 0.02
-# config.sig_w_gx = 0.00175
-# config.sig_w_gy = 0.00175
-# config.sig_w_gz = 0.00175
-# config.sig_a_d  = 0.1
-# config.tau_a    = 100.0
-# config.sig_g_d  = 0.00873
-# config.tau_g    = 50.0
-# config.sig_gps_p_ne = 15.0
-# config.sig_gps_p_d  = 20.0
-# config.sig_gps_v_ne = 2.0
-# config.sig_gps_v_d  = 4.0
-# config.sig_mag      = 0.3
+# config': navigation.structs.NAVconfig()
+# 'sig_w_ax': 0.02,
+# 'sig_w_ay': 0.02,
+# 'sig_w_az': 0.02,
+# 'sig_w_gx': 0.00175,
+# 'sig_w_gy': 0.00175,
+# 'sig_w_gz': 0.00175,
+# 'sig_a_d': 0.1,
+# 'tau_a': 100.0,
+# 'sig_g_d': 0.00873,
+# 'tau_g': 50.0,
+# 'sig_gps_p_ne': 15.0,
+# 'sig_gps_p_d': 20.0,
+# 'sig_gps_v_ne': 2.0,
+# 'sig_gps_v_d': 4.0,
+# 'sig_mag': 0.3,
 # filter1.set_config(config)
 
 nav1, filter1_sec = run_filter(filter1, data)
@@ -452,7 +424,7 @@ if PLOT['ATTITUDE']:
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
-    att_ax[0,0].set_title('Attitude')
+    att_ax[0,0].set_title('Attitude Angles')
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
     att_ax[0,0].plot(r2d(df0_nav['phi']), label='On Board', c='g', alpha=.5)
     att_ax[0,0].plot(r2d(df1_nav['phi']), label=filter1.name, c='r', alpha=.8)
@@ -524,7 +496,7 @@ if PLOT['VELOCITIES']:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
-    ax1.set_title("Velocities")
+    ax1.set_title("NED Velocities")
     ax1.set_ylabel('vn (mps)', weight='bold')
     ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax1.plot(df0_nav['vn'], label='On Board', c='k', lw=2, alpha=.5)

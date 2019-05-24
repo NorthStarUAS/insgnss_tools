@@ -76,11 +76,8 @@ filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
+imupt = {}
 gpspt = {}
-airpt = {}
-pilotpt = {}
-actpt = {}
-healthpt = {}
 filter_init = False
 nav = []
 
@@ -92,34 +89,14 @@ for i in tqdm(range(iter.size())):
         gpspt = record['gps']
     else:
         gpspt = {}
-    if 'air' in record:
-        airpt = record['air']
-    else:
-        airpt = {}
-    if 'nav' in record:
-        filterpt = record['nav']
-    else:
-        filterpt = {}
-    if 'pilot' in record:
-        pilotpt = record['pilot']
-    else:
-        pilotpt = {}
-    if 'act' in record:
-        actpt = record['act']
-    else:
-        actpt = {}
-    if 'health' in record:
-        healthpt = record['health']
-    else:
-        healthpt = {}
 
     # Init the filter if we have gps data (and haven't already init'd)
     if not filter_init and 'time' in gpspt:
         # print("init:", imupt['time'], gpspt['time'])
-        navpt = filter.init(imupt, gpspt, filterpt)
+        navpt = filter.init(imupt, gpspt)
         filter_init = True
     elif filter_init:
-        navpt = filter.update(imupt, gpspt, filterpt)
+        navpt = filter.update(imupt, gpspt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
