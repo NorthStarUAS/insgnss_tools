@@ -61,7 +61,6 @@ def run_filter(filter, data, call_init=True):
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     run_start = time.time()
-    gpspt = {}
     if call_init:
         filter_init = False
     else:

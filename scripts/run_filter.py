@@ -76,8 +76,6 @@ filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
-imupt = {}
-gpspt = {}
 filter_init = False
 nav = []
 
