@@ -21,7 +21,6 @@ import time
 from tqdm import tqdm
 
 from aurauas.flightdata import flight_loader, flight_interp
-import navpy
 
 # filter interfaces
 import navigation.structs
@@ -453,6 +452,7 @@ if PLOT['ATTITUDE']:
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
+    att_ax[0,0].set_title('Attitude')
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
     att_ax[0,0].plot(r2d(df0_nav['phi']), label='On Board', c='g', alpha=.5)
     att_ax[0,0].plot(r2d(df1_nav['phi']), label=filter1.name, c='r', alpha=.8)
@@ -479,7 +479,6 @@ if PLOT['ATTITUDE']:
     att_ax[1,1].set_ylabel('3*stddev', weight='bold')
 
     # Yaw Plot
-    att_ax[2,0].set_title(plotname, fontsize=10)
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
     att_ax[2,0].plot(r2d(df0_nav['psi']), label='On Board', c='g', alpha=.5)
     att_ax[2,0].plot(r2d(df1_nav['psi']), label=filter1.name, c='r', alpha=.8)
@@ -525,7 +524,7 @@ if PLOT['VELOCITIES']:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
-    ax1.set_title(plotname, fontsize=10)
+    ax1.set_title("Velocities")
     ax1.set_ylabel('vn (mps)', weight='bold')
     ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     ax1.plot(df0_nav['vn'], label='On Board', c='k', lw=2, alpha=.5)
@@ -554,12 +553,12 @@ if PLOT['VELOCITIES']:
 # Altitude Plot
 if PLOT['ALTITUDE']:
     plt.figure()
-    plt.title('ALTITUDE')
+    plt.title('Altitude')
     plt.plot(df0_gps['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
     plt.plot(df0_nav['alt'], label='On Board', c='k', lw=2, alpha=.5)
     plt.plot(df1_nav['alt'], label=filter1.name, c='r', lw=2, alpha=.8)
     plt.plot(df2_nav['alt'], label=filter2.name, c='b', lw=2, alpha=.8)
-    plt.ylabel('ALTITUDE (METERS)', weight='bold')
+    plt.ylabel('Altitude (m)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
 
@@ -723,7 +722,7 @@ if len(alpha_beta.cl_array):
 # Top View (Longitude vs. Latitude) Plot
 if PLOT['GROUNDTRACK']:
     plt.figure()
-    plt.title(plotname, fontsize=10)
+    plt.title("Ground Track")
     plt.ylabel('Latitude (degrees)', weight='bold')
     plt.xlabel('Longitude (degrees)', weight='bold')
     plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -737,38 +736,40 @@ if PLOT['BIASES']:
     bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
     # Gyro Biases
-    bias_ax[0,0].set_ylabel('p Bias (deg)', weight='bold')
+    bias_ax[0,0].set_title("Gyro Biases")
+    bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
     bias_ax[0,0].plot(r2d(df1_nav['gbx']), label=filter1.name, c='r')
     bias_ax[0,0].plot(r2d(df2_nav['gbx']), label=filter2.name, c='b')
     bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,0].grid()
     
-    bias_ax[1,0].set_ylabel('q Bias (deg)', weight='bold')
+    bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
     bias_ax[1,0].plot(r2d(df1_nav['gby']), label=filter1.name, c='r')
     bias_ax[1,0].plot(r2d(df2_nav['gby']), label=filter2.name, c='b')
     bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,0].grid()
     
-    bias_ax[2,0].set_ylabel('r Bias (deg)', weight='bold')
+    bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
     bias_ax[2,0].plot(r2d(df1_nav['gbz']), label=filter1.name, c='r')
     bias_ax[2,0].plot(r2d(df2_nav['gbz']), label=filter2.name, c='b')
     bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
     bias_ax[2,0].grid()
     
     # Accel Biases
-    bias_ax[0,1].set_ylabel('ax Bias (m/s^2)', weight='bold')
+    bias_ax[0,1].set_title("Accel Biases")
+    bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
     bias_ax[0,1].plot(df1_nav['abx'], label=filter1.name, c='r')
     bias_ax[0,1].plot(df2_nav['abx'], label=filter2.name, c='b')
     bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[0,1].grid()
     
-    bias_ax[1,1].set_ylabel('ay Bias (m/s^2)', weight='bold')
+    bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
     bias_ax[1,1].plot(df1_nav['aby'], label=filter1.name, c='r')
     bias_ax[1,1].plot(df2_nav['aby'], label=filter2.name, c='b')
     bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
     bias_ax[1,1].grid()
     
-    bias_ax[2,1].set_ylabel('az Bias (m/s^2)', weight='bold')
+    bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
     bias_ax[2,1].plot(df1_nav['abz'], label=filter1.name, c='r')
     bias_ax[2,1].plot(df2_nav['abz'], label=filter2.name, c='b')
     bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
