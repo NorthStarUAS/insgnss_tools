@@ -58,7 +58,7 @@ d2r = math.pi / 180.0
 mps2kt = 1.94384
 
 def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
-    results = { 'nav': [], 'imu': [] }
+    results = []
     
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
@@ -117,8 +117,7 @@ def run_filter(filter, data, call_init=True, start_time=None, end_time=None):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         if filter_init:
-            results['nav'].append(navpt)
-            results['imu'].append(imupt)
+            results.append(navpt)
             
     # proper cleanup
     filter.close()
@@ -272,14 +271,14 @@ filter2.set_config(config)
 # config.sig_mag      = 0.3
 # filter1.set_config(config)
 
-data_dict1, filter1_sec = run_filter(filter1, data)
+nav1, filter1_sec = run_filter(filter1, data)
 
 if args.synthetic_airspeed:
     print("building synthetic air data estimator...")
     if 'act' in data:
         PLOT['SYNTH_ASI'] = synth_asi.build()
 
-data_dict2, filter2_sec = run_filter(filter2, data)
+nav2, filter2_sec = run_filter(filter2, data)
 
 print("filter1 time = %.4f" % filter1_sec)
 print("filter2 time = %.4f" % filter2_sec)
@@ -292,20 +291,20 @@ else:
 
 if flight_format == 'aura_csv' or flight_format == 'aura_txt':
     filter_post = os.path.join(args.flight, "filter-post.txt")
-    #flight_loader.save(filter_post, data_dict1)
+    #flight_loader.save(filter_post, nav1)
 
 if flight_format == 'umn3':
     basedir = os.path.dirname(args.flight)
     filter_post = os.path.join(basedir, "filter-post.csv")
-    flight_loader.save(filter_post, data_dict1)
+    flight_loader.save(filter_post, nav1)
 
 if flight_format == 'px4_ulog':
     filter_post = args.flight + "_filter_post.txt"
-    flight_loader.save(filter_post, data_dict1)
+    flight_loader.save(filter_post, nav1)
     
 if flight_format == 'sentera':
     filter_post = args.flight + "_filter_post.txt"
-    flight_loader.save(filter_post, data_dict1)
+    flight_loader.save(filter_post, nav1)
 
 if True:
     print("Estimating winds aloft:")
@@ -340,7 +339,6 @@ if True:
                             'wind_deg': wind_deg,
                             'wind_kt': wind_kt,
                             'pitot_scale': ps } )
-    data_dict1['wind'] = winds
 
 if False:
     # estimate wind (via interpolation)
@@ -374,7 +372,7 @@ if True:
                 navpt = record['filter']
             if airspeed > 10.0:
                 # assumes we've calculated and logged the wind series
-                wind = data_dict1['wind'][i]
+                wind = winds[i]
                 wind_rad = 0.5*math.pi - wind['wind_deg']*d2r
                 we = math.cos(wind_rad)
                 wn = math.sin(wind_rad)
@@ -431,22 +429,20 @@ if False:
                                       healthpt['main_vcc'],
                                       imupt['time'] )
 
+df0_imu = pd.DataFrame(data['imu'])
+df0_imu.set_index('time', inplace=True, drop=False)
 df0_gps = pd.DataFrame(data['gps'])
 df0_gps.set_index('time', inplace=True, drop=False)
 df0_nav = pd.DataFrame(data['filter'])
 df0_nav.set_index('time', inplace=True, drop=False)
 
-df1_nav = pd.DataFrame(data_dict1['nav'])
+df1_nav = pd.DataFrame(nav1)
 df1_nav.set_index('time', inplace=True, drop=False)
-df1_imu = pd.DataFrame(data_dict1['imu'])
-df1_imu.set_index('time', inplace=True, drop=False)
-df1_wind = pd.DataFrame(data_dict1['wind'])
+df1_wind = pd.DataFrame(winds)
 df1_wind.set_index('time', inplace=True, drop=False)
 
-df2_nav = pd.DataFrame(data_dict2['nav'])
+df2_nav = pd.DataFrame(nav2)
 df2_nav.set_index('time', inplace=True, drop=False)
-df2_imu = pd.DataFrame(data_dict2['imu'])
-df2_imu.set_index('time', inplace=True, drop=False)
 
 # Plotting
 
@@ -454,9 +450,6 @@ nsig = 3
 r2d = np.rad2deg
 
 if PLOT['ATTITUDE']:
-    #Patt1 = np.array(data_dict1.Patt, dtype=np.float64)
-    #Patt2 = np.array(data_dict2.Patt, dtype=np.float64)
-
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
@@ -508,18 +501,18 @@ if PLOT['ATTITUDE']:
 if True:
     plt.figure()
     plt.title('Raw Accels')
-    plt.plot(df1_imu['ax'], label='ax', c='g', lw=2, alpha=.5)
-    plt.plot(df1_imu['ay'], label='ay', c='b', lw=2, alpha=.5)
-    plt.plot(df1_imu['az'], label='az', c='r', lw=2, alpha=.5)
+    plt.plot(df0_imu['ax'], label='ax', c='g', lw=2, alpha=.5)
+    plt.plot(df0_imu['ay'], label='ay', c='b', lw=2, alpha=.5)
+    plt.plot(df0_imu['az'], label='az', c='r', lw=2, alpha=.5)
     plt.ylabel('mps^2', weight='bold')
     plt.legend(loc=0)
     plt.grid()
     
     plt.figure()
     plt.title('Raw Gyros')
-    plt.plot(df1_imu['p'], label='p', c='g', lw=2, alpha=.5)
-    plt.plot(df1_imu['q'], label='q', c='b', lw=2, alpha=.5)
-    plt.plot(df1_imu['r'], label='r', c='r', lw=2, alpha=.5)
+    plt.plot(df0_imu['p'], label='p', c='g', lw=2, alpha=.5)
+    plt.plot(df0_imu['q'], label='q', c='b', lw=2, alpha=.5)
+    plt.plot(df0_imu['r'], label='r', c='r', lw=2, alpha=.5)
     plt.ylabel('rad/sec', weight='bold')
     plt.legend(loc=0)
     plt.grid()
