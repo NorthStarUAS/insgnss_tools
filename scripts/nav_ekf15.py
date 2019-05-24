@@ -6,10 +6,11 @@ from navigation.structs import IMUdata, GPSdata
 import navigation.filters
 
 class filter():
-    def __init__(self):
+    def __init__(self, gps_lag_sec=0.0, imu_dt=0.02):
         self.ekf = navigation.filters.EKF15()
         self.openloop = navigation.filters.OpenLoop()
-        self.gps_lag_frames = 10
+        self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
+        print("gps lag frame:", self.gps_lag_frames)
         self.imu_queue = []
         self.name = 'EKF15'
 
