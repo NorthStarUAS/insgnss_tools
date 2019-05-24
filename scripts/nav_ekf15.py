@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-from navigation.structs import IMUdata, GPSdata
+from navigation.structs import IMUdata, GPSdata, NAVconfig
 import navigation.filters
 
 class filter():
@@ -15,7 +15,9 @@ class filter():
         self.name = 'EKF15'
 
     def set_config(self, config):
-        self.ekf.set_config(config)
+        Cconfig = NAVconfig()
+        Cconfig.from_dict(config)
+        self.ekf.set_config(Cconfig)
         
     def init(self, imu, gps, filterpt=None):
         Cimu = IMUdata()

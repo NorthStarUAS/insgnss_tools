@@ -16,12 +16,6 @@ from tqdm import tqdm
 
 from aurauas.flightdata import flight_loader, flight_interp
 
-# filter interfaces
-import navigation.structs
-import nav_ekf15
-import nav_ekf15_mag
-import nav_openloop
-
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
@@ -58,25 +52,27 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     print("not enough data loaded to continue.")
     quit()
 
-filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
-
 # Default config
-config = navigation.structs.NAVconfig()
-config.sig_w_ax = 0.05
-config.sig_w_ay = 0.05
-config.sig_w_az = 0.05
-config.sig_w_gx = 0.00175
-config.sig_w_gy = 0.00175
-config.sig_w_gz = 0.00175
-config.sig_a_d  = 0.02
-config.tau_a    = 100.0
-config.sig_g_d  = 0.0005
-config.tau_g    = 50.0
-config.sig_gps_p_ne = 2.0
-config.sig_gps_p_d  = 6.0
-config.sig_gps_v_ne = 0.5
-config.sig_gps_v_d  = 4.0
-config.sig_mag      = 1.0
+config = {
+    'sig_w_ax': 0.05,
+    'sig_w_ay': 0.05,
+    'sig_w_az': 0.05,
+    'sig_w_gx': 0.00175,
+    'sig_w_gy': 0.00175,
+    'sig_w_gz': 0.00175,
+    'sig_a_d': 0.02,
+    'tau_a': 100.0,
+    'sig_g_d': 0.0005,
+    'tau_g': 50.0,
+    'sig_gps_p_ne': 2.0,
+    'sig_gps_p_d': 6.0,
+    'sig_gps_v_ne': 0.5,
+    'sig_gps_v_d': 4.0,
+    'sig_mag': 1.0
+}
+
+import nav_ekf15
+filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
