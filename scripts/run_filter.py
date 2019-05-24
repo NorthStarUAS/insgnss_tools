@@ -200,29 +200,6 @@ plt.ylabel('Altitude (m)', weight='bold')
 plt.legend(loc=0)
 plt.grid()
 
-if False:
-    # Experimental map plot
-    import cartopy.crs as ccrs
-    import cartopy.io.img_tiles as cimgt
-    w = df0_gps['lon'].max() - df0_gps['lon'].min()
-    h = df0_gps['lat'].max() - df0_gps['lat'].min()
-
-    request = cimgt.OSM()
-    fig, ax = plt.subplots(subplot_kw=dict(projection=request.crs))
-    # (xmin, xmax, ymin, ymax)
-    extent = [ df0_gps['lon'].min() - 1.1*w,
-               df0_gps['lon'].max() + 1.1*w,
-               df0_gps['lat'].min() - 1.1*h,
-               df0_gps['lat'].max() + 1.1*h ]
-    ax.set_extent(extent)
-    ax.add_image(request, 10)
-
-    # do coordinate conversion of (x,y)
-    xynps = ax.projection.transform_points(ccrs.Geodetic(),
-                                           np.array(df0_gps['lon']),
-                                           np.array(df0_gps['lat']))
-    plt.plot(xynps[:,0], xynps[:,1])        
-
 # Top down flight track plot
 plt.figure()
 plt.title('Ground track')
