@@ -39,14 +39,14 @@ class filter():
         Cimu = self.imu_queue.pop()
         
         self.ekf.time_update(Cimu)
-        if gps['newData']:
+        if 'time' in gps:
             Cgps = GPSdata()
             Cgps.from_dict( gps )
             self.ekf.measurement_update(Cgps)
-        nav = self.ekf.get_nav()
+        nav_lag = self.ekf.get_nav()
 
-        # forward propagate
-        self.openloop.init_by_nav(nav)
+        # forward propagate from the lagged solution to new
+        self.openloop.init_by_nav(nav_lag)
         for imu in reversed(self.imu_queue):
             nav = self.openloop.update(imu)
             

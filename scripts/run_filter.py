@@ -90,10 +90,8 @@ for i in tqdm(range(iter.size())):
     imupt = record['imu']
     if 'gps' in record:
         gpspt = record['gps']
-        gpspt['newData'] = True
     else:
         gpspt = {}
-        gpspt['newData'] = False
     if 'air' in record:
         airpt = record['air']
     else:
@@ -148,7 +146,7 @@ r2d = np.rad2deg
 # Attitude
 att_fig, att_ax = plt.subplots(3, 1, sharex=True)
 
-att_ax[0].set_title("Attitude")
+att_ax[0].set_title("Attitude Angles")
 att_ax[0].set_ylabel('Roll (deg)', weight='bold')
 att_ax[0].plot(r2d(df1_nav['phi']), label=filter.name)
 att_ax[0].grid()
@@ -167,7 +165,7 @@ att_ax[2].legend(loc=1)
 fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
 # vn Plot
-ax1.set_title("Velocity")
+ax1.set_title("NED Velocities")
 ax1.set_ylabel('vn (mps)', weight='bold')
 ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', alpha=.5)
 ax1.plot(df1_nav['vn'], label=filter.name)
