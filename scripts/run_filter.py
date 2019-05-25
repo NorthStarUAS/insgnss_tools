@@ -26,14 +26,7 @@ r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
 
 path = args.flight
-if 'recalibrate' in args:
-    recal_file = args.recalibrate
-else:
-    recal_file = None
-data, flight_format = flight_loader.load(path, recal_file)
-
-print("Creating interpolation structures..")
-interp = flight_interp.InterpolationGroup(data)
+data, flight_format = flight_loader.load(path)
 
 print("imu records:", len(data['imu']))
 imu_dt = (data['imu'][-1]['time'] - data['imu'][0]['time']) \
@@ -42,12 +35,6 @@ print("imu dt: %.3f" % imu_dt)
 print("gps records:", len(data['gps']))
 if 'air' in data:
     print("airdata records:", len(data['air']))
-if 'filter' in data:
-    print("filter records:", len(data['filter']))
-if 'pilot' in data:
-    print("pilot records:", len(data['pilot']))
-if 'act' in data:
-    print("act records:", len(data['act']))
 if len(data['imu']) == 0 and len(data['gps']) == 0:
     print("not enough data loaded to continue.")
     quit()
@@ -77,7 +64,7 @@ filter.set_config(config)
 
 print("Running nav filter:")
 filter_init = False
-nav = []
+results = []
 
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
@@ -99,7 +86,7 @@ for i in tqdm(range(iter.size())):
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
     if filter_init:
-        nav.append(navpt)
+        results.append(navpt)
 
 # proper cleanup
 filter.close()
@@ -113,7 +100,7 @@ df0_gps.set_index('time', inplace=True, drop=False)
 df0_nav = pd.DataFrame(data['filter'])
 df0_nav.set_index('time', inplace=True, drop=False)
 
-df1_nav = pd.DataFrame(nav)
+df1_nav = pd.DataFrame(results)
 df1_nav.set_index('time', inplace=True, drop=False)
 
 r2d = np.rad2deg
