@@ -54,7 +54,7 @@ config = {
     'sig_gps_p_ne': 2.0,
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 4.0,
+    'sig_gps_v_d': 3.0,
     'sig_mag': 1.0
 }
 
@@ -99,6 +99,8 @@ df0_gps = pd.DataFrame(data['gps'])
 df0_gps.set_index('time', inplace=True, drop=False)
 df0_nav = pd.DataFrame(data['filter'])
 df0_nav.set_index('time', inplace=True, drop=False)
+df0_air = pd.DataFrame(data['air'])
+df0_air.set_index('time', inplace=True, drop=False)
 
 df1_nav = pd.DataFrame(results)
 df1_nav.set_index('time', inplace=True, drop=False)
@@ -146,6 +148,21 @@ ax3.plot(df1_nav['vd'], label=filter.name)
 ax3.set_xlabel('TIME (SECONDS)', weight='bold')
 ax3.grid()
 ax3.legend(loc=0)
+
+plt.figure()
+plt.title("Air Temp")
+plt.plot(df0_air['temp'])
+plt.grid()
+
+plt.figure()
+plt.title("Airspeed (kt)")
+plt.plot(df0_air['airspeed'])
+plt.grid()
+
+plt.figure()
+plt.title("Altitude (press)")
+plt.plot(df0_air['alt_press'])
+plt.grid()
 
 # Altitude
 plt.figure()
