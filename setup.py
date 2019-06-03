@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 
-from setuptools import setup, Extension
+from setuptools import setup, find_packages, Extension
 
-setup(name='navigation',
-      version='1.2',
+setup(name='aurauas_navigation',
+      version='1.3',
       description='Navigation Tools',
       author='Curtis L. Olson',
       author_email='curtolson@flightgear.org',
       url='https://github.com/AuraUAS',
       #py_modules=['props', 'props_json', 'props_xml'],
       #package_dir = {'': 'lib'},
-      packages=['navigation'],
+      packages = find_packages(),
       ext_modules=[
-          Extension('navigation.structs',
+          Extension('aurauas_navigation.structs',
                     define_macros=[('HAVE_PYBIND11', '1')],
                     sources=['src/nav_common/structs.cxx'],
                     depends=['src/nav_common/structs.hxx']),
-          Extension('navigation.filters',
+          Extension('aurauas_navigation.filters',
                     define_macros=[('HAVE_PYBIND11', '1')],
                     sources=['src/filters.cxx',
                              'src/nav_ekf15/EKF_15state.cxx',
