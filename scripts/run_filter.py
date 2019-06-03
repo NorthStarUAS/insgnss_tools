@@ -14,7 +14,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from aurauas.flightdata import flight_loader, flight_interp
+from aurauas_flightdata import flight_loader, flight_interp
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
@@ -149,20 +149,22 @@ ax3.set_xlabel('TIME (SECONDS)', weight='bold')
 ax3.grid()
 ax3.legend(loc=0)
 
-plt.figure()
-plt.title("Air Temp")
-plt.plot(df0_air['temp'])
-plt.grid()
+if 'temp' in df0_air:
+    plt.figure()
+    plt.title("Air Temp")
+    plt.plot(df0_air['temp'])
+    plt.grid()
 
 plt.figure()
 plt.title("Airspeed (kt)")
 plt.plot(df0_air['airspeed'])
 plt.grid()
 
-plt.figure()
-plt.title("Altitude (press)")
-plt.plot(df0_air['alt_press'])
-plt.grid()
+if 'alt_press' in df0_air:
+    plt.figure()
+    plt.title("Altitude (press)")
+    plt.plot(df0_air['alt_press'])
+    plt.grid()
 
 # Altitude
 plt.figure()
