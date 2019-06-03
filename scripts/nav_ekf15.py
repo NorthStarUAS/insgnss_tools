@@ -2,13 +2,13 @@ import numpy as np
 import os
 import sys
 
-from navigation.structs import IMUdata, GPSdata, NAVconfig
-import navigation.filters
+from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
+import aurauas_navigation.filters
 
 class filter():
     def __init__(self, gps_lag_sec=0.0, imu_dt=0.02):
-        self.ekf = navigation.filters.EKF15()
-        self.openloop = navigation.filters.OpenLoop()
+        self.ekf = aurauas_navigation.filters.EKF15()
+        self.openloop = aurauas_navigation.filters.OpenLoop()
         self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
         print("gps lag frame:", self.gps_lag_frames)
         self.imu_queue = []
