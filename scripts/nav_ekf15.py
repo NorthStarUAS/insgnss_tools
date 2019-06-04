@@ -3,16 +3,16 @@ import os
 import sys
 
 from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
-import aurauas_navigation.filters
+from aurauas_navigation.filters import EKF15
 
 class filter():
     def __init__(self, gps_lag_sec=0.0, imu_dt=0.02):
-        self.ekf = aurauas_navigation.filters.EKF15()
+        self.ekf = EKF15()
+        self.name = 'EKF15'
         self.openloop = aurauas_navigation.filters.OpenLoop()
         self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
         print("gps lag frame:", self.gps_lag_frames)
         self.imu_queue = []
-        self.name = 'EKF15'
 
     def set_config(self, config):
         Cconfig = NAVconfig()

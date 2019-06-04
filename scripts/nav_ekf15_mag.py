@@ -2,59 +2,56 @@ import numpy as np
 import os
 import sys
 
-import navigation.filters
+from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
+from aurauas_navigation.filters import EKF15_mag
 
-def mkIMUdata( src ):
-    result = navigation.structs.IMUdata()
-    result.time = src.time
-    result.p = src.p
-    result.q = src.q
-    result.r = src.r
-    result.ax = src.ax
-    result.ay = src.ay
-    result.az = src.az
-    result.hx = src.hx
-    result.hy = src.hy
-    result.hz = src.hz
-    result.temp = src.temp
-    return result
-
-def mkGPSdata( src ):
-    result = navigation.structs.GPSdata()
-    result.time = src.time
-    result.lat = src.lat
-    result.lon = src.lon
-    result.alt = src.alt
-    result.vn = src.vn
-    result.ve = src.ve
-    result.vd = src.vd
-    result.sats = src.sats
-    result.newData = src.newData
-    return result
-    
 class filter():
-    def __init__(self):
-        self.ekf = navigation.filters.EKF15_mag()
+    def __init__(self, gps_lag_sec=0.0, imu_dt=0.02):
+        self.ekf = EKF15_mag()
         self.name = 'EKF15_mag'
+        self.openloop = aurauas_navigation.filters.OpenLoop()
+        self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
+        print("gps lag frame:", self.gps_lag_frames)
+        self.imu_queue = []
 
     def set_config(self, config):
-        self.ekf.set_config(config)
+        Cconfig = NAVconfig()
+        Cconfig.from_dict(config)
+        self.ekf.set_config(Cconfig)
         
-    def init(self, imu, gps, filterpt=None):
-        Cimu = mkIMUdata( imu )
-        Cgps = mkGPSdata( gps )
+    def init(self, imu, gps):
+        Cimu = IMUdata()
+        Cimu.from_dict(imu)
+        Cgps = GPSdata()
+        Cgps.from_dict( gps )
+        while len(self.imu_queue) < self.gps_lag_frames:
+            self.imu_queue.append(Cimu)
         self.ekf.init(Cimu, Cgps)
         nav = self.ekf.get_nav()
-        return nav
+        return nav.as_dict()
 
-    def update(self, imu, gps, filterpt=None):
-        Cimu = mkIMUdata( imu )
+    def update(self, imu, gps):
+        Cimu = IMUdata()
+        Cimu.from_dict(imu)
+
+        # queue delay
+        self.imu_queue.insert(0, Cimu)
+        Cimu = self.imu_queue.pop()
+        
         self.ekf.time_update(Cimu)
-        if gps.newData:
-            Cgps = mkGPSdata( gps )
-            self.ekf.measurement_update(Cimu, Cgps)
+        if 'time' in gps:
+            Cgps = GPSdata()
+            Cgps.from_dict( gps )
+            self.ekf.measurement_update(Cgps)
         nav = self.ekf.get_nav()
-        return nav
+
+        if len(self.imu_queue):
+            # forward propagate from the lagged solution to new
+            self.openloop.init_by_nav(nav)
+            for imu in reversed(self.imu_queue):
+                nav = self.openloop.update(imu)
+            
+        return nav.as_dict()
 
     def close(self):
         pass
