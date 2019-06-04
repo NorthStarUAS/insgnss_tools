@@ -134,9 +134,11 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     quat = eul2quat(nav.phi, nav.the, nav.psi);
 	
     nav.abx = 0.0;
-    nav.aby = 0.0; 
+    nav.aby = 0.0;
     nav.abz = 0.0;
-	
+
+    // I might want to initialize these to zero assuming imu driver
+    // has made some plausible attempt to zero it's own gyro biases.
     nav.gbx = imu.p;
     nav.gby = imu.q;
     nav.gbz = imu.r;
@@ -287,7 +289,7 @@ void EKF15::time_update(IMUdata imu) {
     // ==================  DONE TU  ===================
 }
 
-void EKF15::measurement_update(GPSdata gps) {
+void EKF15::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
 		
     // Position, converted to NED

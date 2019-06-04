@@ -52,7 +52,7 @@ public:
     // main interface
     void init(IMUdata imu, GPSdata gps);
     void time_update(IMUdata imu);
-    void measurement_update(GPSdata gps);
+    void measurement_update(IMUdata imu, GPSdata gps);
     
     NAVdata get_nav();
     
