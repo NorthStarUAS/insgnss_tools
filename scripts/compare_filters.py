@@ -20,13 +20,12 @@ import pandas as pd
 import time
 from tqdm import tqdm
 
-from aurauas.flightdata import flight_loader, flight_interp
+from aurauas_flightdata import flight_loader, flight_interp
 
 # filter interfaces
-import nav_ekf15
-import nav_ekf15_mag
-import nav_openloop
+import nav_wrapper
 
+# support routines
 import alpha_beta
 import wind
 import synth_asi
@@ -34,7 +33,8 @@ import battery
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
-parser.add_argument('--recalibrate', help='recalibrate raw imu from some other calibration file')
+parser.add_argument('--gps-lag-sec', type=float, default=0.2,
+                    help='gps lag (sec)')
 parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
 args = parser.parse_args()
 
@@ -46,10 +46,6 @@ PLOT = { 'ATTITUDE': True,
          'WIND': True,
          'SYNTH_ASI': False,
          'BIASES': True }
-
-filter1 = nav_ekf15.filter()
-filter2 = nav_ekf15.filter()
-#filter2 = nav_openloop.filter()
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
@@ -95,16 +91,15 @@ def run_filter(filter, data, call_init=True):
     return results, elapsed_sec
 
 path = args.flight
-if 'recalibrate' in args:
-    recal_file = args.recalibrate
-else:
-    recal_file = None
-data, flight_format = flight_loader.load(path, recal_file)
+data, flight_format = flight_loader.load(path)
 
 print("Creating interpolation structures..")
 interp = flight_interp.InterpolationGroup(data)
 
 print("imu records:", len(data['imu']))
+imu_dt = (data['imu'][-1]['time'] - data['imu'][0]['time']) \
+    / float(len(data['imu']))
+print("imu dt: %.3f" % imu_dt)
 print("gps records:", len(data['gps']))
 if 'air' in data:
     print("airdata records:", len(data['air']))
@@ -157,7 +152,7 @@ if False:
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
         
 # Default config
-config = {
+config1 = {
     'sig_w_ax': 0.05,
     'sig_w_ay': 0.05,
     'sig_w_az': 0.05,
@@ -171,17 +166,16 @@ config = {
     'sig_gps_p_ne': 2.0,
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 1.5,
-    'sig_mag': 1.0
+    'sig_gps_v_d': 3.0,
+    'sig_mag': 0.3
 }
-filter1.set_config(config)
 
+config2 = dict(config1)
 # more trust in gps (sentera camera, low change in velocity?)
-config['sig_gps_p_ne'] = 2.0
-config['sig_gps_p_d'] = 4.0
-config['sig_gps_v_ne'] = 0.3
-config['sig_gps_v_d'] = 0.6
-filter2.set_config(config)
+config2['sig_gps_p_ne'] = 2.0
+config2['sig_gps_p_d'] = 4.0
+config2['sig_gps_v_ne'] = 0.3
+config2['sig_gps_v_d'] = 2.0
 
 # almost no trust in IMU ...
 # config': navigation.structs.NAVconfig()
@@ -241,13 +235,17 @@ filter2.set_config(config)
 # 'sig_mag': 0.3,
 # filter1.set_config(config)
 
+filter1 = nav_wrapper.filter(nav='EKF15',
+                            gps_lag_sec=args.gps_lag_sec,
+                            imu_dt=imu_dt)
+filter2 = nav_wrapper.filter(nav='EKF15_mag',
+                            gps_lag_sec=args.gps_lag_sec,
+                            imu_dt=imu_dt)
+
+filter1.set_config(config1)
+filter2.set_config(config2)
+
 nav1, filter1_sec = run_filter(filter1, data)
-
-if args.synthetic_airspeed:
-    print("building synthetic air data estimator...")
-    if 'act' in data:
-        PLOT['SYNTH_ASI'] = synth_asi.build()
-
 nav2, filter2_sec = run_filter(filter2, data)
 
 print("filter1 time = %.4f" % filter1_sec)

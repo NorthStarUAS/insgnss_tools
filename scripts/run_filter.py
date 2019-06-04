@@ -16,6 +16,8 @@ from tqdm import tqdm
 
 from aurauas_flightdata import flight_loader, flight_interp
 
+import nav_wrapper
+
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
@@ -55,11 +57,12 @@ config = {
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
     'sig_gps_v_d': 3.0,
-    'sig_mag': 1.0
+    'sig_mag': 0.1
 }
 
-import nav_ekf15
-filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
+filter = nav_wrapper.filter(nav='EKF15_mag',
+                            gps_lag_sec=args.gps_lag_sec,
+                            imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
@@ -101,6 +104,9 @@ df0_nav = pd.DataFrame(data['filter'])
 df0_nav.set_index('time', inplace=True, drop=False)
 df0_air = pd.DataFrame(data['air'])
 df0_air.set_index('time', inplace=True, drop=False)
+if 'act' in data:
+    df0_act = pd.DataFrame(data['act'])
+    df0_act.set_index('time', inplace=True, drop=False)
 
 df1_nav = pd.DataFrame(results)
 df1_nav.set_index('time', inplace=True, drop=False)
@@ -166,6 +172,12 @@ if 'alt_press' in df0_air:
     plt.plot(df0_air['alt_press'])
     plt.grid()
 
+if 'act' in data:
+    plt.figure()
+    plt.title("Throttle")
+    plt.plot(df0_act['throttle'])
+    plt.grid()
+
 # Altitude
 plt.figure()
 plt.title('Altitude')
@@ -191,16 +203,19 @@ bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 # Gyro Biases
 bias_ax[0,0].set_title("IMU Biases")
 bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
+bias_ax[0,0].plot(r2d(df0_nav['p_bias']), c='g', label='On Board')
 bias_ax[0,0].plot(r2d(df1_nav['gbx']), label=filter.name)
 bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[0,0].grid()
 
 bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
+bias_ax[1,0].plot(r2d(df0_nav['q_bias']), c='g', label='On Board')
 bias_ax[1,0].plot(r2d(df1_nav['gby']), label=filter.name)
 bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[1,0].grid()
 
 bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
+bias_ax[2,0].plot(r2d(df0_nav['r_bias']), c='g', label='On Board')
 bias_ax[2,0].plot(r2d(df1_nav['gbz']), label=filter.name)
 bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
 bias_ax[2,0].grid()
@@ -208,16 +223,19 @@ bias_ax[2,0].grid()
 # Accel Biases
 bias_ax[0,1].set_title("Accel Biases")
 bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
+bias_ax[0,1].plot(df0_nav['ax_bias'], c='g', label='On Board')
 bias_ax[0,1].plot(df1_nav['abx'], label=filter.name)
 bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[0,1].grid()
 
 bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
+bias_ax[1,1].plot(df0_nav['ay_bias'], c='g', label='On Board')
 bias_ax[1,1].plot(df1_nav['aby'], label=filter.name)
 bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[1,1].grid()
 
 bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
+bias_ax[2,1].plot(df0_nav['az_bias'], c='g', label='On Board')
 bias_ax[2,1].plot(df1_nav['abz'], label=filter.name)
 bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[2,1].grid()
