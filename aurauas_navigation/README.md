@@ -1,4 +1,4 @@
-This directory is empty except for a lone/empty __init__.py file to 
+This directory is empty except for a lone/empty `__init__.py` file to 
 satisfy the python module system.
 
 All the real code is under src/ and is compiled as shared libraries and
