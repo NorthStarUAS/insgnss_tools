@@ -1,4 +1,4 @@
-# navigation
+# aura-navigation
 
 Navigation (EKF) toolbox with python wrappers.  Suitable for use in
 small UAS applications.  The code is structured with dual C++ and
@@ -19,9 +19,9 @@ Mechanics Deptarment, University of Minnesota.
 
 # Supported data log formats:
 
-* Aura text format
+* AuraUAS HDF5 and CSV formats
 
-* UMN .mat (matlab, hdf5)
+* UMN1 (.mat) and UMN3 (HDF5)
 
 * Ardupilot tlog (partial support, I would be happy to find a
   volunteer to improve this.)
@@ -29,7 +29,6 @@ Mechanics Deptarment, University of Minnesota.
 * PX4 sdlog2_dump and ulog2csv formats (CSV).
 
 * Sentera camera IMU format
-
 
 # Available filters
 
@@ -50,8 +49,7 @@ Mechanics Deptarment, University of Minnesota.
   used with the piece-wise segment optimizer or used to forward
   propagate an EKF solution computed slightly in the past.
 
-
-# Script Fron End Features:
+# Script Front End Features:
 
 * Run two filters (or the same filter with different noise settings)
   and plot the results side by side.
@@ -62,13 +60,5 @@ Mechanics Deptarment, University of Minnesota.
 * Uses pybind11 so that the same core C++ code can be used from either
   C++ or python applications.
 
-
-# Calibration:
-
-* Includes code that can import a flight data set and do a least
-  squares fit of an ellipsoid to the magnetometer data to callibrate
-  the magnetometer.
-
-* Includes code that can compare the expected ideal mag vector (based
-  on location, date, and aircraft orientation) versus the actual
-  sensed mag vector and do a best fit (mag calibration) from flight data.
+* Includes an example wrapper that demonstrates how to account for a
+  known amount of GPS latency.
