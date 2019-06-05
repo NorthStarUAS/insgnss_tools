@@ -107,6 +107,10 @@ df0_air.set_index('time', inplace=True, drop=False)
 if 'act' in data:
     df0_act = pd.DataFrame(data['act'])
     df0_act.set_index('time', inplace=True, drop=False)
+df0_pilot = pd.DataFrame(data['pilot'])
+df0_pilot.set_index('time', inplace=True, drop=False)
+df0_health = pd.DataFrame(data['health'])
+df0_health.set_index('time', inplace=True, drop=False)
 
 df1_nav = pd.DataFrame(results)
 df1_nav.set_index('time', inplace=True, drop=False)
@@ -174,9 +178,24 @@ if 'alt_press' in df0_air:
 
 if 'act' in data:
     plt.figure()
-    plt.title("Throttle")
-    plt.plot(df0_act['throttle'])
+    plt.title("Pilot Inputs (sbus)")
+    plt.plot(df0_pilot['auto_manual']+0.05, label='auto')
+    plt.plot(df0_pilot['throttle_safety']+0.1, label='safety')
+    plt.plot(df0_pilot['throttle'], label='throttle')
+    plt.plot(df0_pilot['aileron'], label='aileron')
+    plt.plot(df0_pilot['elevator'], label='elevator')
+    plt.plot(df0_pilot['rudder'], label='rudder')
+    plt.plot(df0_pilot['flaps'], label='flaps')
+    plt.plot(df0_pilot['aux1'], label='aux1')
+    plt.legend()
     plt.grid()
+
+plt.figure()
+plt.title("Avionics VCC")
+plt.plot(df0_health['avionics_vcc'])
+plt.plot(df0_health['main_vcc'])
+plt.plot(df0_health['load_avg'])
+plt.grid()
 
 # Altitude
 plt.figure()
