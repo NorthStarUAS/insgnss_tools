@@ -24,6 +24,8 @@ args = parser.parse_args()
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
+m2nm = 0.0005399568034557235    # meters to nautical miles
+mps2kt = 1.94384               # m/s to kts
 
 path = args.flight
 data, flight_format = flight_loader.load(path)
@@ -39,11 +41,27 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     print("not enough data loaded to continue.")
     quit()
 
+# make data frames for easier plotting
+df0_gps = pd.DataFrame(data['gps'])
+df0_gps.set_index('time', inplace=True, drop=False)
+df0_nav = pd.DataFrame(data['filter'])
+df0_nav.set_index('time', inplace=True, drop=False)
+df0_air = pd.DataFrame(data['air'])
+df0_air.set_index('time', inplace=True, drop=False)
+if 'act' in data:
+    df0_act = pd.DataFrame(data['act'])
+    df0_act.set_index('time', inplace=True, drop=False)
+
+
+airborne = None
+mission = None
+land = None
+odometer = 0.0
+flight_time = 0.0
+log_time = data['imu'][-1]['time'] - data['imu'][0]['time']
+
 # Scan events log if it exists
 if 'event' in data:
-    airborne = None
-    mission = None
-    land = None
     messages = []
     for event in data['event']:
         time = event['time']
@@ -71,39 +89,221 @@ if 'event' in data:
 
 # Iterate through the flight and collect some stats
 print("Collecting flight stats:")
+in_flight = False
+ap_time = 0.0
+ap_enabled = False
+last_time = 0.0
+total_mah = 0.0
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
     record = iter.next()
-    imupt = record['imu']
+    imu = record['imu']
     if 'gps' in record:
-        gpspt = record['gps']
-    else:
-        gpspt = {}
-
+        gps = record['gps']
+    if 'air' in record:
+        air = record['air']
+        if not airborne and air['airspeed'] >= 15:
+            airborne = air['time']
+        if airborne and not land and air['airspeed'] <= 10:
+            land = air['time']
+        if air['airspeed'] >= 15:
+            in_flight = True
+        else:
+            in_flight = False
+    if 'pilot' in record:
+        pilot = record['pilot']
+        if pilot['auto_manual'] > 0.0:
+            ap_enabled = True
+        else:
+            ap_enable = False
+    if 'health' in record:
+        health = record['health']
+        if 'total_mah' in health:
+            total_mah = health['total_mah']
+    if 'filter' in record:
+        nav = record['filter']
+        current_time = nav['time']
+        dt = current_time - last_time
+        last_time = current_time
+        if in_flight:
+            flight_time += dt
+            vn = nav['vn']
+            ve = nav['ve']
+            vel_ms = math.sqrt(vn*vn + ve*ve)
+            odometer += vel_ms * dt
+        if in_flight and ap_enabled:
+            ap_time += dt
+        
 # Generate markdown report
 f = open("report.md", "w")
 
-plotname = os.path.basename(args.flight)    
+plotname = os.path.basename(args.flight.rstrip('/'))
 
 f.write("# Flight Report\n")
 f.write("\n")
 f.write("## Summary\n")
-f.write("- File: " + plotname + "\n")
-sec = data['gps'][0]['unix_sec']
-d = datetime.datetime.utcfromtimestamp(sec)
-f.write("- Date: " + d.strftime("%Y-%m-%d %H:%M:%S") + " (UTC)\n")
+f.write("- File: %s\n" % plotname)
+d = datetime.datetime.utcfromtimestamp( data['gps'][0]['unix_sec'] )
+f.write("- Date: %s (UTC)\n" % d.strftime("%Y-%m-%d %H:%M:%S"))
+f.write("- Log time: %.1f minutes\n" % (log_time / 60.0))
+f.write("- Flight time: %.1f minutes\n" % (flight_time / 60.0))
+if ap_time > 0.0:
+    f.write("- Autopilot time: %.1f minutes\n" % (ap_time / 60.0))
+if odometer > 0.0:
+    f.write("- Flight distance: %.2f nm (%.2f km)\n" % (odometer*m2nm, odometer/1000.0))
+if odometer > 0.0 and flight_time > 0.0:
+    gs_mps = odometer / flight_time
+    f.write("- Average ground speed: %.1f kts (%.1f m/s)\n" % (gs_mps * mps2kt, gs_mps))
+if total_mah > 0.0:
+    f.write("- Total Battery: " + "%0f" % total_mah + " (mah)\n")
 f.write("\n")
 
+# Weather Summary
 
-df0_gps = pd.DataFrame(data['gps'])
-df0_gps.set_index('time', inplace=True, drop=False)
-df0_nav = pd.DataFrame(data['filter'])
-df0_nav.set_index('time', inplace=True, drop=False)
-df0_air = pd.DataFrame(data['air'])
-df0_air.set_index('time', inplace=True, drop=False)
-if 'act' in data:
-    df0_act = pd.DataFrame(data['act'])
-    df0_act.set_index('time', inplace=True, drop=False)
+apikey = None
+try:
+    from os.path import expanduser
+    home = expanduser("~")
+    fio = open(home + '/.forecastio')
+    apikey = fio.read().rstrip()
+    fio.close()
+except:
+    print("you must sign up for a free apikey at forecast.io and insert it as a single line inside a file called ~/.forecastio (with no other text in the file)")
+
+unix_sec = data['gps'][0]['unix_sec']
+lat = data['gps'][0]['lat']
+lon = data['gps'][0]['lon']
+
+if not apikey:
+    print("Cannot lookup weather because no forecastio apikey found.")
+elif unix_sec < 1:
+    print("Cannot lookup weather because gps didn't report unix time.")
+else:
+    f.write("## Weather\n")
+    d = datetime.datetime.utcfromtimestamp(unix_sec)
+    print(d.strftime("%Y-%m-%d-%H:%M:%S"))
+
+    url = 'https://api.darksky.net/forecast/' + apikey + '/%.8f,%.8f,%.d' % (lat, lon, unix_sec)
+
+    import urllib.request, json
+    response = urllib.request.urlopen(url)
+    wx = json.loads(response.read())
+    mph2kt = 0.868976
+    mb2inhg = 0.0295299830714
+    if 'currently' in wx:
+        currently = wx['currently']
+        #for key in currently:
+        #    print key, ':', currently[key]
+        if 'icon' in currently:
+            icon = currently['icon']
+            f.write("- Conditions: " + icon + "\n")
+        if 'temperature' in currently:
+            tempF = currently['temperature']
+            tempC = (tempF - 32.0) * 5 / 9
+            f.write("- Temperature: %.1f F" % tempF + " (%.1f C)" % tempC + "\n")
+        if 'dewPoint' in currently:
+            dewF = currently['dewPoint']
+            dewC = (dewF - 32.0) * 5 / 9
+            f.write("- Dewpoint: %.1f F" % dewF + " (%.1f C)" % dewC + "\n")
+        if 'humidity' in currently:
+            hum = currently['humidity']
+            f.write("- Humidity: %.0f%%" % (hum * 100.0) + "\n")
+        if 'pressure' in currently:
+            mbar = currently['pressure']
+            inhg = mbar * mb2inhg
+            f.write("- Pressure: %.2f inhg" % inhg + " (%.1f mbar)" % mbar + "\n")
+        if 'windSpeed' in currently:
+            wind_mph = currently['windSpeed']
+            wind_kts = wind_mph * mph2kt
+        else:
+            wind_mph = 0
+            wind_kts = 0
+        if 'windBearing' in currently:
+            wind_deg = currently['windBearing']
+        else:
+            wind_deg = 0
+        f.write("- Wind %d deg @ %.1f kt (%.1f mph)" % (wind_deg, wind_kts, wind_mph) + "\n")
+        if 'visibility' in currently:
+            vis = currently['visibility']
+            f.write("- Visibility: %.1f miles" % vis + "\n")
+        if 'cloudCover' in currently:
+            cov = currently['cloudCover']
+            f.write("- Cloud Cover: %.0f%%" % (cov * 100.0) + "\n")
+        f.write("- METAR: KXYZ " + d.strftime("%d%H%M") + "Z" +
+                " %03d%02dKT" % (round(wind_deg/10)*10, wind_kts) +
+                " " + ("%.1f" % vis).rstrip('0').rstrip(".") + "SM" +
+                " " + ("%.0f" % tempC).replace('-', 'M') + "/" +
+                ("%.0f" % dewC).replace('-', 'M') +
+                " A%.0f=\n" % (inhg*100)
+        )
+    f.write("\n")
+
+if 'wind_dir' in data['air'][0]:
+    # use logged wind estimate
+    f.write("## Winds Aloft\n")
+    wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
+    wind_ax[0].set_title("Winds Aloft")
+    wind_ax[0].set_ylabel("Heading (degrees)", weight='bold')
+    wind_ax[0].plot(df0_air['wind_dir'])
+    wind_ax[0].grid()
+    wind_ax[0].legend()
+    wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
+    wind_ax[1].plot(df0_air['wind_speed'])
+    wind_ax[1].plot(df0_air['pitot_scale'])
+    wind_ax[1].grid()
+    wind_ax[1].legend()
+    f.write(mpld3.fig_to_html(wind_fig, no_extras=True))
+else:
+    # run a quick wind estimate
+    import wind
+    print("Estimating winds aloft:")
+    winds = []
+    airspeed = 0
+    psi = 0
+    vn = 0
+    ve = 0
+    wind_deg = 0
+    wind_kt = 0
+    ps = 0
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            t = record['imu']['time']
+            if 'air' in record:
+                airspeed = record['air']['airspeed']
+            if 'filter' in record:
+                psi = record['filter']['psi']
+                vn = record['filter']['vn']
+                ve = record['filter']['ve']
+            if airspeed > 10.0:
+                (wn, we, ps) = wind.update(t, airspeed, psi, vn, ve)
+                #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
+                wind_deg = 90 - math.atan2(wn, we) * r2d
+                if wind_deg < 0: wind_deg += 360.0
+                wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
+                #print wn, we, ps, wind_deg, wind_kt
+            # make sure we log one record per each imu record
+            winds.append( { 'time': t,
+                            'wind_deg': wind_deg,
+                            'wind_kt': wind_kt,
+                            'pitot_scale': ps } )
+    df1_wind = pd.DataFrame(winds)
+    df1_wind.set_index('time', inplace=True, drop=False)
+    f.write("## Winds Aloft\n")
+    wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
+    wind_ax[0].set_title("Winds Aloft")
+    wind_ax[0].set_ylabel("Heading (from degrees)", weight='bold')
+    wind_ax[0].plot(df1_wind['wind_deg'])
+    wind_ax[0].grid()
+    wind_ax[0].legend()
+    wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
+    wind_ax[1].plot(df1_wind['wind_kt'])
+    wind_ax[1].plot(df1_wind['pitot_scale'])
+    wind_ax[1].grid()
+    wind_ax[1].legend()
+    f.write(mpld3.fig_to_html(wind_fig, no_extras=True))
+
 
 r2d = np.rad2deg
 
