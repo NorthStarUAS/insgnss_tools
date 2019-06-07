@@ -10,6 +10,7 @@ import argparse
 import datetime
 import math
 from matplotlib import pyplot as plt
+import matplotlib.transforms
 #import mpld3
 import numpy as np
 import os
@@ -87,6 +88,19 @@ if 'event' in data:
         elif len(tokens) == 4 and tokens[0] == 'APM2' and tokens[1] == 'Serial' and tokens[2] == 'Number:':
             auto_sn = int(tokens[3])
 
+# make time regions
+label = "n/a"
+startE = 0.0
+regions = []
+for event in data['event']:
+    if event['message'][:7] == "Test ID":
+        label = event['message']
+    if event['message'] == "Excitation Start":
+        startE = event['time']
+    if event['message'] == "Excitation End":
+        regions.append( [startE, event['time'], label] )
+print(regions)
+    
 # Iterate through the flight and collect some stats
 print("Collecting flight stats:")
 in_flight = False
@@ -238,6 +252,21 @@ else:
         )
     f.write("\n")
 
+# add a shaded time region(s) to plot
+blend = matplotlib.transforms.blended_transform_factory
+def add_regions(plot, regions):
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+              '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    trans = blend(plot.transData, plot.transAxes)
+    for i, region in enumerate(regions):
+        plot.axvspan(region[0], region[1], color=colors[i % len(colors)],
+                     alpha=0.25)
+        plot.text(region[0], 0.5, region[2], transform=trans,
+                  verticalalignment='center',
+                  rotation=90, color=colors[i % len(colors)])
+
+
+        
 if not 'wind_dir' in data['air'][0]:
     # run a quick wind estimate
     import wind
@@ -257,16 +286,40 @@ wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
 wind_ax[0].set_title("Winds Aloft")
 wind_ax[0].set_ylabel("Heading (degrees)", weight='bold')
 wind_ax[0].plot(time, wind_dir)
-wind_ax[0].axvspan(airborne, land, color='green', alpha=0.25)
+#wind_ax[0].axvspan(airborne, land, color='green', alpha=0.25)
+#wind_ax[0].axvspan(airborne, land, alpha=0.25)
+add_regions(wind_ax[0], [[airborne, land, "Airborne"]])
 wind_ax[0].grid()
 wind_ax[0].legend()
 wind_ax[1].set_xlabel("Time (secs)", weight='bold')
 wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
 wind_ax[1].plot(time, wind_speed)
 wind_ax[1].plot(time, pitot_scale)
-wind_ax[1].axvspan(airborne, land, color='green', alpha=0.25)
+#wind_ax[1].axvspan(airborne, land, color='green', alpha=0.25)
+add_regions(wind_ax[1], [[airborne, land, "Airborne"]])
 wind_ax[1].grid()
 wind_ax[1].legend()
+
+# How bad are your magnetometers?
+import mags
+result = mags.estimate(data)
+df1_mags = pd.DataFrame(result)
+plt.figure()
+plt.title("Magnetometer Norm vs. Throttle")
+plt.plot(df1_mags['time'], df1_mags['throttle'])
+avg = df1_mags['mag_norm'].mean()
+plt.plot(df1_mags['time'], df1_mags['mag_norm']/avg)
+plt.xlabel("Time (secs)", weight='bold')
+plt.ylabel("Mag Norm", weight='bold')
+plt.legend()
+plt.grid()
+
+plt.figure()
+plt.title("Magnetometer Norm vs. Throttle Correlation")
+plt.plot(df1_mags['throttle'], df1_mags['mag_norm']/avg, '*')
+plt.xlabel("Throttle (norm)", weight='bold')
+plt.ylabel("Magnetometer norm", weight='bold')
+plt.grid()
 
 r2d = np.rad2deg
 
@@ -276,14 +329,17 @@ att_fig, att_ax = plt.subplots(3, 1, sharex=True)
 att_ax[0].set_title("Attitude Angles")
 att_ax[0].set_ylabel('Roll (deg)', weight='bold')
 att_ax[0].plot(r2d(df0_nav['phi']))
+add_regions(att_ax[0], regions)
 att_ax[0].grid()
 
 att_ax[1].set_ylabel('Pitch (deg)', weight='bold')
 att_ax[1].plot(r2d(df0_nav['the']))
+add_regions(att_ax[1], regions)
 att_ax[1].grid()
 
 att_ax[2].set_ylabel('Yaw (deg)', weight='bold')
 att_ax[2].plot(r2d(df0_nav['psi']))
+add_regions(att_ax[2], regions)
 att_ax[2].set_xlabel('Time (sec)', weight='bold')
 att_ax[2].grid()
 att_ax[2].legend(loc=1)
@@ -300,19 +356,22 @@ ax1.set_title("NED Velocities")
 ax1.set_ylabel('vn (mps)', weight='bold')
 ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', alpha=.5)
 ax1.plot(df0_nav['vn'], label='EKF')
+add_regions(ax1, regions)
 ax1.grid()
 
 # ve Plot
 ax2.set_ylabel('ve (mps)', weight='bold')
 ax2.plot(df0_gps['ve'], '-*', label='GPS Sensor', c='g', alpha=.5)
 ax2.plot(df0_nav['ve'], label='EKF')
+add_regions(ax2, regions)
 ax2.grid()
 
 # vd Plot
 ax3.set_ylabel('vd (mps)', weight='bold')
 ax3.plot(df0_gps['vd'], '-*', label='GPS Sensor', c='g', alpha=.5)
 ax3.plot(df0_nav['vd'], label='EKF')
-ax3.set_xlabel('TIME (SECONDS)', weight='bold')
+add_regions(ax3, regions)
+ax3.set_xlabel('Time (secs)', weight='bold')
 ax3.grid()
 ax3.legend(loc=0)
 
@@ -340,10 +399,11 @@ if 'act' in data:
     plt.grid()
 
 # Altitude
-plt.figure()
+fig = plt.figure()
 plt.title('Altitude')
 plt.plot(df0_gps['alt'], '-*', label='GPS Sensor', c='g', alpha=.5)
 plt.plot(df0_nav['alt'], label='EKF')
+add_regions(fig.gca(), regions)
 plt.ylabel('Altitude (m)', weight='bold')
 plt.legend(loc=0)
 plt.grid()
