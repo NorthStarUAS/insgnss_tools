@@ -10,7 +10,7 @@ import argparse
 import datetime
 import math
 from matplotlib import pyplot as plt
-import mpld3
+#import mpld3
 import numpy as np
 import os
 import pandas as pd
@@ -238,72 +238,35 @@ else:
         )
     f.write("\n")
 
-if 'wind_dir' in data['air'][0]:
-    # use logged wind estimate
-    f.write("## Winds Aloft\n")
-    wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
-    wind_ax[0].set_title("Winds Aloft")
-    wind_ax[0].set_ylabel("Heading (degrees)", weight='bold')
-    wind_ax[0].plot(df0_air['wind_dir'])
-    wind_ax[0].grid()
-    wind_ax[0].legend()
-    wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
-    wind_ax[1].plot(df0_air['wind_speed'])
-    wind_ax[1].plot(df0_air['pitot_scale'])
-    wind_ax[1].grid()
-    wind_ax[1].legend()
-    f.write(mpld3.fig_to_html(wind_fig, no_extras=True))
-else:
+if not 'wind_dir' in data['air'][0]:
     # run a quick wind estimate
     import wind
-    print("Estimating winds aloft:")
-    winds = []
-    airspeed = 0
-    psi = 0
-    vn = 0
-    ve = 0
-    wind_deg = 0
-    wind_kt = 0
-    ps = 0
-    iter = flight_interp.IterateGroup(data)
-    for i in tqdm(range(iter.size())):
-        record = iter.next()
-        if len(record):
-            t = record['imu']['time']
-            if 'air' in record:
-                airspeed = record['air']['airspeed']
-            if 'filter' in record:
-                psi = record['filter']['psi']
-                vn = record['filter']['vn']
-                ve = record['filter']['ve']
-            if airspeed > 10.0:
-                (wn, we, ps) = wind.update(t, airspeed, psi, vn, ve)
-                #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
-                wind_deg = 90 - math.atan2(wn, we) * r2d
-                if wind_deg < 0: wind_deg += 360.0
-                wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
-                #print wn, we, ps, wind_deg, wind_kt
-            # make sure we log one record per each imu record
-            winds.append( { 'time': t,
-                            'wind_deg': wind_deg,
-                            'wind_kt': wind_kt,
-                            'pitot_scale': ps } )
+    winds = wind.estimate(data)
     df1_wind = pd.DataFrame(winds)
-    df1_wind.set_index('time', inplace=True, drop=False)
-    f.write("## Winds Aloft\n")
-    wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
-    wind_ax[0].set_title("Winds Aloft")
-    wind_ax[0].set_ylabel("Heading (from degrees)", weight='bold')
-    wind_ax[0].plot(df1_wind['wind_deg'])
-    wind_ax[0].grid()
-    wind_ax[0].legend()
-    wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
-    wind_ax[1].plot(df1_wind['wind_kt'])
-    wind_ax[1].plot(df1_wind['pitot_scale'])
-    wind_ax[1].grid()
-    wind_ax[1].legend()
-    f.write(mpld3.fig_to_html(wind_fig, no_extras=True))
-
+    time = df1_wind['time']
+    wind_dir = df1_wind['wind_deg']
+    wind_speed = df1_wind['wind_kt']
+    pitot_scale = df1_wind['pitot_scale']
+else:
+    time = df0_air['time']
+    wind_dir = df0_air['wind_dir']
+    wind_speed = df0_air['wind_speed']
+    pitot_scale = df0_air['pitot_scale']
+    
+wind_fig, wind_ax = plt.subplots(2, 1, sharex=True)
+wind_ax[0].set_title("Winds Aloft")
+wind_ax[0].set_ylabel("Heading (degrees)", weight='bold')
+wind_ax[0].plot(time, wind_dir)
+wind_ax[0].axvspan(airborne, land, color='green', alpha=0.25)
+wind_ax[0].grid()
+wind_ax[0].legend()
+wind_ax[1].set_xlabel("Time (secs)", weight='bold')
+wind_ax[1].set_ylabel("Speed (kts)", weight='bold')
+wind_ax[1].plot(time, wind_speed)
+wind_ax[1].plot(time, pitot_scale)
+wind_ax[1].axvspan(airborne, land, color='green', alpha=0.25)
+wind_ax[1].grid()
+wind_ax[1].legend()
 
 r2d = np.rad2deg
 
@@ -325,7 +288,6 @@ att_ax[2].set_xlabel('Time (sec)', weight='bold')
 att_ax[2].grid()
 att_ax[2].legend(loc=1)
 
-f.write(mpld3.fig_to_html(att_fig, no_extras=True))
 f.close()
 
 #mpld3.show()
@@ -434,4 +396,4 @@ bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
 bias_ax[2,1].grid()
 bias_ax[2,1].legend(loc=1)
 
-#plt.show()
+plt.show()

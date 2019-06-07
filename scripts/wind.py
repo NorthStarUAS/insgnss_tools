@@ -3,6 +3,9 @@
 # to be called repeatedly to update the wind estimate in real time.
 
 import math
+from tqdm import tqdm
+
+from aurauas_flightdata import flight_interp
 
 import lowpass
 
@@ -60,3 +63,40 @@ def update(time, airspeed_kt, yaw_rad, vn, ve):
         filt_ps.update(ps, dt)
 
     return filt_wn.value, filt_we.value, filt_ps.value
+
+# run a quick wind estimate and pitot calibration based on nav
+# estimate + air data
+def estimate(data):
+    print("Estimating winds aloft:")
+    winds = []
+    airspeed = 0
+    psi = 0
+    vn = 0
+    ve = 0
+    wind_deg = 0
+    wind_kt = 0
+    ps = 1.0
+    iter = flight_interp.IterateGroup(data)
+    for i in tqdm(range(iter.size())):
+        record = iter.next()
+        if len(record):
+            t = record['imu']['time']
+            if 'air' in record:
+                airspeed = record['air']['airspeed']
+            if 'filter' in record:
+                psi = record['filter']['psi']
+                vn = record['filter']['vn']
+                ve = record['filter']['ve']
+            if airspeed > 10.0:
+                (wn, we, ps) = update(t, airspeed, psi, vn, ve)
+                #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
+                wind_deg = 90 - math.atan2(wn, we) * r2d
+                if wind_deg < 0: wind_deg += 360.0
+                wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
+                #print wn, we, ps, wind_deg, wind_kt
+            # make sure we log one record per each imu record
+            winds.append( { 'time': t,
+                            'wind_deg': wind_deg,
+                            'wind_kt': wind_kt,
+                            'pitot_scale': ps } )
+    return winds
