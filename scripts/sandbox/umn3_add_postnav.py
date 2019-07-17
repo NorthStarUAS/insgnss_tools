@@ -16,7 +16,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from aurauas.flightdata import flight_loader, flight_interp
+from aurauas_flightdata import flight_loader, flight_interp
+
+import nav_wrapper
 
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
@@ -32,7 +34,7 @@ if 'recalibrate' in args:
     recal_file = args.recalibrate
 else:
     recal_file = None
-data, flight_format = flight_loader.load(path, recal_file)
+data, flight_format = flight_loader.load(path)
 
 if flight_format != 'umn3':
     print("This script only runs with UMN Goldy3 HDF5 format flight log files.")
@@ -74,12 +76,13 @@ config = {
     'sig_gps_p_ne': 2.0,
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 4.0,
+    'sig_gps_v_d': 3.0,
     'sig_mag': 1.0
 }
 
-import nav_ekf15
-filter = nav_ekf15.filter(gps_lag_sec=args.gps_lag_sec, imu_dt=imu_dt)
+filter = nav_wrapper.filter(nav='EKF15',
+                            gps_lag_sec=args.gps_lag_sec,
+                            imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
@@ -138,10 +141,12 @@ add_or_overwrite(h5file, base + 'AccelXBias_mss', df1_nav['abx'])
 add_or_overwrite(h5file, base + 'AccelYBias_mss', df1_nav['aby'])
 add_or_overwrite(h5file, base + 'AccelZBias_mss', df1_nav['abz'])
 
-# special favor for Huginn Flight #02
-print("NOTICE: Also overwriting ublox/DownVelocity_ms for Huginn Flight #02")
-df0_gps = pd.DataFrame(data['gps'])
-add_or_overwrite(h5file, '/Sensors/uBlox/DownVelocity_ms', df0_gps['vd'])
+if False:
+    # special favor for Huginn Flight #02
+    print("NOTICE: Also overwriting ublox/DownVelocity_ms for Huginn Flight #02")
+    df0_gps = pd.DataFrame(data['gps'])
+    add_or_overwrite(h5file, '/Sensors/uBlox/DownVelocity_ms', df0_gps['vd'])
+    
 h5file.close()
 
 # Plotting Section
