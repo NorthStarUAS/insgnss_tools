@@ -57,10 +57,13 @@ config = {
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
     'sig_gps_v_d': 3.0,
-    'sig_mag': 0.1
+    'sig_mag': 1.0
 }
 
-filter = nav_wrapper.filter(nav='EKF15_mag',
+# filter = nav_wrapper.filter(nav='EKF15',
+#                             gps_lag_sec=args.gps_lag_sec,
+#                             imu_dt=imu_dt)
+filter = nav_wrapper.filter(nav='uNavINS',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
 filter.set_config(config)
@@ -122,14 +125,17 @@ att_fig, att_ax = plt.subplots(3, 1, sharex=True)
 
 att_ax[0].set_title("Attitude Angles")
 att_ax[0].set_ylabel('Roll (deg)', weight='bold')
+att_ax[0].plot(r2d(df0_nav['phi']), label="On Board")
 att_ax[0].plot(r2d(df1_nav['phi']), label=filter.name)
 att_ax[0].grid()
 
 att_ax[1].set_ylabel('Pitch (deg)', weight='bold')
+att_ax[1].plot(r2d(df0_nav['the']), label="On Board")
 att_ax[1].plot(r2d(df1_nav['the']), label=filter.name)
 att_ax[1].grid()
 
 att_ax[2].set_ylabel('Yaw (deg)', weight='bold')
+att_ax[2].plot(r2d(df0_nav['psi']), label="On Board")
 att_ax[2].plot(r2d(df1_nav['psi']), label=filter.name)
 att_ax[2].set_xlabel('Time (sec)', weight='bold')
 att_ax[2].grid()
@@ -142,18 +148,21 @@ fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 ax1.set_title("NED Velocities")
 ax1.set_ylabel('vn (mps)', weight='bold')
 ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax1.plot(df0_nav['vn'], label="On Board")
 ax1.plot(df1_nav['vn'], label=filter.name)
 ax1.grid()
 
 # ve Plot
 ax2.set_ylabel('ve (mps)', weight='bold')
 ax2.plot(df0_gps['ve'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax2.plot(df0_nav['ve'], label="On Board")
 ax2.plot(df1_nav['ve'], label=filter.name)
 ax2.grid()
 
 # vd Plot
 ax3.set_ylabel('vd (mps)', weight='bold')
 ax3.plot(df0_gps['vd'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax3.plot(df0_nav['vd'], label="On Board")
 ax3.plot(df1_nav['vd'], label=filter.name)
 ax3.set_xlabel('TIME (SECONDS)', weight='bold')
 ax3.grid()
@@ -180,7 +189,8 @@ if 'act' in data:
     plt.figure()
     plt.title("Pilot Inputs (sbus)")
     plt.plot(df0_pilot['auto_manual']+0.05, label='auto')
-    plt.plot(df0_pilot['throttle_safety']+0.1, label='safety')
+    if 'throttle_safety' in df0_pilot:
+        plt.plot(df0_pilot['throttle_safety']+0.1, label='safety')
     plt.plot(df0_pilot['throttle'], label='throttle')
     plt.plot(df0_pilot['aileron'], label='aileron')
     plt.plot(df0_pilot['elevator'], label='elevator')
@@ -192,9 +202,11 @@ if 'act' in data:
 
 plt.figure()
 plt.title("Avionics VCC")
-plt.plot(df0_health['avionics_vcc'])
+if 'avionics_vcc' in df0_health:
+    plt.plot(df0_health['avionics_vcc'])
 plt.plot(df0_health['main_vcc'])
-plt.plot(df0_health['load_avg'])
+if 'load_avg' in df0_health:
+    plt.plot(df0_health['load_avg'])
 plt.grid()
 
 # Altitude

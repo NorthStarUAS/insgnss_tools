@@ -3,7 +3,10 @@
 # 2. add gps lag support
 
 from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
-from aurauas_navigation.filters import EKF15, EKF15_mag, OpenLoop
+from aurauas_navigation.ekf15 import EKF15
+from aurauas_navigation.ekf15_mag import EKF15_mag
+from aurauas_navigation.uNavINS import uNavINS
+from aurauas_navigation.openloop import OpenLoop
 
 class filter():
     def __init__(self, nav='EKF15', gps_lag_sec=0.0, imu_dt=0.02):
@@ -13,6 +16,9 @@ class filter():
         elif nav == 'EKF15_mag':
             self.filter = EKF15_mag()
             self.name = 'EKF15_mag'
+        elif nav == 'uNavINS':
+            self.filter = uNavINS()
+            self.name = 'uNavINS'
         else:
             print("Unknown nav filter specified aborting:", nav)
             quit()
