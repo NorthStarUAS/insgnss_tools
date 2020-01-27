@@ -49,24 +49,6 @@ config = {
     'sig_w_gx': 0.00175,
     'sig_w_gy': 0.00175,
     'sig_w_gz': 0.00175,
-    'sig_a_d': 0.02,
-    'tau_a': 100.0,
-    'sig_g_d': 0.0005,
-    'tau_g': 50.0,
-    'sig_gps_p_ne': 2.0,
-    'sig_gps_p_d': 6.0,
-    'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 3.0,
-    'sig_mag': 1.0
-}
-# uNavINS default config
-config = {
-    'sig_w_ax': 0.05,
-    'sig_w_ay': 0.05,
-    'sig_w_az': 0.05,
-    'sig_w_gx': 0.00175,
-    'sig_w_gy': 0.00175,
-    'sig_w_gz': 0.00175,
     'sig_a_d': 0.01,
     'tau_a': 100.0,
     'sig_g_d': 0.00025,
@@ -77,30 +59,51 @@ config = {
     'sig_gps_v_d': 1.0,
     'sig_mag': 1.0
 }
+# uNavINS default config
+# config = {
+#     'sig_w_ax': 0.05,
+#     'sig_w_ay': 0.05,
+#     'sig_w_az': 0.05,
+#     'sig_w_gx': 0.00175,
+#     'sig_w_gy': 0.00175,
+#     'sig_w_gz': 0.00175,
+#     'sig_a_d': 0.01,
+#     'tau_a': 100.0,
+#     'sig_g_d': 0.00025,
+#     'tau_g': 50.0,
+#     'sig_gps_p_ne': 3.0,
+#     'sig_gps_p_d': 6.0,
+#     'sig_gps_v_ne': 0.5,
+#     'sig_gps_v_d': 1.0,
+#     'sig_mag': 1.0
+# }
 
-#filter = nav_wrapper.filter(nav='EKF15',
-#                            gps_lag_sec=args.gps_lag_sec,
-#                            imu_dt=imu_dt)
-filter = nav_wrapper.filter(nav='uNavINS',
+filter = nav_wrapper.filter(nav='EKF15',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
+#filter = nav_wrapper.filter(nav='uNavINS',
+#                            gps_lag_sec=args.gps_lag_sec,
+#                            imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
 filter_init = False
 results = []
 
+first_gps_time = None
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
     record = iter.next()
     imupt = record['imu']
     if 'gps' in record:
         gpspt = record['gps']
+        if first_gps_time is None and 'time' in gpspt:
+            first_gps_time = gpspt['time'];
     else:
         gpspt = {}
 
     # Init the filter if we have gps data (and haven't already init'd)
-    if not filter_init and 'time' in gpspt:
+    if not filter_init and 'time' in gpspt and gpspt['time'] >= first_gps_time + 9.9:
         # print("init:", imupt['time'], gpspt['time'])
         navpt = filter.init(imupt, gpspt)
         filter_init = True

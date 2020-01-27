@@ -74,7 +74,7 @@ public:
         Vector3f vMeas_L_mps( gps_save.vn, gps_save.ve, gps_save.vd );
         imu_save = imu;
         filt.Update((uint64_t)(imu.time * 1e+6),
-                    (unsigned long)gps_save.time*100,
+                    (unsigned long)(gps_save.time * 100),
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
     void measurement_update(IMUdata imu, GPSdata gps) {
@@ -86,7 +86,7 @@ public:
         imu_save = imu;
         gps_save = gps;
         filt.Update((uint64_t)(imu.time * 1e+6),
-                    (unsigned long)gps.time*100,
+                    (unsigned long)(gps.time * 100),
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
     
