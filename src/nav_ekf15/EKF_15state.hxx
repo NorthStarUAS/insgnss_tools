@@ -67,7 +67,7 @@ private:
     Matrix6f R;
     Vector6f y;
     Matrix3f C_N2B, C_B2N, I3 /* identity */, temp33;
-    Vector3d pos_ins_ecef, pos_gps, pos_gps_ecef;
+    // Vector3d pos_ins_ecef, pos_gps, pos_gps_ecef;
     Vector3f grav, f_b, om_ib, /*nr,*/ pos_ins_ned, pos_gps_ned, dx, mag_ned;
 
     Quaternionf quat;

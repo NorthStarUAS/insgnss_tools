@@ -1,3 +1,5 @@
+#if 0
+
 #ifdef HAVE_PYBIND11
 
 #include <pybind11/pybind11.h>
@@ -39,5 +41,7 @@ PYBIND11_MODULE(filters, m) {
     ;
   
 }
+
+#endif
 
 #endif

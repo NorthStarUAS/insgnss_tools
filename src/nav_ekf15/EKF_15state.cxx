@@ -165,7 +165,7 @@ void EKF15::time_update(IMUdata imu) {
     // Attitude Update
     // ... Calculate Navigation Rate
     Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
-    Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
+    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
 
     if ( false ) {
         // Get the new Specific forces and Rotation Rate from previous
@@ -216,7 +216,7 @@ void EKF15::time_update(IMUdata imu) {
     nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(vel_vec, pos_vec);
+    dx = llarate(vel_vec, pos_ref);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
@@ -293,25 +293,20 @@ void EKF15::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
 		
     // Position, converted to NED
-    Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
-    pos_ins_ecef = lla2ecef(pos_vec);
+    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
+    Vector3d pos_ins_ecef = lla2ecef(pos_ref);
 
-    Vector3d pos_ref = pos_vec;
-    pos_ref(2) = 0.0;
-    pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
-		
-    pos_gps(0) = gps.lat*D2R;
-    pos_gps(1) = gps.lon*D2R;
-    pos_gps(2) = gps.alt;
-		
-    pos_gps_ecef = lla2ecef(pos_gps);
-		
-    pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
+    Vector3d pos_gps(gps.lat*D2R, gps.lon*D2R, gps.alt);
+    Vector3d pos_gps_ecef = lla2ecef(pos_gps);
+    
+    Vector3d pos_error_ecef = pos_gps_ecef - pos_ins_ecef;
+    
+    Vector3f pos_error_ned = ecef2ned(pos_error_ecef, pos_ref);
 
     // Create Measurement: y
-    y(0) = pos_gps_ned(0) - pos_ins_ned(0);
-    y(1) = pos_gps_ned(1) - pos_ins_ned(1);
-    y(2) = pos_gps_ned(2) - pos_ins_ned(2);
+    y(0) = pos_error_ned(0);
+    y(1) = pos_error_ned(1);
+    y(2) = pos_error_ned(2);
 		
     y(3) = gps.vn - nav.vn;
     y(4) = gps.ve - nav.ve;
