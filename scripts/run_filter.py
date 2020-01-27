@@ -59,10 +59,28 @@ config = {
     'sig_gps_v_d': 3.0,
     'sig_mag': 1.0
 }
+# uNavINS default config
+config = {
+    'sig_w_ax': 0.05,
+    'sig_w_ay': 0.05,
+    'sig_w_az': 0.05,
+    'sig_w_gx': 0.00175,
+    'sig_w_gy': 0.00175,
+    'sig_w_gz': 0.00175,
+    'sig_a_d': 0.01,
+    'tau_a': 100.0,
+    'sig_g_d': 0.00025,
+    'tau_g': 50.0,
+    'sig_gps_p_ne': 3.0,
+    'sig_gps_p_d': 6.0,
+    'sig_gps_v_ne': 0.5,
+    'sig_gps_v_d': 1.0,
+    'sig_mag': 1.0
+}
 
-# filter = nav_wrapper.filter(nav='EKF15',
-#                             gps_lag_sec=args.gps_lag_sec,
-#                             imu_dt=imu_dt)
+#filter = nav_wrapper.filter(nav='EKF15',
+#                            gps_lag_sec=args.gps_lag_sec,
+#                            imu_dt=imu_dt)
 filter = nav_wrapper.filter(nav='uNavINS',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)

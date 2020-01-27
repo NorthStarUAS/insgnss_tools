@@ -3,9 +3,13 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
+#include <math.h>
+
 #include "../nav_common/structs.hxx"
 
 #include "uNavINS.h"
+
+const double D2R = M_PI / 180.0; // degrees to radians
 
 // this is a glue class to bridge between the existing python API and
 // the actual uNavINS class API.  This could be handled other ways,
@@ -53,10 +57,11 @@ public:
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps.lat, gps.lon, gps.alt );
+        Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
         Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
         imu_save = imu;
         gps_save = gps;
+        printf("uNavINS Init: %.8f, %.8f %.2f\n", gps.lat, gps.lon, gps.alt);
         filt.Initialize(wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm,
                         vMeas_L_mps);
     }
@@ -65,23 +70,23 @@ public:
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps_save.lat, gps_save.lon, gps_save.alt );
+        Vector3d pMeas_D_rrm( gps_save.lat*D2R, gps_save.lon*D2R, gps_save.alt );
         Vector3f vMeas_L_mps( gps_save.vn, gps_save.ve, gps_save.vd );
         imu_save = imu;
-        filt.Update((uint64_t)imu.time * 1e+6,
-                    (unsigned long)gps_save.unix_sec*100,
+        filt.Update((uint64_t)(imu.time * 1e+6),
+                    (unsigned long)gps_save.time*100,
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
     void measurement_update(IMUdata imu, GPSdata gps) {
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps.lat, gps.lon, gps.alt );
+        Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
         Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
         imu_save = imu;
         gps_save = gps;
-        filt.Update((uint64_t)imu.time * 1e+6,
-                    (unsigned long)gps.unix_sec*100,
+        filt.Update((uint64_t)(imu.time * 1e+6),
+                    (unsigned long)gps.time*100,
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
     
