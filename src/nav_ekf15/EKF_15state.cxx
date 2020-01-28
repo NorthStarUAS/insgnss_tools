@@ -124,7 +124,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     // at rest
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
-    nav.phi = asin(imu.ay/(g*cos(nav.the))); 
+    nav.phi = asin(imu.ay/(g*cos(nav.the)));
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
     nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
@@ -132,7 +132,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
-	
+
     nav.abx = 0.0;
     nav.aby = 0.0;
     nav.abz = 0.0;
@@ -155,7 +155,7 @@ void EKF15::time_update(IMUdata imu) {
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
     nav.time = imu.time;
-    
+
     // ==================  Time Update  ===================
 
     // AHRS Transformations
@@ -194,7 +194,6 @@ void EKF15::time_update(IMUdata imu) {
     imu_last = imu;
 
     Quaternionf dq = Quaternionf(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
-    
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
@@ -291,7 +290,7 @@ void EKF15::time_update(IMUdata imu) {
 
 void EKF15::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
-		
+
     // Position, converted to NED
     Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
     Vector3d pos_ins_ecef = lla2ecef(pos_ref);
@@ -367,6 +366,6 @@ NAVdata EKF15::get_nav() {
     nav.qx = quat.x();
     nav.qy = quat.y();
     nav.qz = quat.z();
-	
+
     return nav;
 }
