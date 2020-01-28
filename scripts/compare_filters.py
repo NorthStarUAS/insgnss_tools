@@ -39,13 +39,14 @@ parser.add_argument('--synthetic-airspeed', action='store_true', help='build syn
 args = parser.parse_args()
 
 # Select output plots
-PLOT = { 'ATTITUDE': True,
-         'VELOCITIES': True,
-         'GROUNDTRACK': True,
-         'ALTITUDE': True,
-         'WIND': True,
-         'SYNTH_ASI': False,
-         'BIASES': True }
+PLOT_SENSORS = True
+PLOT_ATTITUDE = True
+PLOT_VELOCITIES = True
+PLOT_GROUNDTRACK = True
+PLOT_ALTITUDE = True
+PLOT_WIND = True
+PLOT_SYNTH_ASI = False
+PLOT_BIASES = True
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
@@ -292,7 +293,7 @@ if False:
         wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
         #print wn, we, ps, wind_deg, wind_kt
     
-if True:
+if False:
     print("Estimating alpha/beta (experimental):")
     navpt = {}
     airpt = {}
@@ -387,7 +388,31 @@ df2_nav.set_index('time', inplace=True, drop=False)
 nsig = 3
 r2d = np.rad2deg
 
-if PLOT['ATTITUDE']:
+# plot raw accels (useful for bench calibration)
+if PLOT_SENSORS:
+    plt.figure()
+    plt.title('Raw Accels')
+    plt.plot(df0_imu['ax'], label='ax', alpha=0.75)
+    plt.plot(df0_imu['ay'], label='ay', alpha=0.75)
+    plt.plot(df0_imu['az'], label='az', alpha=0.75)
+    plt.ylabel('mps^2', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
+    
+    plt.figure()
+    plt.title('Raw Gyros')
+    plt.plot(df0_imu['p'], label='p', alpha=0.75)
+    plt.plot(df0_imu['q'], label='q', alpha=0.75)
+    plt.plot(df0_imu['r'], label='r', alpha=0.75)
+    plt.ylabel('rad/sec', weight='bold')
+    plt.legend(loc=0)
+    plt.grid()
+    # print 'size:', len(q), len(r)
+    # for i in range(len(q)):
+    #     if q[i] != r[i]:
+    #         print q[i], r[i]
+
+if PLOT_ATTITUDE:
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
@@ -435,31 +460,7 @@ if PLOT['ATTITUDE']:
 
     #fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
-# plot raw accels (useful for bench calibration)
-if True:
-    plt.figure()
-    plt.title('Raw Accels')
-    plt.plot(df0_imu['ax'], label='ax', c='g', lw=2, alpha=.5)
-    plt.plot(df0_imu['ay'], label='ay', c='b', lw=2, alpha=.5)
-    plt.plot(df0_imu['az'], label='az', c='r', lw=2, alpha=.5)
-    plt.ylabel('mps^2', weight='bold')
-    plt.legend(loc=0)
-    plt.grid()
-    
-    plt.figure()
-    plt.title('Raw Gyros')
-    plt.plot(df0_imu['p'], label='p', c='g', lw=2, alpha=.5)
-    plt.plot(df0_imu['q'], label='q', c='b', lw=2, alpha=.5)
-    plt.plot(df0_imu['r'], label='r', c='r', lw=2, alpha=.5)
-    plt.ylabel('rad/sec', weight='bold')
-    plt.legend(loc=0)
-    plt.grid()
-    # print 'size:', len(q), len(r)
-    # for i in range(len(q)):
-    #     if q[i] != r[i]:
-    #         print q[i], r[i]
-
-if PLOT['VELOCITIES']:
+if PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
     # vn Plot
@@ -490,7 +491,7 @@ if PLOT['VELOCITIES']:
     ax3.grid()
 
 # Altitude Plot
-if PLOT['ALTITUDE']:
+if PLOT_ALTITUDE:
     plt.figure()
     plt.title('Altitude')
     plt.plot(df0_gps['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
@@ -500,6 +501,65 @@ if PLOT['ALTITUDE']:
     plt.ylabel('Altitude (m)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
+
+# Top View (Longitude vs. Latitude) Plot
+if PLOT_GROUNDTRACK:
+    plt.figure()
+    plt.title("Ground Track")
+    plt.ylabel('Latitude (degrees)', weight='bold')
+    plt.xlabel('Longitude (degrees)', weight='bold')
+    plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(r2d(df0_nav['lon']), r2d(df0_nav['lat']), label='On Board', c='k', lw=2, alpha=.5)
+    plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter1.name, c='r', lw=2, alpha=.8)
+    plt.plot(r2d(df2_nav['lon']), r2d(df2_nav['lat']), label=filter2.name, c='b', lw=2, alpha=.8)
+    plt.grid()
+    plt.legend(loc=0)
+    ax = plt.gca()
+    ax.axis('equal')
+
+if PLOT_BIASES:
+    bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
+
+    # Gyro Biases
+    bias_ax[0,0].set_title("Gyro Biases")
+    bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
+    bias_ax[0,0].plot(r2d(df1_nav['gbx']), label=filter1.name, c='r')
+    bias_ax[0,0].plot(r2d(df2_nav['gbx']), label=filter2.name, c='b')
+    bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[0,0].grid()
+    
+    bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
+    bias_ax[1,0].plot(r2d(df1_nav['gby']), label=filter1.name, c='r')
+    bias_ax[1,0].plot(r2d(df2_nav['gby']), label=filter2.name, c='b')
+    bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[1,0].grid()
+    
+    bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
+    bias_ax[2,0].plot(r2d(df1_nav['gbz']), label=filter1.name, c='r')
+    bias_ax[2,0].plot(r2d(df2_nav['gbz']), label=filter2.name, c='b')
+    bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,0].grid()
+    
+    # Accel Biases
+    bias_ax[0,1].set_title("Accel Biases")
+    bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
+    bias_ax[0,1].plot(df1_nav['abx'], label=filter1.name, c='r')
+    bias_ax[0,1].plot(df2_nav['abx'], label=filter2.name, c='b')
+    bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[0,1].grid()
+    
+    bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
+    bias_ax[1,1].plot(df1_nav['aby'], label=filter1.name, c='r')
+    bias_ax[1,1].plot(df2_nav['aby'], label=filter2.name, c='b')
+    bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[1,1].grid()
+    
+    bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
+    bias_ax[2,1].plot(df1_nav['abz'], label=filter1.name, c='r')
+    bias_ax[2,1].plot(df2_nav['abz'], label=filter2.name, c='b')
+    bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,1].grid()
+    bias_ax[2,1].legend(loc=1)
 
 def gen_func( coeffs, min, max, steps ):
     miny = None
@@ -517,9 +577,9 @@ def gen_func( coeffs, min, max, steps ):
     return xvals, yvals, minx, miny
 
 # Wind Plot
-if PLOT['WIND']:
+if PLOT_WIND:
     fig, ax1 = plt.subplots()
-    ax1.set_title('Wind')
+    ax1.set_title('Wind Estimate')
     ax1.set_ylabel('Degrees', weight='bold')
     ax1.plot(df1_wind['wind_deg'], label='Direction (deg)', c='r', lw=2, alpha=.8)
 
@@ -591,7 +651,7 @@ def my_butter(raw):
     yv[2] = (xv[0] + xv[2]) + 2 * xv[1] + ( -0.9457257978 * yv[0]) + ( 1.9442112802 * yv[1])
     return yv[2]
 
-if 'act' in data and PLOT['SYNTH_ASI']:
+if 'act' in data and PLOT_SYNTH_ASI:
     # butterworth filter experiment
     import scipy.signal as signal
     nyq = 0.5 * 100             # 1/2 sample hz
@@ -657,64 +717,5 @@ if len(alpha_beta.cl_array):
     ax1.set_ylabel('CL', weight='bold')
     ax1.plot(alpha_array, cl_array, 'x', label='alpha vs CL', c='r', lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
-
-# Top View (Longitude vs. Latitude) Plot
-if PLOT['GROUNDTRACK']:
-    plt.figure()
-    plt.title("Ground Track")
-    plt.ylabel('Latitude (degrees)', weight='bold')
-    plt.xlabel('Longitude (degrees)', weight='bold')
-    plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
-    plt.plot(r2d(df0_nav['lon']), r2d(df0_nav['lat']), label='On Board', c='k', lw=2, alpha=.5)
-    plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter1.name, c='r', lw=2, alpha=.8)
-    plt.plot(r2d(df2_nav['lon']), r2d(df2_nav['lat']), label=filter2.name, c='b', lw=2, alpha=.8)
-    plt.grid()
-    plt.legend(loc=0)
-    ax = plt.gca()
-    ax.axis('equal')
-
-if PLOT['BIASES']:
-    bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
-
-    # Gyro Biases
-    bias_ax[0,0].set_title("Gyro Biases")
-    bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
-    bias_ax[0,0].plot(r2d(df1_nav['gbx']), label=filter1.name, c='r')
-    bias_ax[0,0].plot(r2d(df2_nav['gbx']), label=filter2.name, c='b')
-    bias_ax[0,0].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[0,0].grid()
-    
-    bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
-    bias_ax[1,0].plot(r2d(df1_nav['gby']), label=filter1.name, c='r')
-    bias_ax[1,0].plot(r2d(df2_nav['gby']), label=filter2.name, c='b')
-    bias_ax[1,0].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[1,0].grid()
-    
-    bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
-    bias_ax[2,0].plot(r2d(df1_nav['gbz']), label=filter1.name, c='r')
-    bias_ax[2,0].plot(r2d(df2_nav['gbz']), label=filter2.name, c='b')
-    bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[2,0].grid()
-    
-    # Accel Biases
-    bias_ax[0,1].set_title("Accel Biases")
-    bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
-    bias_ax[0,1].plot(df1_nav['abx'], label=filter1.name, c='r')
-    bias_ax[0,1].plot(df2_nav['abx'], label=filter2.name, c='b')
-    bias_ax[0,1].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[0,1].grid()
-    
-    bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
-    bias_ax[1,1].plot(df1_nav['aby'], label=filter1.name, c='r')
-    bias_ax[1,1].plot(df2_nav['aby'], label=filter2.name, c='b')
-    bias_ax[1,1].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[1,1].grid()
-    
-    bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
-    bias_ax[2,1].plot(df1_nav['abz'], label=filter1.name, c='r')
-    bias_ax[2,1].plot(df2_nav['abz'], label=filter2.name, c='b')
-    bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
-    bias_ax[2,1].grid()
-    bias_ax[2,1].legend(loc=1)
 
 plt.show()
