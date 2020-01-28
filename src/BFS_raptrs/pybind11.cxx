@@ -1,5 +1,3 @@
-#ifdef HAVE_PYBIND11
-
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
@@ -37,21 +35,6 @@ public:
         filt.setSig_GPS_P_D( config.sig_gps_p_d );
         filt.setSig_GPS_V_NE( config.sig_gps_v_ne );
         filt.setSig_GPS_V_D( config.sig_gps_v_d );
-    }
-    
-    NAVconfig get_config() {
-        return config_save;
-    }
-    
-    void default_config() {
-        // no-op
-    }
-
-    // main interface
-    void init(IMUdata imu, GPSdata gps) {
-        printf("(BFS) uNavINS Init: %.8f, %.8f %.2f\n",
-               gps.lat, gps.lon, gps.alt);
-        update(imu, gps);
     }
     
     void update(IMUdata imu, GPSdata gps) {
@@ -103,5 +86,3 @@ PYBIND11_MODULE(uNavINS_BFS, m) {
         .def("get_nav", &APIHelper::get_nav)
     ;
 }
-
-#endif

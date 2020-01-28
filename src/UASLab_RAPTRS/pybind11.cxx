@@ -1,5 +1,3 @@
-#ifdef HAVE_PYBIND11
-
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
@@ -44,14 +42,6 @@ public:
         filt.Configure();
     }
     
-    NAVconfig get_config() {
-        return config_save;
-    }
-    
-    void default_config() {
-        // no-op
-    }
-
     void update(IMUdata imu, GPSdata gps) {
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
@@ -103,12 +93,10 @@ private:
 };
 
 PYBIND11_MODULE(uNavINS, m) {
-    py::class_<APIHelper>(m, "uNavINS")
+    py::class_<APIHelper>(m, "uNavINS", py::module_local())
         .def(py::init<>())
         .def("set_config", &APIHelper::set_config)
         .def("update", &APIHelper::update)
         .def("get_nav", &APIHelper::get_nav)
     ;
 }
-
-#endif

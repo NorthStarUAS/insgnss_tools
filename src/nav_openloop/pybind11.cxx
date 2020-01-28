@@ -1,5 +1,3 @@
-#ifdef HAVE_PYBIND11
-
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
@@ -18,5 +16,3 @@ PYBIND11_MODULE(openloop, m) {
         .def("update", &OpenLoop::update)
     ;
 }
-
-#endif

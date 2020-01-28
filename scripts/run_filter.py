@@ -26,6 +26,7 @@ args = parser.parse_args()
 
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
+gps_settle_secs = 10.0
 
 path = args.flight
 data, flight_format = flight_loader.load(path)
@@ -78,13 +79,11 @@ config = {
 #     'sig_mag': 1.0
 # }
 
-#filter = nav_wrapper.filter(nav='EKF15',
-#                            gps_lag_sec=args.gps_lag_sec,
-#                            imu_dt=imu_dt)
-#filter = nav_wrapper.filter(nav='uNavINS',
-#                            gps_lag_sec=args.gps_lag_sec,
-#                            imu_dt=imu_dt)
-filter = nav_wrapper.filter(nav='uNavINS_BFS',
+filter_name = "EKF15"
+#filter_name = "uNavINS"
+#filter_name = "uNavINS_BFS"
+
+filter = nav_wrapper.filter(nav=filter_name,
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
 filter.set_config(config)
@@ -104,20 +103,15 @@ for i in tqdm(range(iter.size())):
             first_gps_time = gpspt['time']
 
     # Init the filter if we have gps data (and haven't already init'd)
-    if first_gps_time is None or gpspt['time'] < first_gps_time + 10:
+    if first_gps_time is None or gpspt['time'] < first_gps_time + gps_settle_secs:
         continue
 
-    #print(imupt, gpspt)
     navpt = filter.update(imupt, gpspt)
-    #print(navpt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
     results.append(navpt)
 
-# proper cleanup
-filter.close()
-    
 # Plotting Section
 
 plotname = os.path.basename(args.flight)    
