@@ -18,16 +18,19 @@ from aurauas_flightdata import flight_loader, flight_interp
 
 import nav_wrapper
 
+# command line arguments
 parser = argparse.ArgumentParser(description='nav filter')
 parser.add_argument('--flight', required=True, help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
                     help='gps lag (sec)')
 args = parser.parse_args()
 
+# constants
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
 gps_settle_secs = 10.0
 
+# load the flight data
 path = args.flight
 data, flight_format = flight_loader.load(path)
 
@@ -79,6 +82,7 @@ config = {
 #     'sig_mag': 1.0
 # }
 
+# select filter
 #filter_name = "EKF15"
 filter_name = "EKF15_mag"
 #filter_name = "uNavINS"
@@ -92,7 +96,7 @@ filter.set_config(config)
 print("Running nav filter:")
 results = []
 
-first_gps_time = None
+gps_init_sec = None
 gpspt = None
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
@@ -100,11 +104,11 @@ for i in tqdm(range(iter.size())):
     imupt = record['imu']
     if 'gps' in record:
         gpspt = record['gps']
-        if first_gps_time is None:
-            first_gps_time = gpspt['time']
+        if gps_init_sec is None:
+            gps_init_sec = gpspt['time']
 
-    # Init the filter if we have gps data (and haven't already init'd)
-    if first_gps_time is None or gpspt['time'] < first_gps_time + gps_settle_secs:
+    # if not inited or gps not yet reached it's settle time
+    if gps_init_sec is None or gpspt['time'] < gps_init_sec + gps_settle_secs:
         continue
 
     navpt = filter.update(imupt, gpspt)

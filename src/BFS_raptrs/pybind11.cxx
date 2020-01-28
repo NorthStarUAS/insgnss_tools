@@ -22,8 +22,6 @@ public:
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config) {
-        config_save = config;
-        
         // set config values
         filt.setSig_W_A( config.sig_w_ax );
         filt.setSig_W_G( config.sig_w_gx );
@@ -72,7 +70,6 @@ public:
 
 private:
 
-    NAVconfig config_save;
     float current_time;
     uNavINS filt;
     

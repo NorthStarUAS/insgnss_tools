@@ -24,8 +24,6 @@ public:
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config) {
-        config_save = config;
-        
         // set config values
         filt.Set_AccelNoise( config.sig_w_ax );
         filt.Set_GyroNoise( config.sig_w_gx );
@@ -86,7 +84,6 @@ public:
 
 private:
 
-    NAVconfig config_save;
     float current_time;
     uNavINS filt;
     

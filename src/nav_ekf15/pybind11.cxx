@@ -17,8 +17,6 @@ public:
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config) {
-        config_save = config;
-        
         // commit these values
         filt.set_config(config);
     }
@@ -45,7 +43,6 @@ public:
 
 private:
 
-    NAVconfig config_save;
     float current_time = 0.0;
     float last_gps_time = 0.0;
     bool initialized = false;
