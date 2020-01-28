@@ -78,42 +78,42 @@ config = {
 #     'sig_mag': 1.0
 # }
 
-filter = nav_wrapper.filter(nav='EKF15',
-                            gps_lag_sec=args.gps_lag_sec,
-                            imu_dt=imu_dt)
+#filter = nav_wrapper.filter(nav='EKF15',
+#                            gps_lag_sec=args.gps_lag_sec,
+#                            imu_dt=imu_dt)
 #filter = nav_wrapper.filter(nav='uNavINS',
 #                            gps_lag_sec=args.gps_lag_sec,
 #                            imu_dt=imu_dt)
+filter = nav_wrapper.filter(nav='uNavINS_BFS',
+                            gps_lag_sec=args.gps_lag_sec,
+                            imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
-filter_init = False
 results = []
 
 first_gps_time = None
+gpspt = None
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
     record = iter.next()
     imupt = record['imu']
     if 'gps' in record:
         gpspt = record['gps']
-        if first_gps_time is None and 'time' in gpspt:
-            first_gps_time = gpspt['time'];
-    else:
-        gpspt = {}
+        if first_gps_time is None:
+            first_gps_time = gpspt['time']
 
     # Init the filter if we have gps data (and haven't already init'd)
-    if not filter_init and 'time' in gpspt and gpspt['time'] >= first_gps_time + 9.9:
-        # print("init:", imupt['time'], gpspt['time'])
-        navpt = filter.init(imupt, gpspt)
-        filter_init = True
-    elif filter_init:
-        navpt = filter.update(imupt, gpspt)
+    if first_gps_time is None or gpspt['time'] < first_gps_time + 10:
+        continue
+
+    #print(imupt, gpspt)
+    navpt = filter.update(imupt, gpspt)
+    #print(navpt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
-    if filter_init:
-        results.append(navpt)
+    results.append(navpt)
 
 # proper cleanup
 filter.close()

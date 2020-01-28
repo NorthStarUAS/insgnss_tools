@@ -53,6 +53,12 @@ setup(name="aurauas_navigation",
                              "src/UASLab_RAPTRS/nav-functions.cpp",
                              "src/UASLab_RAPTRS/uNavINS.cpp"],
                     depends=["src/UASLab_RAPTRS/nav-functions.h",
-                             "src/UASLab_RAPTRS/uNavINS.h"])
+                             "src/UASLab_RAPTRS/uNavINS.h"]),
+          Extension("aurauas_navigation.uNavINS_BFS",
+                    define_macros=[("HAVE_PYBIND11", "1")],
+                    include_dirs=["/usr/include/eigen3"],
+                    sources=["src/BFS_raptrs/pybind11.cxx",
+                             "src/BFS_raptrs/uNavINS.cpp"],
+                    depends=["src/BFS_raptrs/uNavINS.h"])
       ],
      )

@@ -52,39 +52,16 @@ public:
         // no-op
     }
 
-    // main interface
-    void init(IMUdata imu, GPSdata gps) {
+    void update(IMUdata imu, GPSdata gps) {
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
         Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
         Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
-        imu_save = imu;
-        gps_save = gps;
-        printf("uNavINS Init: %.8f, %.8f %.2f\n", gps.lat, gps.lon, gps.alt);
-        filt.Initialize(wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm,
-                        vMeas_L_mps);
-    }
-    
-    void time_update(IMUdata imu) {
-        Vector3f wMeas_rps( imu.p, imu.q, imu.r );
-        Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
-        Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps_save.lat*D2R, gps_save.lon*D2R, gps_save.alt );
-        Vector3f vMeas_L_mps( gps_save.vn, gps_save.ve, gps_save.vd );
-        imu_save = imu;
-        filt.Update((uint64_t)(imu.time * 1e+6),
-                    (unsigned long)(gps_save.time * 100),
-                    wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
-    }
-    void measurement_update(IMUdata imu, GPSdata gps) {
-        Vector3f wMeas_rps( imu.p, imu.q, imu.r );
-        Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
-        Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
-        Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
-        imu_save = imu;
-        gps_save = gps;
+        current_time = imu.time;
+        if ( ! filt.Initialized() ) {
+            filt.Initialize(wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
+        }
         filt.Update((uint64_t)(imu.time * 1e+6),
                     (unsigned long)(gps.time * 100),
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
@@ -92,7 +69,7 @@ public:
     
     NAVdata get_nav() {
         NAVdata result;
-        result.time = imu_save.time;
+        result.time = current_time;
         Vector3d PosEst_rrm = filt.Get_PosEst();
         result.lat = PosEst_rrm[0];
         result.lon = PosEst_rrm[1];
@@ -120,8 +97,7 @@ public:
 private:
 
     NAVconfig config_save;
-    IMUdata imu_save;
-    GPSdata gps_save;
+    float current_time;
     uNavINS filt;
     
 };
@@ -130,9 +106,7 @@ PYBIND11_MODULE(uNavINS, m) {
     py::class_<APIHelper>(m, "uNavINS")
         .def(py::init<>())
         .def("set_config", &APIHelper::set_config)
-        .def("init", &APIHelper::init)
-        .def("time_update", &APIHelper::time_update)
-        .def("measurement_update", &APIHelper::measurement_update)
+        .def("update", &APIHelper::update)
         .def("get_nav", &APIHelper::get_nav)
     ;
 }

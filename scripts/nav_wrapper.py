@@ -6,6 +6,7 @@ from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
 from aurauas_navigation.ekf15 import EKF15
 from aurauas_navigation.ekf15_mag import EKF15_mag
 from aurauas_navigation.uNavINS import uNavINS
+from aurauas_navigation.uNavINS_BFS import uNavINS_BFS
 from aurauas_navigation.openloop import OpenLoop
 
 class filter():
@@ -19,6 +20,9 @@ class filter():
         elif nav == 'uNavINS':
             self.filter = uNavINS()
             self.name = 'uNavINS'
+        elif nav == 'uNavINS_BFS':
+            self.filter = uNavINS_BFS()
+            self.name = 'uNavINS_BFS'
         else:
             print("Unknown nav filter specified aborting:", nav)
             quit()
@@ -27,7 +31,7 @@ class filter():
         self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
         print("gps lag frame:", self.gps_lag_frames)
         self.imu_queue = []
-
+        
     def set_config(self, config):
         Cconfig = NAVconfig()
         Cconfig.from_dict(config)
@@ -36,11 +40,11 @@ class filter():
     def init(self, imu, gps):
         Cimu = IMUdata()
         Cimu.from_dict(imu)
-        Cgps = GPSdata()
-        Cgps.from_dict( gps )
+        self.Cgps = GPSdata()
+        self.Cgps.from_dict( gps )
         while len(self.imu_queue) < self.gps_lag_frames:
             self.imu_queue.append(Cimu)
-        self.filter.init(Cimu, Cgps)
+        self.filter.init(Cimu, self.Cgps)
         nav = self.filter.get_nav()
         return nav.as_dict()
 
@@ -51,12 +55,15 @@ class filter():
         # queue delay
         self.imu_queue.insert(0, Cimu)
         Cimu = self.imu_queue.pop()
-        
-        self.filter.time_update(Cimu)
-        if 'time' in gps:
-            Cgps = GPSdata()
-            Cgps.from_dict( gps )
-            self.filter.measurement_update(Cimu, Cgps)
+        self.Cgps = GPSdata()
+        self.Cgps.from_dict( gps )
+
+        if self.name == "uNavINS" or self.name == "uNavINS_BFS":
+            self.filter.update(Cimu, self.Cgps)
+        else:
+            self.filter.time_update(Cimu)
+            if 'time' in gps:
+                self.filter.measurement_update(Cimu, self.Cgps)
         nav = self.filter.get_nav()
 
         if len(self.imu_queue):
