@@ -79,7 +79,8 @@ config = {
 #     'sig_mag': 1.0
 # }
 
-filter_name = "EKF15"
+#filter_name = "EKF15"
+filter_name = "EKF15_mag"
 #filter_name = "uNavINS"
 #filter_name = "uNavINS_BFS"
 
@@ -242,6 +243,8 @@ plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', alpha=.
 plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter.name)
 plt.grid()
 plt.legend(loc=0)
+ax = plt.gca()
+ax.axis('equal')
 
 # Biases
 bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
