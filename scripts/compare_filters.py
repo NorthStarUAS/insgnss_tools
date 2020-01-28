@@ -32,7 +32,7 @@ import synth_asi
 import battery
 
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--flight', required=True, help='flight data log')
+parser.add_argument('flight', help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
                     help='gps lag (sec)')
 parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
@@ -50,6 +50,7 @@ PLOT = { 'ATTITUDE': True,
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
 mps2kt = 1.94384
+gps_settle_secs = 10.0
 
 def run_filter(filter, data, call_init=True):
     results = []
@@ -62,30 +63,27 @@ def run_filter(filter, data, call_init=True):
     else:
         filter_init = True
 
+    gps_init_sec = None
+    gpspt = None
     iter = flight_interp.IterateGroup(data)
     for i in tqdm(range(iter.size())):
         record = iter.next()
         imupt = record['imu']
         if 'gps' in record:
             gpspt = record['gps']
-        else:
-            gpspt = {}
+            if gps_init_sec is None:
+                gps_init_sec = gpspt['time']
 
-        # Init the filter if we have gps data (and haven't already init'd)
-        if not filter_init and 'time' in gpspt:
-            # print("init:", imupt['time'], gpspt['time'])
-            navpt = filter.init(imupt, gpspt)
-            filter_init = True
-        elif filter_init:
-            navpt = filter.update(imupt, gpspt)
+        # if not inited or gps not yet reached it's settle time
+        if gps_init_sec is None or gpspt['time'] < gps_init_sec + gps_settle_secs:
+            continue
+
+        navpt = filter.update(imupt, gpspt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
-        if filter_init:
-            results.append(navpt)
-            
-    # proper cleanup
-    filter.close()
+        results.append(navpt)
+    
     run_end = time.time()
     elapsed_sec = run_end - run_start
     return results, elapsed_sec
@@ -275,38 +273,8 @@ if flight_format == 'sentera':
     flight_loader.save(filter_post, nav1)
 
 if True:
-    print("Estimating winds aloft:")
-    winds = []
-    airspeed = 0
-    psi = 0
-    vn = 0
-    ve = 0
-    wind_deg = 0
-    wind_kt = 0
-    ps = 0
-    iter = flight_interp.IterateGroup(data)
-    for i in tqdm(range(iter.size())):
-        record = iter.next()
-        if len(record):
-            t = record['imu']['time']
-            if 'air' in record:
-                airspeed = record['air']['airspeed']
-            if 'filter' in record:
-                psi = record['filter']['psi']
-                vn = record['filter']['vn']
-                ve = record['filter']['ve']
-            if airspeed > 10.0:
-                (wn, we, ps) = wind.update(t, airspeed, psi, vn, ve)
-                #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
-                wind_deg = 90 - math.atan2(wn, we) * r2d
-                if wind_deg < 0: wind_deg += 360.0
-                wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
-                #print wn, we, ps, wind_deg, wind_kt
-            # make sure we log one record per each imu record
-            winds.append( { 'time': t,
-                            'wind_deg': wind_deg,
-                            'wind_kt': wind_kt,
-                            'pitot_scale': ps } )
+    w = wind.Wind()
+    winds = w.estimate(data, None)
 
 if False:
     # estimate wind (via interpolation)
@@ -336,9 +304,11 @@ if True:
             if 'air' in record:
                 airpt = record['air']
                 airspeed = airpt['airspeed']
+            else:
+                airspeed = 0
             if 'filter' in record:
                 navpt = record['filter']
-            if airspeed > 10.0:
+            if airspeed > 10.0 and 'psi' in navpt:
                 # assumes we've calculated and logged the wind series
                 wind = winds[i]
                 wind_rad = 0.5*math.pi - wind['wind_deg']*d2r
@@ -700,7 +670,9 @@ if PLOT['GROUNDTRACK']:
     plt.plot(r2d(df2_nav['lon']), r2d(df2_nav['lat']), label=filter2.name, c='b', lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
-    
+    ax = plt.gca()
+    ax.axis('equal')
+
 if PLOT['BIASES']:
     bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 

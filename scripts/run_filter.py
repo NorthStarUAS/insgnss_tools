@@ -20,7 +20,7 @@ import nav_wrapper
 
 # command line arguments
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--flight', required=True, help='flight data log')
+parser.add_argument('flight', help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
                     help='gps lag (sec)')
 args = parser.parse_args()
