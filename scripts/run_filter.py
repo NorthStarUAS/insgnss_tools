@@ -60,7 +60,7 @@ config = {
     'sig_mag': 0.1
 }
 
-filter = nav_wrapper.filter(nav='EKF15_mag',
+filter = nav_wrapper.filter(nav='EKF15',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
 filter.set_config(config)
@@ -102,15 +102,6 @@ df0_gps = pd.DataFrame(data['gps'])
 df0_gps.set_index('time', inplace=True, drop=False)
 df0_nav = pd.DataFrame(data['filter'])
 df0_nav.set_index('time', inplace=True, drop=False)
-df0_air = pd.DataFrame(data['air'])
-df0_air.set_index('time', inplace=True, drop=False)
-if 'act' in data:
-    df0_act = pd.DataFrame(data['act'])
-    df0_act.set_index('time', inplace=True, drop=False)
-df0_pilot = pd.DataFrame(data['pilot'])
-df0_pilot.set_index('time', inplace=True, drop=False)
-df0_health = pd.DataFrame(data['health'])
-df0_health.set_index('time', inplace=True, drop=False)
 
 df1_nav = pd.DataFrame(results)
 df1_nav.set_index('time', inplace=True, drop=False)
@@ -122,14 +113,17 @@ att_fig, att_ax = plt.subplots(3, 1, sharex=True)
 
 att_ax[0].set_title("Attitude Angles")
 att_ax[0].set_ylabel('Roll (deg)', weight='bold')
+att_ax[0].plot(r2d(df0_nav['phi']), color='g', label='On Board')
 att_ax[0].plot(r2d(df1_nav['phi']), label=filter.name)
 att_ax[0].grid()
 
 att_ax[1].set_ylabel('Pitch (deg)', weight='bold')
+att_ax[1].plot(r2d(df0_nav['the']), color='g', label='On Board')
 att_ax[1].plot(r2d(df1_nav['the']), label=filter.name)
 att_ax[1].grid()
 
 att_ax[2].set_ylabel('Yaw (deg)', weight='bold')
+att_ax[2].plot(r2d(df0_nav['psi']), color='g', label='On Board')
 att_ax[2].plot(r2d(df1_nav['psi']), label=filter.name)
 att_ax[2].set_xlabel('Time (sec)', weight='bold')
 att_ax[2].grid()
@@ -158,44 +152,6 @@ ax3.plot(df1_nav['vd'], label=filter.name)
 ax3.set_xlabel('TIME (SECONDS)', weight='bold')
 ax3.grid()
 ax3.legend(loc=0)
-
-if 'temp' in df0_air:
-    plt.figure()
-    plt.title("Air Temp")
-    plt.plot(df0_air['temp'])
-    plt.grid()
-
-plt.figure()
-plt.title("Airspeed (kt)")
-plt.plot(df0_air['airspeed'])
-plt.grid()
-
-if 'alt_press' in df0_air:
-    plt.figure()
-    plt.title("Altitude (press)")
-    plt.plot(df0_air['alt_press'])
-    plt.grid()
-
-if 'act' in data:
-    plt.figure()
-    plt.title("Pilot Inputs (sbus)")
-    plt.plot(df0_pilot['auto_manual']+0.05, label='auto')
-    plt.plot(df0_pilot['throttle_safety']+0.1, label='safety')
-    plt.plot(df0_pilot['throttle'], label='throttle')
-    plt.plot(df0_pilot['aileron'], label='aileron')
-    plt.plot(df0_pilot['elevator'], label='elevator')
-    plt.plot(df0_pilot['rudder'], label='rudder')
-    plt.plot(df0_pilot['flaps'], label='flaps')
-    plt.plot(df0_pilot['aux1'], label='aux1')
-    plt.legend()
-    plt.grid()
-
-plt.figure()
-plt.title("Avionics VCC")
-plt.plot(df0_health['avionics_vcc'])
-plt.plot(df0_health['main_vcc'])
-plt.plot(df0_health['load_avg'])
-plt.grid()
 
 # Altitude
 plt.figure()
