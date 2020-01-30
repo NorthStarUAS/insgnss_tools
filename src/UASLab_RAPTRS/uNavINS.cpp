@@ -86,8 +86,6 @@ void uNavINS::Initialize(Vector3f wMeas_rps, Vector3f aMeas_mps2, Vector3f magMe
 }
 
 void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_rps, Vector3f aMeas_mps2, Vector3f magMeas, Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
-    cout << "uNavINS() update: " << t_us << " " << timeWeek << " " << pMeas_D_rrm << endl;
-    
   // change in time
   dt_s_ = ((float)(t_us - tPrev_us_)) / 1e6;
   if (dt_s_ > 0.1) {dt_s_ = 0.1;} // Catch large dt
