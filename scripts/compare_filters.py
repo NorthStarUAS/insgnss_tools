@@ -276,6 +276,8 @@ if flight_format == 'sentera':
 
 if True:
     print("Estimating winds aloft:")
+    w = wind.Wind()
+    winds = w.estimate(nav1, 30)
     winds = []
     airspeed = 0
     psi = 0
@@ -296,7 +298,7 @@ if True:
                 vn = record['filter']['vn']
                 ve = record['filter']['ve']
             if airspeed > 10.0:
-                (wn, we, ps) = wind.update(t, airspeed, psi, vn, ve)
+                (wn, we, ps) = w.update(t, airspeed, psi, vn, ve)
                 #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
                 wind_deg = 90 - math.atan2(wn, we) * r2d
                 if wind_deg < 0: wind_deg += 360.0
