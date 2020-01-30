@@ -237,7 +237,7 @@ config2['sig_gps_v_d'] = 2.0
 filter1 = nav_wrapper.filter(nav='EKF15',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
-filter2 = nav_wrapper.filter(nav='EKF15_mag',
+filter2 = nav_wrapper.filter(nav='uNavINS',
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
 
@@ -277,22 +277,6 @@ if True:
     w = wind.Wind()
     winds = w.estimate(data, None)
 
-if False:
-    # estimate wind (via interpolation)
-    print("Estimating winds aloft (via interpolation):")
-    for i, imu in enumerate(tqdm(data['imu'])):
-        #print(data['imu'].iloc[i,:].to_dict())
-        t = imu['time']
-        air = interp.query(t, 'air')
-        nav = interp.query(t, 'filter')
-        (wn, we, ps) = wind.update(imu['time'], air['airspeed'],
-                                   nav['psi'], nav['vn'], nav['ve'])
-        #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
-        wind_deg = 90 - math.atan2(wn, we) * r2d
-        if wind_deg < 0: wind_deg += 360.0
-        wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
-        #print wn, we, ps, wind_deg, wind_kt
-    
 if False:
     print("Estimating alpha/beta (experimental):")
     navpt = {}
