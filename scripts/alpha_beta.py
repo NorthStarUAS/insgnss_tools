@@ -31,6 +31,9 @@ def update(navpt, airpt, imupt, wn, we):
     global lff
     global cl_array
     global a_array
+
+    if not 'psi' in navpt:
+        return
     
     C_N2B = navpy.angle2dcm(navpt['psi'], navpt['the'], navpt['phi'])
     vel = np.array([navpt['vn'] + wn, navpt['ve'] + we, navpt['vd']])
