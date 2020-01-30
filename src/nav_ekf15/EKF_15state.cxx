@@ -124,7 +124,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     // at rest
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
-    nav.phi = asin(imu.ay/(g*cos(nav.the))); 
+    nav.phi = asin(imu.ay/(g*cos(nav.the)));
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
     nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
@@ -132,7 +132,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
-	
+
     nav.abx = 0.0;
     nav.aby = 0.0;
     nav.abz = 0.0;
@@ -155,7 +155,7 @@ void EKF15::time_update(IMUdata imu) {
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
     nav.time = imu.time;
-    
+
     // ==================  Time Update  ===================
 
     // AHRS Transformations
@@ -165,7 +165,7 @@ void EKF15::time_update(IMUdata imu) {
     // Attitude Update
     // ... Calculate Navigation Rate
     Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
-    Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
+    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
 
     if ( false ) {
         // Get the new Specific forces and Rotation Rate from previous
@@ -194,7 +194,6 @@ void EKF15::time_update(IMUdata imu) {
     imu_last = imu;
 
     Quaternionf dq = Quaternionf(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
-    
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
@@ -216,7 +215,7 @@ void EKF15::time_update(IMUdata imu) {
     nav.vd += imu_dt*dx(2);
 	
     // Position Update
-    dx = llarate(vel_vec, pos_vec);
+    dx = llarate(vel_vec, pos_ref);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
@@ -291,27 +290,22 @@ void EKF15::time_update(IMUdata imu) {
 
 void EKF15::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
-		
-    // Position, converted to NED
-    Vector3d pos_vec(nav.lat, nav.lon, nav.alt);
-    pos_ins_ecef = lla2ecef(pos_vec);
 
-    Vector3d pos_ref = pos_vec;
-    pos_ref(2) = 0.0;
-    pos_ins_ned = ecef2ned(pos_ins_ecef, pos_ref);
-		
-    pos_gps(0) = gps.lat*D2R;
-    pos_gps(1) = gps.lon*D2R;
-    pos_gps(2) = gps.alt;
-		
-    pos_gps_ecef = lla2ecef(pos_gps);
-		
-    pos_gps_ned = ecef2ned(pos_gps_ecef, pos_ref);
+    // Position, converted to NED
+    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
+    Vector3d pos_ins_ecef = lla2ecef(pos_ref);
+
+    Vector3d pos_gps(gps.lat*D2R, gps.lon*D2R, gps.alt);
+    Vector3d pos_gps_ecef = lla2ecef(pos_gps);
+    
+    Vector3d pos_error_ecef = pos_gps_ecef - pos_ins_ecef;
+    
+    Vector3f pos_error_ned = ecef2ned(pos_error_ecef, pos_ref);
 
     // Create Measurement: y
-    y(0) = pos_gps_ned(0) - pos_ins_ned(0);
-    y(1) = pos_gps_ned(1) - pos_ins_ned(1);
-    y(2) = pos_gps_ned(2) - pos_ins_ned(2);
+    y(0) = pos_error_ned(0);
+    y(1) = pos_error_ned(1);
+    y(2) = pos_error_ned(2);
 		
     y(3) = gps.vn - nav.vn;
     y(4) = gps.ve - nav.ve;
@@ -372,6 +366,6 @@ NAVdata EKF15::get_nav() {
     nav.qx = quat.x();
     nav.qy = quat.y();
     nav.qz = quat.z();
-	
+
     return nav;
 }

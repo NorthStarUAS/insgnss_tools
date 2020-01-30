@@ -18,15 +18,19 @@ from aurauas_flightdata import flight_loader, flight_interp
 
 import nav_wrapper
 
+# command line arguments
 parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('--flight', required=True, help='flight data log')
+parser.add_argument('flight', help='flight data log')
 parser.add_argument('--gps-lag-sec', type=float, default=0.2,
                     help='gps lag (sec)')
 args = parser.parse_args()
 
+# constants
 r2d = 180.0 / math.pi
 d2r = math.pi / 180.0
+gps_settle_secs = 10.0
 
+# load the flight data
 path = args.flight
 data, flight_format = flight_loader.load(path)
 
@@ -49,51 +53,70 @@ config = {
     'sig_w_gx': 0.00175,
     'sig_w_gy': 0.00175,
     'sig_w_gz': 0.00175,
-    'sig_a_d': 0.02,
+    'sig_a_d': 0.01,
     'tau_a': 100.0,
-    'sig_g_d': 0.0005,
+    'sig_g_d': 0.00025,
     'tau_g': 50.0,
-    'sig_gps_p_ne': 2.0,
+    'sig_gps_p_ne': 3.0,
     'sig_gps_p_d': 6.0,
     'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 3.0,
-    'sig_mag': 0.1
+    'sig_gps_v_d': 1.0,
+    'sig_mag': 1.0
 }
+# uNavINS default config
+# config = {
+#     'sig_w_ax': 0.05,
+#     'sig_w_ay': 0.05,
+#     'sig_w_az': 0.05,
+#     'sig_w_gx': 0.00175,
+#     'sig_w_gy': 0.00175,
+#     'sig_w_gz': 0.00175,
+#     'sig_a_d': 0.01,
+#     'tau_a': 100.0,
+#     'sig_g_d': 0.00025,
+#     'tau_g': 50.0,
+#     'sig_gps_p_ne': 3.0,
+#     'sig_gps_p_d': 6.0,
+#     'sig_gps_v_ne': 0.5,
+#     'sig_gps_v_d': 1.0,
+#     'sig_mag': 1.0
+# }
 
-filter = nav_wrapper.filter(nav='EKF15',
+# select filter
+#filter_name = "EKF15"
+filter_name = "EKF15_mag"
+#filter_name = "uNavINS"
+#filter_name = "uNavINS_BFS"
+
+filter = nav_wrapper.filter(nav=filter_name,
                             gps_lag_sec=args.gps_lag_sec,
                             imu_dt=imu_dt)
 filter.set_config(config)
 
 print("Running nav filter:")
-filter_init = False
 results = []
 
+gps_init_sec = None
+gpspt = None
 iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
     record = iter.next()
     imupt = record['imu']
     if 'gps' in record:
         gpspt = record['gps']
-    else:
-        gpspt = {}
+        if gps_init_sec is None:
+            gps_init_sec = gpspt['time']
 
-    # Init the filter if we have gps data (and haven't already init'd)
-    if not filter_init and 'time' in gpspt:
-        # print("init:", imupt['time'], gpspt['time'])
-        navpt = filter.init(imupt, gpspt)
-        filter_init = True
-    elif filter_init:
-        navpt = filter.update(imupt, gpspt)
+    # if not inited or gps not yet reached it's settle time
+    if gps_init_sec is None or gpspt['time'] < gps_init_sec + gps_settle_secs:
+        continue
+
+    navpt = filter.update(imupt, gpspt)
 
     # Store the desired results obtained from the compiled test
     # navigation filter and the baseline filter
-    if filter_init:
-        results.append(navpt)
+    results.append(navpt)
 
-# proper cleanup
-filter.close()
-    
 # Plotting Section
 
 plotname = os.path.basename(args.flight)    
@@ -136,18 +159,21 @@ fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 ax1.set_title("NED Velocities")
 ax1.set_ylabel('vn (mps)', weight='bold')
 ax1.plot(df0_gps['vn'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax1.plot(df0_nav['vn'], label="On Board")
 ax1.plot(df1_nav['vn'], label=filter.name)
 ax1.grid()
 
 # ve Plot
 ax2.set_ylabel('ve (mps)', weight='bold')
 ax2.plot(df0_gps['ve'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax2.plot(df0_nav['ve'], label="On Board")
 ax2.plot(df1_nav['ve'], label=filter.name)
 ax2.grid()
 
 # vd Plot
 ax3.set_ylabel('vd (mps)', weight='bold')
 ax3.plot(df0_gps['vd'], '-*', label='GPS Sensor', c='g', alpha=.5)
+ax3.plot(df0_nav['vd'], label="On Board")
 ax3.plot(df1_nav['vd'], label=filter.name)
 ax3.set_xlabel('TIME (SECONDS)', weight='bold')
 ax3.grid()
@@ -171,6 +197,8 @@ plt.plot(df0_gps['lon'], df0_gps['lat'], '*', label='GPS Sensor', c='g', alpha=.
 plt.plot(r2d(df1_nav['lon']), r2d(df1_nav['lat']), label=filter.name)
 plt.grid()
 plt.legend(loc=0)
+ax = plt.gca()
+ax.axis('equal')
 
 # Biases
 bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
