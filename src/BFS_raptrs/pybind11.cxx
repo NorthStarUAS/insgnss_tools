@@ -65,6 +65,14 @@ public:
         result.gby = filt.getGyroBiasX_rads();
         result.gbz = filt.getGyroBiasX_rads();
 
+        // these values currently aren't supported outputs from this
+        // version of the ekf
+        result.Pp0 = result.Pp1 = result.Pp2 = 0.0;
+        result.Pv0 = result.Pv1 = result.Pv2 = 0.0;
+        result.Pa0 = result.Pa1 = result.Pa2 = 0.0;
+        result.Pabx = result.Paby = result.Pabz = 0.0;
+        result.Pgbx = result.Pgby = result.Pgbz = 0.0;
+
         return result;
     }
 
