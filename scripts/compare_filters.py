@@ -409,43 +409,48 @@ if PLOT_ATTITUDE:
     # Roll Plot
     att_ax[0,0].set_title('Attitude Angles')
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
+    att_ax[0,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
         att_ax[0,0].plot(r2d(df_nav[i]['phi']), label=labels[i], alpha=.8)
     att_ax[0,0].grid()
 
-    att_ax[0,1].plot(0,c='g')
+    att_ax[0,1].plot([],[]) # consume gps color
+    att_ax[0,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[0,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i])
-        att_ax[0,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i])
+        att_ax[0,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i+1])
+        att_ax[0,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i+1])
     att_ax[0,1].set_ylabel('3*stddev', weight='bold')
     att_ax[0,1].grid()
     
     # Pitch Plot
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
-    att_ax[1,0].plot(r2d(df_nav[0]['the']), label='On Board', c='g', alpha=.5)
+    att_ax[1,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
         att_ax[1,0].plot(r2d(df_nav[i]['the']), label=labels[i], alpha=.8)
     att_ax[1,0].grid()
 
-    att_ax[1,1].plot(0,c='g')
+    att_ax[1,1].plot([],[]) # consume gps color
+    att_ax[1,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[1,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i])
-        att_ax[1,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i])
+        att_ax[1,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i+1])
+        att_ax[1,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i+1])
     att_ax[1,1].set_ylabel('3*stddev', weight='bold')
     att_ax[1,1].grid()
 
     # Yaw Plot
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
+    att_ax[2,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[2,0].plot(r2d(df_nav[i]['psi']), label=labels[i], alpha=.5)
+        att_ax[2,0].plot(r2d(df_nav[i]['psi']), label=labels[i], alpha=.8)
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
     
-    att_ax[2,1].plot(0,c='g')
+    att_ax[2,1].plot([],[]) # consume gps color
+    att_ax[2,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[2,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i])
-        att_ax[2,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i])
+        att_ax[2,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i+1])
+        att_ax[2,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i+1])
     att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,1].set_ylabel('3*stddev', weight='bold')
     att_ax[2,1].grid()
@@ -458,7 +463,7 @@ if PLOT_VELOCITIES:
     # vn Plot
     ax1.set_title("NED Velocities")
     ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(df_gps[0]['vn'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax1.plot(df_gps[0]['vn'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
         ax1.plot(df_nav[i]['vn'], label=labels[i], lw=2, alpha=.8)
     ax1.grid()
@@ -466,14 +471,14 @@ if PLOT_VELOCITIES:
 
     # ve Plot
     ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(df_gps[0]['ve'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax2.plot(df_gps[0]['ve'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
         ax2.plot(df_nav[i]['ve'], label=labels[i], lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
     ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(df_gps[0]['vd'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    ax3.plot(df_gps[0]['vd'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
         ax3.plot(df_nav[i]['vd'], label=labels[i], lw=2, alpha=.8)
     ax3.set_xlabel('Time (secs)', weight='bold')
@@ -483,7 +488,7 @@ if PLOT_VELOCITIES:
 if PLOT_ALTITUDE:
     plt.figure()
     plt.title('Altitude')
-    plt.plot(df_gps[0]['alt'], '-*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(df_gps[0]['alt'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
         plt.plot(df_nav[i]['alt'], label=labels[i], lw=2, alpha=.8)
     plt.ylabel('Altitude (m)', weight='bold')
@@ -496,7 +501,7 @@ if PLOT_GROUNDTRACK:
     plt.title("Ground Track")
     plt.ylabel('Latitude (degrees)', weight='bold')
     plt.xlabel('Longitude (degrees)', weight='bold')
-    plt.plot(df_gps[0]['lon'], df_gps[0]['lat'], '*', label='GPS Sensor', c='g', lw=2, alpha=.5)
+    plt.plot(df_gps[0]['lon'], df_gps[0]['lat'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
         plt.plot(r2d(df_nav[i]['lon']), r2d(df_nav[i]['lat']), label=labels[i], lw=2, alpha=.8)
     plt.grid()
