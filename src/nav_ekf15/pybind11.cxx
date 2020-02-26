@@ -32,7 +32,7 @@ public:
             } else {
                 last_gps_time = gps.time;
                 filt.time_update(imu);
-                filt.measurement_update(imu, gps);
+                filt.measurement_update(gps);
             }
         }
     }

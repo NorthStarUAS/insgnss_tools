@@ -20,6 +20,7 @@ using std::endl;
 #include <stdio.h>
 
 #include "../nav_common/nav_functions_float.hxx"
+
 #include "EKF_15state.hxx"
 
 const float P_P_INIT = 10.0;
@@ -125,11 +126,16 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
     nav.the = asin(imu.ax/g); 
     // phi from Ay, aircraft at rest
     nav.phi = asin(imu.ay/(g*cos(nav.the)));
+
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
-    nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
+    // nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
     // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi*R2D);
     // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
+
+    // tilt compensated heading
+    nav.psi = atan2(imu.hz*sin(nav.phi)-imu.hy*cos(nav.phi),imu.hx*cos(nav.the)+imu.hy*sin(nav.the)*sin(nav.phi)+imu.hz*sin(nav.the)*cos(nav.phi));
+    printf("tilt compensated psi: %.2f\n", nav.psi*R2D);
 	
     quat = eul2quat(nav.phi, nav.the, nav.psi);
 
@@ -178,7 +184,7 @@ void EKF15::time_update(IMUdata imu) {
         om_ib(0) = imu_last.p - nav.gbx;
         om_ib(1) = imu_last.q - nav.gby;
         om_ib(2) = imu_last.r - nav.gbz;
-    } else {
+    } else if ( false ) {
         // Combine the Specific forces and Rotation Rate from previous
         // frame (k) with current frame (k+1) to use in this frame
         // (k+1).  Trapazoidal integration.
@@ -189,6 +195,15 @@ void EKF15::time_update(IMUdata imu) {
         om_ib(0) = 0.5 * (imu_last.p + imu.p) - nav.gbx;
         om_ib(1) = 0.5 * (imu_last.q + imu.q) - nav.gby;
         om_ib(2) = 0.5 * (imu_last.r + imu.r) - nav.gbz;
+    } else {
+        // Chris says the first two ways are BS
+        f_b(0) = imu.ax - nav.abx;
+        f_b(1) = imu.ay - nav.aby;
+        f_b(2) = imu.az - nav.abz;
+
+        om_ib(0) = imu.p - nav.gbx;
+        om_ib(1) = imu.q - nav.gby;
+        om_ib(2) = imu.r - nav.gbz;
     }
 
     imu_last = imu;
@@ -288,7 +303,7 @@ void EKF15::time_update(IMUdata imu) {
     // ==================  DONE TU  ===================
 }
 
-void EKF15::measurement_update(IMUdata imu, GPSdata gps) {
+void EKF15::measurement_update(GPSdata gps) {
     // ==================  GPS Update  ===================
 
     // Position, converted to NED

@@ -25,16 +25,16 @@ public:
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config) {
         // set config values
-        filt.Set_AccelNoise( config.sig_w_ax );
-        filt.Set_GyroNoise( config.sig_w_gx );
+        filt.Set_AccelSigma( config.sig_w_ax );
         filt.Set_AccelMarkov( config.sig_a_d );
         filt.Set_AccelTau( config.tau_a );
-        filt.Set_GyroMarkov( config.sig_g_d );
-        filt.Set_GyroTau( config.tau_g );
-        filt.Set_GpsPosNoiseNE( config.sig_gps_p_ne );
-        filt.Set_GpsPosNoiseD( config.sig_gps_p_d );
-        filt.Set_GpsVelNoiseNE( config.sig_gps_v_ne );
-        filt.Set_GpsVelNoiseD( config.sig_gps_v_d );
+        filt.Set_RotRateSigma( config.sig_w_gx );
+        filt.Set_RotRateMarkov( config.sig_g_d );
+        filt.Set_RotRateTau( config.tau_g );
+        filt.Set_PosSigmaNE( config.sig_gps_p_ne );
+        filt.Set_PosSigmaD( config.sig_gps_p_d );
+        filt.Set_VelSigmaNE( config.sig_gps_v_ne );
+        filt.Set_VelSigmaD( config.sig_gps_v_d );
         
         // commit these values
         filt.Configure();

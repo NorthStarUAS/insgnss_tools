@@ -1,21 +1,25 @@
 /*
-Copyright (c) 2011 - 2020 Regents of the University of Minnesota and Bolder Flight Systems Inc.
+Copyright (c) 2016 - 2020 Regents of the University of Minnesota and Bolder Flight Systems Inc.
 MIT License; See LICENSE.md for complete details
 Adapted for RAPTRS: Brian Taylor and Chris Regan
-Author: Adhika Lie, Gokhan Inalhan, Demoz Gebre, Jung Soon Jang
+
+Adapted from prior versions
+Copyright 2011 Regents of the University of Minnesota. All rights reserved.
+Original Author: Adhika Lie, Gokhan Inalhan, Demoz Gebre, Jung Soon Jang
+
+Reference Frames and Coordinates from nav-functions()
+I - ECI (Earch Center Inertial): origin at Earth center
+E - ECEF (Earch Center Earth Fixed): origin at Earth center
+D - Geodetic: origin at Earth center, Uses earth ellisoid definition (example WGS84)
+G - Geocentric: origin at Earth center, Uses spheroid definition
+L - Local Level: origin at specified reference, [x- North, y- East, z- Down]
+B - Body: origin at Body CG, [x- Fwd, y- Starboard, z- Down]
+
+All units meters and radians
+"Acceleration" is actually "specific gravity", ie. gravity is removed.
 */
 
 #include "nav-functions.h"
-
-// Reference Frames and Coordinates
-// I - ECI (Earch Center Inertial): origin at Earth center
-// E - ECEF (Earch Center Earth Fixed): origin at Earth center
-// D - Geodetic: origin at Earth center, Uses earth ellisoid definition (example WGS84)
-// G - Geocentric: origin at Earth center, Uses spheroid definition
-// L - Local Level: origin at specified reference, [x- North, y- East, z- Down]
-// B - Body: origin at Body CG, [x- Fwd, y- Starboard, z- Down]
-//
-// All units meters and radians
 
 // Calculate the rate of change of latitude, longitude,
 // and altitude using the velocity in NED coordinates and WGS-84.
@@ -305,28 +309,28 @@ void EarthRad(double lat, double *Rew, double *Rns) {
 }
 
 
-// bound yaw angle between -pi and pi
-double WrapToPi(double dta) {
-  if(dta >  M_PI) dta -= (M_PI * 2.0f);
-  if(dta < -M_PI) dta += (M_PI * 2.0f);
-  return dta;
+// Bound angle between -pi and pi
+double WrapToPi(double a) {
+  if(a >  M_PI) a -= (M_PI * 2.0f);
+  if(a < -M_PI) a += (M_PI * 2.0f);
+  return a;
 }
-float WrapToPi(float dta) {
-  if(dta >  M_PI) dta -= (M_PI * 2.0f);
-  if(dta < -M_PI) dta += (M_PI * 2.0f);
-  return dta;
+float WrapToPi(float a) {
+  if(a >  M_PI) a -= (M_PI * 2.0f);
+  if(a < -M_PI) a += (M_PI * 2.0f);
+  return a;
 }
 
-// bound heading angle between 0 and 2*pi
-double WrapTo2Pi(double dta){
-  dta = fmod(dta, 2.0f * M_PI);
-  if (dta < 0)
-    dta += 2.0f * M_PI;
-  return dta;
+// Bound angle between 0 and 2*pi
+double WrapTo2Pi(double a){
+  a = fmod(a, 2.0f * M_PI);
+  if (a < 0)
+    a += 2.0f * M_PI;
+  return a;
 }
-float WrapTo2Pi(float dta){
-  dta = fmod(dta, 2.0f * M_PI);
-  if (dta < 0)
-    dta += 2.0f * M_PI;
-  return dta;
+float WrapTo2Pi(float a){
+  a = fmod(a, 2.0f * M_PI);
+  if (a < 0)
+    a += 2.0f * M_PI;
+  return a;
 }

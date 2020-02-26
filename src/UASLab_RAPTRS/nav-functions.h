@@ -1,16 +1,30 @@
 /*
-Copyright (c) 2011 - 2019 Regents of the University of Minnesota and Bolder Flight Systems Inc.
+Copyright (c) 2016 - 2020 Regents of the University of Minnesota and Bolder Flight Systems Inc.
 MIT License; See LICENSE.md for complete details
 Adapted for RAPTRS: Brian Taylor and Chris Regan
-Author: Adhika Lie, Gokhan Inalhan, Demoz Gebre, Jung Soon Jang
+
+Adapted from prior versions
+Copyright 2011 Regents of the University of Minnesota. All rights reserved.
+Original Author: Adhika Lie, Gokhan Inalhan, Demoz Gebre, Jung Soon Jang
+
+Reference Frames and Coordinates from nav-functions()
+I - ECI (Earch Center Inertial): origin at Earth center
+E - ECEF (Earch Center Earth Fixed): origin at Earth center
+D - Geodetic: origin at Earth center, Uses earth ellisoid definition (example WGS84)
+G - Geocentric: origin at Earth center, Uses spheroid definition
+L - Local Level: origin at specified reference, [x- North, y- East, z- Down]
+B - Body: origin at Body CG, [x- Fwd, y- Starboard, z- Down]
+
+All units meters and radians
+"Acceleration" is actually "specific gravity", ie. gravity is removed.
 */
 
 #pragma once
 
 #include <math.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Geometry>
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 using namespace Eigen;
 
 // Constants
@@ -55,7 +69,7 @@ Matrix3f Quat2DCM(Quaternionf quat);
 
 void EarthRad(double lat, double *Rew, double *Rns);
 
-double WrapToPi(double dta);
-float WrapToPi(float dta);
-double WrapTo2Pi(double dta);
-float WrapTo2Pi(float dta);
+double WrapToPi(double a);
+float WrapToPi(float a);
+double WrapTo2Pi(double a);
+float WrapTo2Pi(float a);
