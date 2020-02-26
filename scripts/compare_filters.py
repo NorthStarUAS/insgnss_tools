@@ -243,7 +243,7 @@ for name in args.filter:
     filter = nav_wrapper.filter(nav=name,
                                 gps_lag_sec=args.gps_lag_sec,
                                 imu_dt=imu_dt)
-    filter.set_config(config)
+    #filter.set_config(config)
     nav, filter_sec = run_filter(filter, data)
     nav_list.append(nav)
     time_list.append(filter_sec)
@@ -258,7 +258,7 @@ if flight_format == 'aura_csv' or flight_format == 'aura_txt':
 if flight_format == 'umn3':
     basedir = os.path.dirname(args.flight)
     filter_post = os.path.join(basedir, "filter-post.csv")
-    flight_loader.save(filter_post, nav1)
+    #flight_loader.save(filter_post, nav1)
 
 if flight_format == 'px4_ulog':
     filter_post = args.flight + "_filter_post.txt"
@@ -544,7 +544,7 @@ if PLOT_BIASES:
     bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
     for i in range(len(labels)):
         if 'abx' in df_nav[i]:
-            bias_ax[0,1].plot(r2d(df_nav[i]['abx']), label=labels[i])
+            bias_ax[0,1].plot(df_nav[i]['abx'], label=labels[i])
         else:
             bias_ax[0,1].plot(0, label=labels[i])
     bias_ax[0,1].grid()
@@ -552,7 +552,7 @@ if PLOT_BIASES:
     bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
     for i in range(len(labels)):
         if 'aby' in df_nav[i]:
-            bias_ax[1,1].plot(r2d(df_nav[i]['aby']), label=labels[i])
+            bias_ax[1,1].plot(df_nav[i]['aby'], label=labels[i])
         else:
             bias_ax[1,1].plot(0, label=labels[i])
     bias_ax[1,1].grid()
@@ -560,7 +560,7 @@ if PLOT_BIASES:
     bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
     for i in range(len(labels)):
         if 'abz' in df_nav[i]:
-            bias_ax[2,1].plot(r2d(df_nav[i]['abz']), label=labels[i])
+            bias_ax[2,1].plot(df_nav[i]['abz'], label=labels[i])
         else:
             bias_ax[2,1].plot(0, label=labels[i])
     bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
