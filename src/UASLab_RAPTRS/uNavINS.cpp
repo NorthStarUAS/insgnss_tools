@@ -66,21 +66,18 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f m
   aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
   wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
 
-  // initial attitude, roll and pitch
-  euler_BL_rad_(1) = asinf(aEst_B_mps2_(0) / G);
-  euler_BL_rad_(0) = asinf(-aEst_B_mps2_(1) / (G * cosf(euler_BL_rad_(1))));
+  // Initial attitude, roll and pitch
+  Vector3f aEst_B_nd = aEst_B_mps2_ / aEst_B_mps2_.norm(); // Normalize to remove the 1g sensitivity
+  euler_BL_rad_(1) = asinf(aEst_B_nd(0));
+  euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
   // Magnetic horizontal Y (right side) and X (forward) corrections due to roll and pitch angle
-  float magY = magMeas_B_uT(1) * cosf(euler_BL_rad_(0)) - magMeas_B_uT(2) * sinf(euler_BL_rad_(0));
-  float magX = magMeas_B_uT(0) * cosf(euler_BL_rad_(1)) + (magMeas_B_uT(1) * sinf(euler_BL_rad_(0)) + magMeas_B_uT(2) * cosf(euler_BL_rad_(0))) * sinf(euler_BL_rad_(1));
+  Vector3f magMeas_B_nd = magMeas_B_uT / magMeas_B_uT.norm();
+  float magY = magMeas_B_nd(1) * cosf(euler_BL_rad_(0)) - magMeas_B_nd(2) * sinf(euler_BL_rad_(0));
+  float magX = magMeas_B_nd(0) * cosf(euler_BL_rad_(1)) + (magMeas_B_nd(1) * sinf(euler_BL_rad_(0)) + magMeas_B_nd(2) * cosf(euler_BL_rad_(0))) * sinf(euler_BL_rad_(1));
 
   // Estimate initial heading
-  if (magX < 0) {
-    euler_BL_rad_(2) = M_PI / 2.0f - atanf(magY / -magX);
-  } else {
-    euler_BL_rad_(2) = 3.0f * M_PI / 2.0f - atanf(magY / -magX);
-  }
-  euler_BL_rad_(2) = WrapToPi(euler_BL_rad_(2));
+  euler_BL_rad_(2) = -atan2f(magY, magX);
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);
@@ -118,14 +115,9 @@ void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps
 
   // Euler angles from quaternion
   euler_BL_rad_ = Quat2Euler(quat_BL_);
-  track_rad = atan2f(vEst_L_mps_(1), vEst_L_mps_(0));
 }
 
 void uNavINS::TimeUpdate() {
-  // Compute DCM (Body to/from NED) Transformations from Quaternion
-  Matrix3f T_L2B = Quat2DCM(quat_BL_);
-  Matrix3f T_B2L = T_L2B.transpose();
-
   // Attitude Update
   Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_B_rps_(0)*dt_s_, 0.5f*wEst_B_rps_(1)*dt_s_, 0.5f*wEst_B_rps_(2)*dt_s_);
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
@@ -135,8 +127,12 @@ void uNavINS::TimeUpdate() {
     quat_BL_ = Quaternionf(-quat_BL_.w(), -quat_BL_.x(), -quat_BL_.y(), -quat_BL_.z());
   }
 
+  // Compute DCM (Body to/from NED) Transformations from Quaternion
+  Matrix3f T_L2B = Quat2DCM(quat_BL_);
+  Matrix3f T_B2L = T_L2B.transpose();
+
   // Velocity Update
-  Vector3f aGrav_mps2 = Vector3f(0.0,0.0,G);
+  Vector3f aGrav_mps2 = Vector3f(0.0, 0.0, G);
   vEst_L_mps_ += dt_s_ * (T_B2L * aEst_B_mps2_ + aGrav_mps2);
 
   // Position Update
@@ -161,8 +157,10 @@ void uNavINS::TimeUpdate() {
   Matrix<float,15,12> Gs; Gs.setZero();
   Gs.block(3,0,3,3) = -T_B2L;
   Gs.block(6,3,3,3) = -0.5f * I3;
-  Gs.block(9,6,6,6) = I6;
+  Gs.block(9,6,3,3) = I3;
+  Gs.block(12,9,3,3) = I3;
 
+  // Discrete Process Noise
   Matrix<float,15,15> Q; Q.setZero();
   Q = PHI * dt_s_ * Gs * Rw_ * Gs.transpose();
   Q = 0.5f * (Q + Q.transpose());

@@ -93,6 +93,7 @@ Vector3d D2E(Vector3d p_D) {
     return p_E;
 }
 
+
 // Calculate the Latitude, Longitude and Altitude given
 // the ECEF Coordinates.
 Vector3d E2D( Vector3d p_E ) {
@@ -157,23 +158,23 @@ Vector3d E2D( Vector3d p_E ) {
 
 // Transform a vector in ECEF coord to NED coord centered at pRef.
 Vector3d E2L(Vector3d p_E, Vector3d pRef_D) {
-  Vector3d p_NED = TransE2L(pRef_D) * p_E;
-  return p_NED;
+  Vector3d p_L = TransE2L(pRef_D) * p_E;
+
+  return p_L;
 }
 
 // Calculate the ECEF to NED coordinate transform DCM
 Matrix3d TransE2L(Vector3d pRef_D) {
-
   Matrix3d T_E2L;
-  T_E2L = AngleAxisd(pRef_D(1), Vector3d::UnitZ())
-    * AngleAxisd((3*M_PI/2 - pRef_D(0)), Vector3d::UnitY());
+  T_E2L = AngleAxisd(pRef_D(0) - 3*M_PI/2, Vector3d::UnitY())
+    * AngleAxisd(-pRef_D(1), Vector3d::UnitZ());
 
-  // Matrix3d T_E2L;
-  // T_E2L(0,0) = -sin(pRef_D(0))*cos(pRef_D(1)); T_E2L(1,0) = -sin(pRef_D(0))*sin(pRef_D(1)); T_E2L(2,0) = cos(pRef_D(0));
-  // T_E2L(0,1) = -sin(pRef_D(1));                T_E2L(1,1) = cos(pRef_D(1));                 T_E2L(2,1) = 0.0f;
-  // T_E2L(0,2) = -cos(pRef_D(0))*cos(pRef_D(1)); T_E2L(1,2) = -cos(pRef_D(0))*sin(pRef_D(1)); T_E2L(2,2) = -sin(pRef_D(0));
+  // T_E2L(0,0) = -sin(pRef_D(0))*cos(pRef_D(1)); T_E2L(0,1) = -sin(pRef_D(0))*sin(pRef_D(1)); T_E2L(0,2) = cos(pRef_D(0));
+  // T_E2L(1,0) = -sin(pRef_D(1));                T_E2L(1,1) = cos(pRef_D(1));                 T_E2L(1,2) = 0.0f;
+  // T_E2L(2,0) = -cos(pRef_D(0))*cos(pRef_D(1)); T_E2L(2,1) = -cos(pRef_D(0))*sin(pRef_D(1)); T_E2L(2,2) = -sin(pRef_D(0));
   return T_E2L;
 }
+
 
 // Calculate the ECEF to NED coordinate transform quaternion
 Quaterniond E2L_Quat(Vector3d pRef_D) {
@@ -261,18 +262,18 @@ Matrix3d Quat2DCM(Quaterniond quat) {
 Matrix3f Quat2DCM(Quaternionf quat) {
   Matrix3f T;
 
-  T(0,0) = 2*(quat.w()*quat.w() + quat.x()*quat.x()) - 1;
-  T(1,1) = 2*(quat.w()*quat.w() + quat.y()*quat.y()) - 1;
-  T(2,2) = 2*(quat.w()*quat.w() + quat.z()*quat.z()) - 1;
+  T(0,0) = 2.0f*(quat.w()*quat.w() + quat.x()*quat.x()) - 1.0f;
+  T(1,1) = 2.0f*(quat.w()*quat.w() + quat.y()*quat.y()) - 1.0f;
+  T(2,2) = 2.0f*(quat.w()*quat.w() + quat.z()*quat.z()) - 1.0f;
 
-  T(0,1) = 2*(quat.x()*quat.y() + quat.w()*quat.z());
-  T(0,2) = 2*(quat.x()*quat.z() - quat.w()*quat.y());
+  T(0,1) = 2.0f*(quat.x()*quat.y() + quat.w()*quat.z());
+  T(0,2) = 2.0f*(quat.x()*quat.z() - quat.w()*quat.y());
 
-  T(1,0) = 2*(quat.x()*quat.y() - quat.w()*quat.z());
-  T(1,2) = 2*(quat.y()*quat.z() + quat.w()*quat.x());
+  T(1,0) = 2.0f*(quat.x()*quat.y() - quat.w()*quat.z());
+  T(1,2) = 2.0f*(quat.y()*quat.z() + quat.w()*quat.x());
 
-  T(2,0) = 2*(quat.x()*quat.z() + quat.w()*quat.y());
-  T(2,1) = 2*(quat.y()*quat.z() - quat.w()*quat.x());
+  T(2,0) = 2.0f*(quat.x()*quat.z() + quat.w()*quat.y());
+  T(2,1) = 2.0f*(quat.y()*quat.z() - quat.w()*quat.x());
 
   return T;
 }
@@ -304,12 +305,12 @@ void EarthRad(double lat, double *Rew, double *Rns) {
   double denom = fabs(1.0 - (ECC2 * sin(lat) * sin(lat)));
   double sqrt_denom = sqrt(denom);
 
-  (*Rew) = EarthRadius / sqrt_denom;
-  (*Rns) = EarthRadius * (1 - ECC2) / (denom * sqrt_denom);
+  (*Rew) = EarthRadius / sqrt_denom; // Transverse (along East-West)
+  (*Rns) = EarthRadius * (1 - ECC2) / (denom * sqrt_denom); // Merdian (along North-South)
 }
 
 
-// Bound angle between -pi and pi
+// bound angle between -pi and pi
 double WrapToPi(double a) {
   if(a >  M_PI) a -= (M_PI * 2.0f);
   if(a < -M_PI) a += (M_PI * 2.0f);
@@ -321,7 +322,7 @@ float WrapToPi(float a) {
   return a;
 }
 
-// Bound angle between 0 and 2*pi
+// bound angle between 0 and 2*pi
 double WrapTo2Pi(double a){
   a = fmod(a, 2.0f * M_PI);
   if (a < 0)

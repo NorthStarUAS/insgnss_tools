@@ -66,7 +66,7 @@ class uNavINS {
     inline Vector3f Get_OrientEst() { return euler_BL_rad_; }
     inline Vector3d Get_PosEst() { return pEst_D_rrm_; }
     inline Vector3f Get_VelEst() { return vEst_L_mps_; }
-    inline float Get_Track() { return track_rad; }
+    inline float Get_Track() { return atan2f(vEst_L_mps_(1), vEst_L_mps_(0)); }
 
     // Get Covariance Estimates
     inline Vector3f Get_CovPos() { return P_.block(0,0,3,3).diagonal(); }
@@ -119,7 +119,6 @@ class uNavINS {
     const Matrix<float,2,2> I2 = Matrix<float,2,2>::Identity();
     const Matrix<float,3,3> I3 = Matrix<float,3,3>::Identity();
     const Matrix<float,5,5> I5 = Matrix<float,5,5>::Identity();
-    const Matrix<float,6,6> I6 = Matrix<float,6,6>::Identity();
     const Matrix<float,15,15> I15 = Matrix<float,15,15>::Identity();
 
     // Kalman Matrices
@@ -138,7 +137,6 @@ class uNavINS {
     Vector3f wEst_B_rps_; // Estimated rotation rate in Body
     Vector3f vEst_L_mps_; // Estimated velocity in NED
     Vector3d pEst_D_rrm_; // Estimated position in LLA (rad, rad, m)
-    float track_rad = 0;
 
     // Methods
     void TimeUpdate();
