@@ -22,27 +22,26 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav_common/constants.hxx"
-#include "../nav_common/structs.hxx"
+#include "../nav_common/structs.h"
 
 // define some types for notational convenience and consistency
-typedef Matrix<float,6,6> Matrix6f;
+typedef Matrix<float,9,9>   Matrix9f;
 typedef Matrix<float,12,12> Matrix12f;
 typedef Matrix<float,15,15> Matrix15f;
-typedef Matrix<float,6,15> Matrix6x15f;
-typedef Matrix<float,15,6> Matrix15x6f;
+typedef Matrix<float,9,15>  Matrix9x15f;
+typedef Matrix<float,15,9>  Matrix15x9f;
 typedef Matrix<float,15,12> Matrix15x12f;
-typedef Matrix<float,6,1> Vector6f;
-typedef Matrix<float,15,1> Vector15f;
+typedef Matrix<float,9,1>   Vector9f;
+typedef Matrix<float,15,1>  Vector15f;
 
-class EKF15 {
+class EKF15_mag {
 
 public:
 
-    EKF15() {
+    EKF15_mag() {
 	default_config();
     }
-    ~EKF15() {}
+    ~EKF15_mag() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig config);
@@ -52,7 +51,7 @@ public:
     // main interface
     void init(IMUdata imu, GPSdata gps);
     void time_update(IMUdata imu);
-    void measurement_update(GPSdata gps);
+    void measurement_update(IMUdata imu, GPSdata gps);
     
     NAVdata get_nav();
     
@@ -60,15 +59,15 @@ private:
 
     Matrix15f F, PHI, P, Qw, Q, ImKH, KRKt, I15 /* identity */;
     Matrix15x12f G;
-    Matrix15x6f K;
+    Matrix15x9f K;
     Vector15f x;
     Matrix12f Rw;
-    Matrix6x15f H;
-    Matrix6f R;
-    Vector6f y;
+    Matrix9x15f H;
+    Matrix9f R;
+    Vector9f y;
     Matrix3f C_N2B, C_B2N, I3 /* identity */, temp33;
     // Vector3d pos_ins_ecef, pos_gps, pos_gps_ecef;
-    Vector3f grav, f_b, om_ib, /*nr, pos_ins_ned, pos_gps_ned,*/ dx, mag_ned;
+    Vector3f grav, f_b, om_ib, /*pos_ins_ned, pos_gps_ned,*/ dx, mag_ned;
 
     Quaternionf quat;
 

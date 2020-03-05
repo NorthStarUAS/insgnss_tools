@@ -243,7 +243,7 @@ for name in args.filter:
     filter = nav_wrapper.filter(nav=name,
                                 gps_lag_sec=args.gps_lag_sec,
                                 imu_dt=imu_dt)
-    #filter.set_config(config)
+    filter.set_config(config)
     nav, filter_sec = run_filter(filter, data)
     nav_list.append(nav)
     time_list.append(filter_sec)

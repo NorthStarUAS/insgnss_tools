@@ -1,7 +1,7 @@
 // The following constructs a python interface for this class and
 // associated structures.
 
-#include "structs.hxx"
+#include "structs.h"
 
 #ifdef HAVE_PYBIND11
 
