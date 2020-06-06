@@ -11,7 +11,7 @@
 #include <eigen3/Eigen/Geometry>
 using namespace Eigen;
 
-#include "glocal.hxx"
+#include "glocal.h"
 
 
 static double f = 1.0 / 298.257223563; // WGS-84 Flattening.

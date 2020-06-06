@@ -22,9 +22,9 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav_common/constants.hxx"
-#include "../nav_common/structs.hxx"
-#include "../nav_common/nav_functions_float.hxx"
+#include "../nav_common/constants.h"
+#include "../nav_common/structs.h"
+#include "../nav_common/nav_functions.h"
 
 class OpenLoop {
 

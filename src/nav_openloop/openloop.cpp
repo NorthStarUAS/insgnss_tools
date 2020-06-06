@@ -2,10 +2,10 @@
 using std::cout;
 using std::endl;
 
-#include "../nav_common/nav_functions_float.hxx"
+#include "../nav_common/nav_functions.h"
 
-#include "glocal.hxx"
-#include "openloop.hxx"
+#include "glocal.h"
+#include "openloop.h"
 
 static Vector3f quat_transform1(Quaternionf q, Vector3f v) {
     Quaternionf tmp1(0.0, v(0), v(1), v(2));

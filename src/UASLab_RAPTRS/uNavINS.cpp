@@ -1,31 +1,32 @@
 /*
-Updated to be a class, use Eigen, and compile as an Arduino library.
-Added methods to get gyro and accel bias. Added initialization to
-estimated angles rather than assuming IMU is level.
-
-Copyright (c) 2016 - 2019 Regents of the University of Minnesota and Bolder Flight Systems Inc.
+Copyright (c) 2016 - 2020 Regents of the University of Minnesota and Bolder Flight Systems Inc.
 MIT License; See LICENSE.md for complete details
-Author: Brian Taylor
-*/
+Adapted for RAPTRS: Brian Taylor and Chris Regan
 
-/*
-Adapted from earlier version
+Adapted from prior versions
 Copyright 2011 Regents of the University of Minnesota. All rights reserved.
-Original Author: Adhika Lie
+Original Author: Adhika Lie, Gokhan Inalhan, Demoz Gebre, Jung Soon Jang
+
+Reference Frames and Coordinates from nav-functions()
+I - ECI (Earch Center Inertial): origin at Earth center
+E - ECEF (Earch Center Earth Fixed): origin at Earth center
+D - Geodetic: origin at Earth center, Uses earth ellisoid definition (example WGS84)
+G - Geocentric: origin at Earth center, Uses spheroid definition
+L - Local Level: origin at specified reference, [x- North, y- East, z- Down]
+B - Body: origin at Body CG, [x- Fwd, y- Starboard, z- Down]
+
+All units meters and radians
+"Acceleration" is actually "specific gravity", ie. gravity is removed.
 */
 
 #include "uNavINS.h"
-
-#include <iostream>
-using std::cout;
-using std::endl;
 
 void uNavINS::Configure() {
   // Observation matrix (H)
   H_.setZero();
   H_.block(0,0,5,5) = I5;
 
-  // Covariance of the Sensor Noise (associated with TimeUpdate())
+  // Covariance of the Process Noise (associated with TimeUpdate())
   Rw_.setZero();
   Rw_.block(0,0,3,3) = (aNoiseSigma_mps2 * aNoiseSigma_mps2) * I3;
   Rw_.block(3,3,3,3) = (wNoiseSigma_rps * wNoiseSigma_rps) * I3;
@@ -39,6 +40,9 @@ void uNavINS::Configure() {
   R_.block(3,3,2,2) = (vNoiseSigma_NE_mps * vNoiseSigma_NE_mps) * I2;
   R_(5,5) = (vNoiseSigma_D_mps * vNoiseSigma_D_mps);
 
+  // Initial Innovation Covariance Estimate (S)
+  S_.setZero();
+
   // Initial Covariance Estimate (P)
   P_.setZero();
   P_.block(0,0,3,3) = (pErrSigma_Init_m * pErrSigma_Init_m) * I3;
@@ -49,50 +53,53 @@ void uNavINS::Configure() {
   P_.block(12,12,3,3) = (wBiasSigma_Init_rps * wBiasSigma_Init_rps) * I3;
 }
 
-void uNavINS::Initialize(Vector3f wMeas_rps, Vector3f aMeas_mps2, Vector3f magMeas, Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
+void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f magMeas_B_uT, Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
+  // Initialize Position and Velocity
+  pEst_D_rrm_ = pMeas_D_rrm; // Position in LLA (rad, rad, m)
+  vEst_L_mps_ = vMeas_L_mps; // Velocity in NED
+
   // Initialize sensor biases
-  wBias_rps_ = wMeas_rps;
+  wBias_rps_ = wMeas_B_rps;
   aBias_mps2_.setZero();
 
-  // initial attitude, roll and pitch
-  euler_BL_rad_(1) = asinf(aMeas_mps2(0) / G);
-  euler_BL_rad_(0) = asinf(-aMeas_mps2(1) / (G * cosf(euler_BL_rad_(1))));
+  // New Specific forces and Rotation Rate
+  aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
+  wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
 
-  // magnetic heading correction due to roll and pitch angle
-  float Bxc = magMeas(0) * cosf(euler_BL_rad_(1)) + (magMeas(1) * sinf(euler_BL_rad_(0)) + magMeas(2) * cosf(euler_BL_rad_(0))) * sinf(euler_BL_rad_(1));
-  float Byc = magMeas(1) * cosf(euler_BL_rad_(0)) - magMeas(2) * sinf(euler_BL_rad_(0));
+  // Initial attitude, roll and pitch
+  Vector3f aEst_B_nd = aEst_B_mps2_ / aEst_B_mps2_.norm(); // Normalize to remove the 1g sensitivity
+  euler_BL_rad_(1) = asinf(aEst_B_nd(0));
+  euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
-  // find initial heading
-  if (-Byc > 0) {
-    euler_BL_rad_(2) = M_PI / 2.0f - atanf(Bxc / -Byc);
-  } else {
-    euler_BL_rad_(2) = 3.0f * M_PI / 2.0f - atanf(Bxc / -Byc);
-  }
-  euler_BL_rad_(2) = WrapToPi(euler_BL_rad_(2));
+  // Magnetic horizontal Y (right side) and X (forward) corrections due to roll and pitch angle
+  Vector3f magMeas_B_nd = magMeas_B_uT / magMeas_B_uT.norm();
+  float magY = magMeas_B_nd(1) * cosf(euler_BL_rad_(0)) - magMeas_B_nd(2) * sinf(euler_BL_rad_(0));
+  float magX = magMeas_B_nd(0) * cosf(euler_BL_rad_(1)) + (magMeas_B_nd(1) * sinf(euler_BL_rad_(0)) + magMeas_B_nd(2) * cosf(euler_BL_rad_(0))) * sinf(euler_BL_rad_(1));
+
+  // Estimate initial heading
+  euler_BL_rad_(2) = -atan2f(magY, magX);
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);
-
-  // Initialize states with GPS Data
-  pEst_D_rrm_ = pMeas_D_rrm;
-  vEst_L_mps_ = vMeas_L_mps;
-
-  // New Specific forces and Rotation Rate
-  aEst_mps2_ = aMeas_mps2 - aBias_mps2_;
-  wEst_rps_ = wMeas_rps - wBias_rps_;
 
   // set initialized flag
   initialized_ = true;
 }
 
-void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_rps, Vector3f aMeas_mps2, Vector3f magMeas, Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
+void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f magMeas_B_uT, Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
   // change in time
   dt_s_ = ((float)(t_us - tPrev_us_)) / 1e6;
-  if (dt_s_ > 0.1) {dt_s_ = 0.1;} // Catch large dt
   tPrev_us_ = t_us;
 
+  // Catch large dt
+  if (dt_s_ > 0.1) {dt_s_ = 0.1;}
+
+  // A-priori accel and rotation rate estimate
+  aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
+  wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
+
   // Kalman Time Update (Prediction)
-  TimeUpdate(wMeas_rps, aMeas_mps2);
+  TimeUpdate();
 
   // Gps measurement update, if TOW increased
   if ((timeWeek - timeWeekPrev_) > 0) {
@@ -100,28 +107,19 @@ void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_rps, 
 
     // Kalman Measurement Update
     MeasUpdate(pMeas_D_rrm, vMeas_L_mps);
+
+    // Post-priori accel and rotation rate estimate, biases updated in MeasUpdate()
+    aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
+    wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
   }
 
   // Euler angles from quaternion
   euler_BL_rad_ = Quat2Euler(quat_BL_);
-  track_rad = atan2f(vEst_L_mps_(1), vEst_L_mps_(0));
-
-  // Post-priori accel and rotation rate estimate
-  aEst_mps2_ = aMeas_mps2 - aBias_mps2_;
-  wEst_rps_ = wMeas_rps - wBias_rps_;
 }
 
-void uNavINS::TimeUpdate(Vector3f wMeas_rps, Vector3f aMeas_mps2) {
-  // A-priori accel and rotation rate estimate
-  aEst_mps2_ = aMeas_mps2 - aBias_mps2_;
-  wEst_rps_ = wMeas_rps - wBias_rps_;
-
-  // Compute DCM (Body to/from NED) Transformations from Quaternion
-  Matrix3f T_L2B = Quat2DCM(quat_BL_);
-  Matrix3f T_B2L = T_L2B.transpose();
-
+void uNavINS::TimeUpdate() {
   // Attitude Update
-  Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_rps_(0)*dt_s_, 0.5f*wEst_rps_(1)*dt_s_, 0.5f*wEst_rps_(2)*dt_s_);
+  Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_B_rps_(0)*dt_s_, 0.5f*wEst_B_rps_(1)*dt_s_, 0.5f*wEst_B_rps_(2)*dt_s_);
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
   // Avoid quaternion flips sign
@@ -129,38 +127,41 @@ void uNavINS::TimeUpdate(Vector3f wMeas_rps, Vector3f aMeas_mps2) {
     quat_BL_ = Quaternionf(-quat_BL_.w(), -quat_BL_.x(), -quat_BL_.y(), -quat_BL_.z());
   }
 
+  // Compute DCM (Body to/from NED) Transformations from Quaternion
+  Matrix3f T_L2B = Quat2DCM(quat_BL_);
+  Matrix3f T_B2L = T_L2B.transpose();
+
   // Velocity Update
   Vector3f aGrav_mps2 = Vector3f(0.0, 0.0, G);
-  vEst_L_mps_ += dt_s_ * (T_B2L * aEst_mps2_ + aGrav_mps2);
+  vEst_L_mps_ += dt_s_ * (T_B2L * aEst_B_mps2_ + aGrav_mps2);
 
   // Position Update
   Vector3f pDot_D = L2D_Rate(vEst_L_mps_, pEst_D_rrm_);
   pEst_D_rrm_ += (dt_s_ * pDot_D).cast <double> ();
 
   // Assemble the Jacobian (state update matrix)
-  Matrix<float, 15, 15> Fs;
-  Fs.setZero();
-  Fs.block(0,3,3,3) = I3; // ... pos2gs
-  Fs(5,2) = -2.0f * G / EARTH_RADIUS; // ... gs2pos
-  Fs.block(3,6,3,3) = -2.0f * T_B2L * Skew(aEst_mps2_); // ... gs2att
-  Fs.block(3,9,3,3) = -T_B2L; // ... gs2acc
-  Fs.block(6,6,3,3) = -Skew(wEst_rps_); // ... att2att
-  Fs.block(6,12,3,3) = -0.5f * I3; // ... att2gyr
+  Matrix<float,15,15> Fs; Fs.setZero();
+  Fs.block(0,3,3,3) = I3;
+  Fs(5,2) = -2.0f * G / EARTH_RADIUS;
+  Fs.block(3,6,3,3) = -2.0f * T_B2L * Skew(aEst_B_mps2_);
+  Fs.block(3,9,3,3) = -T_B2L;
+  Fs.block(6,6,3,3) = -Skew(wEst_B_rps_);
+  Fs.block(6,12,3,3) = -0.5f * I3;
   Fs.block(9,9,3,3) = -1.0f / aMarkovTau_s * I3; // ... Accel Markov Bias
-  Fs.block(12,12,3,3) = -1.0f / wMarkovTau_s * I3; // ... Rotation Rate (gyro) Markov Bias
+  Fs.block(12,12,3,3) = -1.0f / wMarkovTau_s * I3; // ... Rotation Rate Markov Bias
 
-  Matrix<float, 15, 15> PHI = I15 + Fs * dt_s_; // State Transition Matrix
+  // State Transition Matrix
+  Matrix<float,15,15> PHI = I15 + Fs * dt_s_;
 
-  // Process Noise
-  Matrix<float,15,12> Gs;
-  Gs.setZero();
+  // Process Noise Covariance (Discrete approximation)
+  Matrix<float,15,12> Gs; Gs.setZero();
   Gs.block(3,0,3,3) = -T_B2L;
   Gs.block(6,3,3,3) = -0.5f * I3;
-  Gs.block(9,6,6,6) = I6;
+  Gs.block(9,6,3,3) = I3;
+  Gs.block(12,9,3,3) = I3;
 
-  // Process Noise Covariance
-  Matrix<float, 15, 15> Q;
-  Q.setZero();
+  // Discrete Process Noise
+  Matrix<float,15,15> Q; Q.setZero();
   Q = PHI * dt_s_ * Gs * Rw_ * Gs.transpose();
   Q = 0.5f * (Q + Q.transpose());
 
@@ -172,41 +173,37 @@ void uNavINS::TimeUpdate(Vector3f wMeas_rps, Vector3f aMeas_mps2) {
 // Measurement Update
 void uNavINS::MeasUpdate(Vector3d pMeas_D_rrm, Vector3f vMeas_L_mps) {
   // Position Error, converted to NED
-  // Vector3d pErr_L_m = E2L(D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_), pEst_D_rrm_);
-  Matrix3d T_E2L = TransE2L(pEst_D_rrm_);
-  Vector3d pErr_L_m = T_E2L * (D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_));
+  Matrix3f T_E2L = TransE2L(pEst_D_rrm_).cast <float> (); // Compute ECEF to NED with double precision, cast to float
+  Vector3f pErr_L_m = T_E2L * (D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_)).cast <float> ();// Compute position error double precision, cast to float, apply transformation
 
   // Velocity Error
   Vector3f vErr_L_mps = vMeas_L_mps - vEst_L_mps_;
 
-  // Create measurement Y, as difference between Measures and Outputs
-  Matrix<float, 6, 1> y;
-  y.setZero();
-  y.segment(0, 3) = pErr_L_m.cast <float> ();
-  y.segment(3, 3) = vErr_L_mps;
+  // Create measurement Y, as Error between Measures and Outputs
+  Matrix<float,6,1> y; y.setZero();
+  y.segment(0,3) = pErr_L_m;
+  y.segment(3,3) = vErr_L_mps;
 
   // Innovation covariance
-  Matrix<float,6,6> S;
-  S.setZero();
-  S = H_ * P_ * H_.transpose() + R_;
+  S_ = H_ * P_ * H_.transpose() + R_;
 
   // Kalman gain
-  Matrix<float,15,6> K;
-  K.setZero();
-  K = P_ * H_.transpose() * S.inverse();
+  Matrix<float,15,6> K; K.setZero();
+  K = P_ * H_.transpose() * S_.inverse();
 
   // Covariance update, P = (I + K * H) * P * (I + K * H)' + K * R * K'
-  P_ = (I15 - K * H_) * P_ * (I15 - K * H_).transpose() + K * R_ * K.transpose();
+  Matrix<float,15,15> I_KH = I15 - K * H_; // temp
+  P_ = I_KH * P_ * I_KH.transpose() + K * R_ * K.transpose();
 
   // State update, x = K * y
-  Matrix<float, 15, 1> x = K * y;
+  Matrix<float,15,1> x = K * y;
 
   // Pull apart x terms to update the Position, velocity, orientation, and sensor biases
-  Vector3f pDeltaEst_D = x.segment(0, 3); // Position Deltas in LLA
-  Vector3f vDeltaEst_L = x.segment(3, 3); // Velocity Deltas in NED
-  Vector3f quatDelta = x.segment(6, 3); // Quaternion Delta
-  Vector3f aBiasDelta = x.segment(9, 3); // Accel Bias Deltas
-  Vector3f wBiasDelta = x.segment(12, 3); // w Bias Deltas
+  Vector3f pDeltaEst_D = x.segment(0,3); // Position Deltas in LLA
+  Vector3f vDeltaEst_L = x.segment(3,3); // Velocity Deltas in NED
+  Vector3f quatDelta = x.segment(6,3); // Quaternion Delta
+  Vector3f aBiasDelta = x.segment(9,3); // Accel Bias Deltas
+  Vector3f wBiasDelta = x.segment(12,3); // Rotation Rate Bias Deltas
 
   // Position update
   double Rew, Rns;
