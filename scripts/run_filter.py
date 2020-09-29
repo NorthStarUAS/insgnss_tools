@@ -84,8 +84,8 @@ config = {
 
 # select filter
 #filter_name = "EKF15"
-filter_name = "EKF15_mag"
-#filter_name = "uNavINS"
+#filter_name = "EKF15_mag"
+filter_name = "uNavINS"
 #filter_name = "uNavINS_BFS"
 
 filter = nav_wrapper.filter(nav=filter_name,
