@@ -1,6 +1,6 @@
 # nav_wrapper.py
 # 1. simplify calling the C++ ekf filters
-# 2. optional gps lag support
+# 2. optional gps lag support (external to the filter)
 
 from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
 from aurauas_navigation.ekf15 import EKF15
