@@ -2,12 +2,12 @@
 # 1. simplify calling the C++ ekf filters
 # 2. optional gps lag support (external to the filter)
 
-from aurauas_navigation.structs import IMUdata, GPSdata, NAVconfig
-from aurauas_navigation.ekf15 import EKF15
-from aurauas_navigation.ekf15_mag import EKF15_mag
-from aurauas_navigation.uNavINS import uNavINS
-from aurauas_navigation.uNavINS_BFS import uNavINS_BFS
-from aurauas_navigation.openloop import OpenLoop
+from rc_insgns.structs import IMUdata, GPSdata, NAVconfig
+from rc_insgns.ekf15 import EKF15
+from rc_insgns.ekf15_mag import EKF15_mag
+from rc_insgns.uNavINS import uNavINS
+from rc_insgns.uNavINS_BFS import uNavINS_BFS
+from rc_insgns.openloop import OpenLoop
 
 class filter():
     def __init__(self, nav='EKF15', gps_lag_sec=0.0, imu_dt=0.02):
