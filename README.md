@@ -1,9 +1,9 @@
-# aura-navigation
+# rc-insgns
 
-Navigation (EKF) toolbox with python wrappers.  Suitable for use in
-small UAS applications.  The code is structured with dual C++ and
-python interfaces.  It includes a plotting library for comparing
-filters or configurations.
+INS/GNS, EKF, Sensor fusion toolbox with python wrappers.  Suitable
+for use in small UAS applications.  The code is structured with dual
+C++ and python interfaces.  It includes a plotting library for
+comparing filters and configurations.
 
 This code project was original put together by Hamid Mokhtarzadeh
 mokh0006 at umn dot edu in support of the research performed by the
@@ -12,14 +12,14 @@ Mechanics Deptarment, University of Minnesota.
 
 # Installation
 
-* Requires the aura-props and aura-flightdata python modules (also available
-  at https://github.com/AuraUAS)
+* Requires the rc-props and rc-flightdata python modules (also available
+  at https://github.com/RiceCreekUAS)
 
 * Run sudo ./setup.py install to compile the EKF modules and install them.
 
 # Supported data log formats:
 
-* AuraUAS HDF5 and CSV formats
+* rcUAS HDF5 and CSV formats
 
 * UMN1 (.mat) and UMN3 (HDF5)
 
