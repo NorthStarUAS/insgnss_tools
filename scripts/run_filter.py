@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 """run_filter.py
 
@@ -14,7 +14,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from aurauas_flightdata import flight_loader, flight_interp
+from rcUAS_flightdata import flight_loader, flight_interp
 
 import nav_wrapper
 

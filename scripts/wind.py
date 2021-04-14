@@ -5,7 +5,7 @@
 import math
 from tqdm import tqdm
 
-from aurauas_flightdata import flight_interp
+from rcUAS_flightdata import flight_interp
 
 import lowpass
 
