@@ -1,4 +1,4 @@
-# rc-insgns
+# rcUAS INS/GNS Toolbox
 
 INS/GNS, EKF, Sensor fusion toolbox with python wrappers.  Suitable
 for use in small UAS applications.  The code is structured with dual
@@ -12,8 +12,8 @@ Mechanics Deptarment, University of Minnesota.
 
 # Installation
 
-* Requires the rc-props and rc-flightdata python modules (also available
-  at https://github.com/RiceCreekUAS)
+* Requires the props and flightdata python modules (also available at
+  https://github.com/RiceCreekUAS)
 
 * Run sudo ./setup.py install to compile the EKF modules and install them.
 
