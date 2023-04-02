@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from flightdata import flight_loader, flight_interp
 
-import nav_wrapper
+from insgnss_tools import nav_wrapper
 
 # command line arguments
 parser = argparse.ArgumentParser(description='nav filter')
