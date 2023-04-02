@@ -3,4 +3,3 @@ dist/
 insgnss_tools.egg-info/
 *.pyc
 *~
-PyWrap/INS-GPS/flight_data/*.mat
