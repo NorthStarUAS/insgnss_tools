@@ -1,16 +1,18 @@
-*.in
-build
+#*.in
+build/
+dist/
+insgnss.egg-info/
 aclocal.m4
-autom4te.cache
-compile
-config.guess
-config.sub
-configure
-depcomp
-install-sh
-ltmain.sh
-m4
-missing
+# autom4te.cache
+# compile
+# config.guess
+# config.sub
+# configure
+# depcomp
+# install-sh
+# ltmain.sh
+# m4
+# missing
 *.pyc
 *~
 PyWrap/INS-GPS/flight_data/*.mat
