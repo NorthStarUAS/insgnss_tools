@@ -2,11 +2,11 @@ import numpy as np
 import os
 import sys
 
-import navigation.filters
+from insgnss_tools.openloop import OpenLoop
 
 class filter():
     def __init__(self):
-        self.ekf = navigation.filters.OpenLoop()
+        self.ekf = OpenLoop()
         self.name = 'Open Loop'
         self.filter_sync = 0.0
 
@@ -23,16 +23,16 @@ class filter():
 
     def set_att(self, phi, the, psi):
         self.ekf.set_att(phi, the, psi)
-        
+
     def set_gyro_calib(self, gxb, gyb, gzb, gxs, gys, gzs):
         self.ekf.set_gyro_calib(gxb, gyb, gzb, gxs, gys, gzs)
-        
+
     def set_G(self, x11, x12, x13, x21, x22, x23, x31, x32, x33):
         self.ekf.set_G(x11, x12, x13, x21, x22, x23, x31, x32, x33)
-        
+
     def set_accel_calib(self, axb, ayb, azb, axs, ays, azs):
         self.ekf.set_accel_calib(axb, ayb, azb, axs, ays, azs)
-        
+
     def init(self, imu, gps, filt):
         self.set_state(filt.lat, filt.lon, filt.alt,
                        filt.vn, filt.ve, filt.vd,

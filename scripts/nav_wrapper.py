@@ -2,12 +2,12 @@
 # 1. simplify calling the C++ ekf filters
 # 2. optional gps lag support (external to the filter)
 
-from rcUAS_insgns.structs import IMUdata, GPSdata, NAVconfig
-from rcUAS_insgns.ekf15 import EKF15
-from rcUAS_insgns.ekf15_mag import EKF15_mag
-from rcUAS_insgns.uNavINS import uNavINS
-from rcUAS_insgns.uNavINS_BFS import uNavINS_BFS
-from rcUAS_insgns.openloop import OpenLoop
+from insgnss_tools.structs import IMUdata, GPSdata, NAVconfig
+from insgnss_tools.ekf15 import EKF15
+from insgnss_tools.ekf15_mag import EKF15_mag
+from insgnss_tools.uNavINS import uNavINS
+from insgnss_tools.uNavINS_BFS import uNavINS_BFS
+from insgnss_tools.openloop import OpenLoop
 
 class filter():
     def __init__(self, nav='EKF15', gps_lag_sec=0.0, imu_dt=0.02):
@@ -28,12 +28,12 @@ class filter():
         self.gps_lag_frames = int(round(gps_lag_sec / imu_dt))
         print("gps lag frame:", self.gps_lag_frames)
         self.imu_queue = []
-        
+
     def set_config(self, config):
         Cconfig = NAVconfig()
         Cconfig.from_dict(config)
         self.filter.set_config(Cconfig)
-        
+
     def update(self, imu, gps):
         Cimu = IMUdata()
         Cimu.from_dict(imu)
@@ -52,7 +52,7 @@ class filter():
             self.openloop.init_by_nav(nav)
             for imu in reversed(self.imu_queue):
                 nav = self.openloop.update(imu)
-            
+
         return nav.as_dict()
 
     def close(self):
