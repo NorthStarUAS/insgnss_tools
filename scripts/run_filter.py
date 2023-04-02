@@ -14,7 +14,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from rcUAS_flightdata import flight_loader, flight_interp
+from flightdata import flight_loader, flight_interp
 
 import nav_wrapper
 
@@ -140,7 +140,7 @@ for i in tqdm(range(iter.size())):
 
 # Plotting Section
 
-plotname = os.path.basename(args.flight)    
+plotname = os.path.basename(args.flight)
 
 df0_gps = pd.DataFrame(data['gps'])
 df0_gps.set_index('time', inplace=True, drop=False)

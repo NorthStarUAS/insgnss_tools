@@ -20,7 +20,7 @@ import pandas as pd
 import time
 from tqdm import tqdm
 
-from rcUAS_flightdata import flight_loader, flight_interp
+from flightdata import flight_loader, flight_interp
 
 # filter interfaces
 import nav_wrapper
@@ -28,7 +28,6 @@ import nav_wrapper
 # support routines
 import alpha_beta
 import wind
-import synth_asi
 import battery
 
 parser = argparse.ArgumentParser(description='nav filter')
@@ -48,7 +47,6 @@ PLOT_VELOCITIES = True
 PLOT_GROUNDTRACK = True
 PLOT_ALTITUDE = True
 PLOT_WIND = True
-PLOT_SYNTH_ASI = False
 PLOT_BIASES = True
 
 r2d = 180.0 / math.pi
@@ -58,7 +56,7 @@ gps_settle_secs = 10.0
 
 def run_filter(filter, data, call_init=True):
     results = []
-    
+
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     run_start = time.time()
@@ -87,7 +85,7 @@ def run_filter(filter, data, call_init=True):
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
         results.append(navpt)
-    
+
     run_end = time.time()
     elapsed_sec = run_end - run_start
     return results, elapsed_sec
@@ -115,7 +113,7 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     print("not enough data loaded to continue.")
     quit()
 
-plotname = os.path.basename(args.flight)    
+plotname = os.path.basename(args.flight)
 
 if False:
     # quick hack estimate gyro biases (would be better to only do this
@@ -152,7 +150,7 @@ if False:
         imu.hx = ((imu.hx - x_min) / dx) * 2.0 - 1.0
         imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
-        
+
 # Default config
 config = {
     'sig_w_ax': 0.05,
@@ -263,7 +261,7 @@ if flight_format == 'umn3':
 if flight_format == 'px4_ulog':
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
-    
+
 if flight_format == 'sentera':
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
@@ -296,37 +294,6 @@ if False:
                 wn = math.sin(wind_rad)
                 alpha_beta.update(navpt, airpt, imupt, wn, we)
     alpha_beta.gen_stats()
-
-if False:
-    print("Generating synthetic airspeed model:")
-    actpt = {}
-    airpt = {}
-    navpt = {}
-    iter = flight_interp.IterateGroup(data)
-    for i in tqdm(range(iter.size())):
-        record = iter.next()
-        if len(record):
-            imupt = record['imu']
-            if 'act' in record:
-                actpt = record['act']
-            if 'air' in record:
-                airpt = record['air']
-            if 'filter' in record:
-                navpt = record['filter']
-            if 'time' in actpt and 'time' in navpt and 'time' in airpt:
-                synth_asi.append(imupt['az'], navpt['the'], actpt['throttle'],
-                                 actpt['elevator'], imupt['q'],
-                                 airpt['airspeed'])
-
-# use synthetic airspeed estimator
-# for each record:
-#   asi_kt = synth_asi.est_airspeed(imupt['az'], navpt['the'],
-#                                   actpt['throttle'],
-#                                   actpt['elevator'], imupt['q'])
-#   if asi_kt > 100.0:
-#       print(imupt['time'], navpt['phi'], navpt['the'], actpt.throttle, actpt.elevator, imupt.q)
-#       synth_filt_asi = 0.9 * synth_filt_asi + 0.1 * asi_kt
-#       results.add_asi(airpt.airspeed, synth_filt_asi)
 
 if False:
     print("Generating experimental battery model:")
@@ -366,7 +333,7 @@ df_nav[0].set_index('time', inplace=True, drop=False)
 for nav in nav_list:
     df_nav.append( pd.DataFrame(nav) )
     df_nav[-1].set_index('time', inplace=True, drop=False)
-    
+
 df1_wind = pd.DataFrame(winds)
 df1_wind.set_index('time', inplace=True, drop=False)
 
@@ -385,7 +352,7 @@ if PLOT_SENSORS:
     plt.ylabel('mps^2', weight='bold')
     plt.legend(loc=0)
     plt.grid()
-    
+
     plt.figure()
     plt.title('Raw Gyros')
     plt.plot(df_imu[0]['p'], label='p', alpha=0.75)
@@ -403,7 +370,7 @@ if PLOT_ATTITUDE:
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
     print("colors:", colors)
-    
+
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
@@ -421,7 +388,7 @@ if PLOT_ATTITUDE:
         att_ax[0,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i+1])
     att_ax[0,1].set_ylabel('3*stddev', weight='bold')
     att_ax[0,1].grid()
-    
+
     # Pitch Plot
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
     att_ax[1,0].plot([],[]) # consume gps color
@@ -445,7 +412,7 @@ if PLOT_ATTITUDE:
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
-    
+
     att_ax[2,1].plot([],[]) # consume gps color
     att_ax[2,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
@@ -456,7 +423,7 @@ if PLOT_ATTITUDE:
     att_ax[2,1].grid()
 
     #fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
-    
+
 if PLOT_VELOCITIES:
     fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 
@@ -521,7 +488,7 @@ if PLOT_BIASES:
         else:
             bias_ax[0,0].plot(0, label=labels[i])
     bias_ax[0,0].grid()
-    
+
     bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
     for i in range(len(labels)):
         if 'gby' in df_nav[i]:
@@ -529,7 +496,7 @@ if PLOT_BIASES:
         else:
             bias_ax[1,0].plot(0, label=labels[i])
     bias_ax[1,0].grid()
-    
+
     bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
     bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
     for i in range(len(labels)):
@@ -538,7 +505,7 @@ if PLOT_BIASES:
         else:
             bias_ax[2,0].plot(0, label=labels[i])
     bias_ax[2,0].grid()
-    
+
     # Accel Biases
     bias_ax[0,1].set_title("Accel Biases")
     bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
@@ -548,7 +515,7 @@ if PLOT_BIASES:
         else:
             bias_ax[0,1].plot(0, label=labels[i])
     bias_ax[0,1].grid()
-    
+
     bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
     for i in range(len(labels)):
         if 'aby' in df_nav[i]:
@@ -556,7 +523,7 @@ if PLOT_BIASES:
         else:
             bias_ax[1,1].plot(0, label=labels[i])
     bias_ax[1,1].grid()
-    
+
     bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
     for i in range(len(labels)):
         if 'abz' in df_nav[i]:
@@ -597,93 +564,7 @@ if PLOT_WIND:
     ax2.legend(loc=1)
     ax1.grid()
 
-comments = """
-Summary
-
-You specified the following parameters:
-filtertype	=	Butterworth
-passtype	=	Lowpass
-ripple	=	
-order	=	2
-samplerate	=	100
-corner1	=	0.628
-corner2	=	
-adzero	=	
-logmin	=	
-Results
-
-Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 6.2800000000e-03 0.0000000000e+00
-raw alpha1    =   0.0062800000
-raw alpha2    =   0.0062800000
-warped alpha1 =   0.0062808149
-warped alpha2 =   0.0062808149
-gain at dc    :   mag = 2.641105046e+03   phase =   0.0000000000 pi
-gain at centre:   mag = 1.867543288e+03   phase =  -0.5000000000 pi
-gain at hf    :   mag = 0.000000000e+00
-
-S-plane zeros:
-
-S-plane poles:
-	 -0.0279049255 + j   0.0279049255
-	 -0.0279049255 + j  -0.0279049255
-
-Z-plane zeros:
-	 -1.0000000000 + j   0.0000000000	2 times
-
-Z-plane poles:
-	  0.9721056401 + j   0.0271371011
-	  0.9721056401 + j  -0.0271371011
-
-Recurrence relation:
-y[n] = (  1 * x[n- 2])
-     + (  2 * x[n- 1])
-     + (  1 * x[n- 0])
-
-     + ( -0.9457257978 * y[n- 2])
-     + (  1.9442112802 * y[n- 1])
-"""
-NZEROS = 2
-NPOLES = 2
-xv = [0.0] * (NZEROS+1)
-yv = [0.0] * (NPOLES+1)
-def my_butter(raw):
-    GAIN = 2.641105045e+03
-
-    xv[0] = xv[1]
-    xv[1] = xv[2]
-    xv[2] = raw / GAIN
-    yv[0] = yv[1]
-    yv[1] = yv[2]
-    yv[2] = (xv[0] + xv[2]) + 2 * xv[1] + ( -0.9457257978 * yv[0]) + ( 1.9442112802 * yv[1])
-    return yv[2]
-
-if 'act' in data and PLOT_SYNTH_ASI:
-    # butterworth filter experiment
-    import scipy.signal as signal
-    nyq = 0.5 * 100             # 1/2 sample hz
-    b1, a1 = signal.butter(2, 2.0 / nyq)
-    b2, a2 = signal.butter(2, 0.8 / nyq)
-    print('b2:', b2, 'a2:', a2)
-    air1 = signal.filtfilt(b1, a1, np.array(data_dict2.asi))
-    air2 = signal.filtfilt(b2, a2, np.array(data_dict2.asi))
-    air3 = []
-    for a in data_dict2.asi:
-        a3 = my_butter(a)
-        air3.append(a3)
-        
-    fig, ax1 = plt.subplots()
-    asi = data_dict2.asi
-    synth_asi = data_dict2.synth_asi
-    ax1.set_title('Synthetic Airspeed')
-    ax1.set_ylabel('Kts', weight='bold')
-    ax1.plot(t_store1, asi, label='Raw ASI', c='r', lw=2, alpha=.8)
-    ax1.plot(t_store1, synth_asi, label='Synthetic ASI', c='b', lw=2, alpha=.8)
-    ax1.plot(t_store1, air1, label='butterworth 2.0', c='g', lw=2, alpha=.8)
-    ax1.plot(t_store1, air2, label='butterworth 0.8', c='y', lw=2, alpha=.8)
-    ax1.plot(t_store1, np.array(air3), label='my_butter 0.628', c='purple', lw=2, alpha=.8)
-    ax1.legend(loc=0)
-    ax1.grid()
-    
+if False:
     # plot roll vs. yaw rate
     roll_array = []
     r_array = []

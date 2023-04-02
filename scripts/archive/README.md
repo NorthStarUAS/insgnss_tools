@@ -1,4 +1,5 @@
 # UAV Nav PyWrap
+
 Hamid M. and Trevor L.
 September 25, 2014
 
@@ -8,23 +9,23 @@ This work wraps both a navigation and researchNavigation filter `.c` code and wo
 * **Csource/navigation/**: baseline navigation (15-state INS/GPS) filter code as well as navigation function library
 * **Csource/researchNavigation**: research navigation code
 * **Csource/utils/matrix.c**: matrix library
- 
+
 ## Change Log
 
-* June 19, 2014      *Hamid M.* 
+* June 19, 2014      *Hamid M.*
     - Initial version for experimental AHRS/air-speed dead-reckoning filter.
-* August 19, 2014    *Trevor L* 
+* August 19, 2014    *Trevor L*
     - Extended to work with nominal INS/GPS.
-* September 25, 2014 *Hamid M.* 
+* September 25, 2014 *Hamid M.*
     - Clean up comments and naming.
-* March 31, 2014     *Hamid M.* 
+* March 31, 2014     *Hamid M.*
     - Add commands to build .so on run.
-* April 8, 2015      *Hamid M.* 
+* April 8, 2015      *Hamid M.*
     - Fix bug in plotting altitude and ground track.
     - Add input flags.  Extend to work with research.
-* April 9, 2015      *Hamid M.* 
+* April 9, 2015      *Hamid M.*
     - Add way to affect mission->haveGPS.
-* April 22, 2015     *Hamid M.* 
+* April 22, 2015     *Hamid M.*
     - Modify architecture to run both nav and researchNav in parallel
 
 ## Getting Started
@@ -51,13 +52,13 @@ The loaded `.mat` flight data file must have the following entries:
 
 Parameter | Units | note
 --- | --- | ---
-time | sec | 
+time | sec |
 ias | m/s | indicated airspeed
 h   | m   | baro-altimeter
 p, q, r | rad/s | x, y, z-body axis gyros
 ax, ay, az | m/s^2 | x, y, z-body axis accels
 hx, hy, hz | Guass | x, y, z-body axis (note used nominally)
-vn, ve, vd | m/s | GPS velocity north, east, down 
+vn, ve, vd | m/s | GPS velocity north, east, down
 lat, lon, alt | deg, m | GPS position
 
 where the GPS observations are simply repeated until the new measurement is available.  In this way all arrays are of the same length.
@@ -76,25 +77,25 @@ navlat, navlon, alt | radian, m | GPS position
 
 Although `wrap_nav_filter.py` automatically builds the code, these instructions are kept for documentation on how to manually compiles the C-code into shared objects..
 
-1. Create a folder `Cbuild`.  This is where the compiled code will go. 
+1. Create a folder `Cbuild`.  This is where the compiled code will go.
 
 2. The nav filter-code `EKF_15state_quat.c` or whatever nav filter has two dependencies: `matrix.c` and `nav_functions.c`.  All three source files should be compiled individually into `.o` *objects*, and then linked together into a final `EKF_15state_quat.so` *shared object*.  Assuming you are inside the `Csource` directory, open a terminal and run:
- 
-  ** Linux Machine ** 
+
+  ** Linux Machine **
     >gcc -o nav_functions.o -c nav_functions.c -fPIC
-    
+
     >gcc -o matrix.o -c matrix.c -fPIC
-      
+
     >gcc -o EKF_15state_quat.o -c EKF_15state_quat.c -fPIC
 
     >gcc -lm -shared -Wl,-soname,EKF_15state_quat -o EKF_15state_quat.so EKF_15state_quat.o  matrix.o nav_functions.o -lc
 
   ** Windows 8.1 Machine with Windows Powershell and IPython 2.7 from Anaconda 64 Bit Download **
     >gcc -o nav_functions.o -c nav_functions.c
-    
+
     ***NOTE: You will need to comment termois.h file from matrix.c for Powershell to compile***
     >gcc -o matrix.o -c matrix.c
-      
+
     >gcc -o EKF_15state_quat.o -c EKF_15state_quat.c
 
     >gcc -lm -shared -Wl",-soname,EKF_15state_quat" -o EKF_15state_quat.so EKF_15state_quat.o  matrix.o nav_functions.o
