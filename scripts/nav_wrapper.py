@@ -2,7 +2,7 @@
 # 1. simplify calling the C++ ekf filters
 # 2. optional gps lag support (external to the filter)
 
-from rcUAS_insgns import IMUdata, GPSdata, NAVconfig
+from rcUAS_insgns.structs import IMUdata, GPSdata, NAVconfig
 from rcUAS_insgns.ekf15 import EKF15
 from rcUAS_insgns.ekf15_mag import EKF15_mag
 from rcUAS_insgns.uNavINS import uNavINS
