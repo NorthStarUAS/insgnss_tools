@@ -6,6 +6,7 @@
 #ifdef HAVE_PYBIND11
 
 #include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
 namespace py = pybind11;
 
 PYBIND11_MODULE(structs, m) {
@@ -95,7 +96,22 @@ PYBIND11_MODULE(structs, m) {
               }
          )
         ;
-    
+
+    py::class_<GNSS_measurement>(m,"GNSS_measurement")
+        .def(py::init<float, const Eigen::MatrixXd&>()) 
+	.def_readwrite("time", &GNSS_measurement::time)
+        .def_readwrite("gnss_measurement", &GNSS_measurement::gnss_measurement)
+        .def("as_dict",
+             [](const GNSS_measurement &gnss) {
+                 py::dict result;
+                 result["time"] = gnss.time;
+                 result["gnss_measument"]= gnss.gnss_measurement;
+                 return result;
+             }
+         )
+        .def("from_dict",&GNSS_measurement::from_dict)
+        ;
+
     py::class_<Airdata>(m, "Airdata")
         .def(py::init<>())
 	.def_readwrite("time", &Airdata::time)

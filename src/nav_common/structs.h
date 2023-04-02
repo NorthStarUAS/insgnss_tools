@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <eigen3/Eigen/Core>
+
 struct IMUdata {
     float time;                 // seconds
     float p, q, r;		// rad/sec
@@ -27,6 +29,94 @@ struct GPSdata {
     float alt;                  // meter
     float vn, ve, vd;		// m/sec
     int sats;
+};
+
+struct GNSS_measurement
+{
+
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    /// time in [s]
+    float time;
+    /// GNSS measurement data
+    /// GNSS_measurements     GNSS measurement data:
+    /// Column 1              Pseudo-range measurements [m]
+    /// Column 2              Pseudo-range rate measurements [m/s]
+    /// Columns 3-5           Satellite ECEF position [m]
+    /// Columns 6-8           Satellite ECEF velocity [m/s]
+    Eigen::MatrixXd gnss_measurement;
+
+
+    /// Empty Constructor
+    // GNSS_measurement()
+    // {
+    //     time = 0.0f;
+    //     gnss_measurement = MatrixXd::Zero(1, 8);
+    // }
+    
+    // Factory function - returned by value:
+    //static GNSS_measurement create(float timeIn, const Eigen::MatrixXd &measurementIn){ 
+    //    return GNSS_measurement(timeIn,measurementIn); }
+    /// Constructor
+    //GNSS_measurement(float, const Eigen::MatrixXd&);
+    // /// Function
+    // void from_dict(const GNSS_measurement &gnss)
+    // {
+    //     time = gnss.time;
+    //     gnss_measurement = gnss.gnss_measurement;
+    // }
+    // Constructor
+    GNSS_measurement(float timeIn, const Eigen::MatrixXd &measurementIn)
+        : time(timeIn), gnss_measurement(measurementIn) {}
+    // Function
+    void from_dict(const float timeIn, const Eigen::MatrixXd &measurementIn)
+    {
+        time = timeIn;
+        gnss_measurement = measurementIn;
+    }
+};
+
+struct GNSS_raw_measurement
+{
+    double AODO;          // the age of data offset, in seconds.
+    double Cic;           // Amplitude of the Cosine Harmonic Correction Term to the Angle of Inclination
+    double Cis;           // Amplitude of the Sine Harmonic Correction Term to the Angle of Inclination
+    double Crc;           // Amplitude of the Cosine Harmonic Correction Term to the Orbit Radius
+    double Crs;           // Amplitude of the Sine Harmonic Correction Term to the Orbit Radius
+    double Cuc;           // Amplitude of the Cosine Harmonic Correction Term to the Argument of Latitude
+    double Cus;           // Amplitude of the Sine Harmonic Correction Term to the Argument of Latitude
+    bool FIT;             // ?
+    double IDOT;          // Rate of Inclination Angle
+    int IODC;             // Issue of Data, Clock (10 Bits) [Units: N/A]
+    int IODE;             // Issue of Data (8 Bits) [Units: N/A]
+    int L2;               // Code on L2 (2 Bits) [Units: N/A]
+    int L2P;              // L2 P Data Flag (1 Bit) [Units: Discrete]
+    double M0;            // Mean Anomaly at Reference Time
+    double Omega0;        // Longitude of Ascending Node of Orbit Plane at Weekly Epoch
+    double Omegad;        // Rate of Right Ascension
+    int TOW17;            // Time-of-week
+    double Tgd;           // (8 Bits / Two's Complement with sign on MSB) [Units: Seconds]
+    double WN;            // GPS Week Number (10 Bits) [units: Week]
+    double af0;           // (22 Bits / Two's Complement with sign on MSB) [Units: Seconds]
+    double af1;           // (16 Bits / Two's Complement with sign on MSB) [Units: Sec/Sec]
+    double af2;           // (8 Bits / Two's Complement with sign on MSB) [Units: Sec/Sec^2]
+    int constellation;    // type of constellation, e.g., 0=GPS, GLONASS, BEIDOU
+    double deltan;        // Mean Motion Difference From Computed Value
+    double doppler;       // Doppler shift measurement, note: by multiplying frequency, we get psedu-range rate
+    double e;             // Eccentricity
+    bool frame1;          // Validity of subframe 1
+    bool frame2;          // Validity of subframe 2
+    bool frame3;          // Validity of subframe 3
+    int gnssid;           // Satellite ID number
+    int hlth;             // Satellite Vehicle Health (6 Bits) [Units: Discretes]
+    double i0;            // Inclination at Reference Time
+    double omega;         // Argument of Perigee
+    double pseudorange;   // pseudorange (m)
+    double sqrtA;         // Square Root off the Semi-Major Axis
+    double timestamp;     // current seconds
+    double toc;           // (16 Bits) [Units: Seconds]
+    double toe;           // Reference Time Ephemeris
+    int ura;              // Satellite Vehicle Accuracy (4 Bits) [Units: N/A], binary
 };
 
 struct Airdata {
@@ -88,5 +178,7 @@ struct NAVconfig {
     float sig_gps_p_d;
     float sig_gps_v_ne;
     float sig_gps_v_d;
-    float sig_mag;
+    float sig_mag;             // magnetometer (relative to a normalized mag vector component.)
+    float sig_pseudorange;     // GPS pesudorange measurement noise std dev (m)
+    float sig_pseudorangeRate; // GPS pesudorange rate measurement noise std dev (m/s)
 };
