@@ -46,7 +46,7 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     quit()
 
 # Default config
-config = {
+config_fixed_wing = {
     'sig_w_ax': 0.05,
     'sig_w_ay': 0.05,
     'sig_w_az': 0.05,
@@ -62,6 +62,24 @@ config = {
     'sig_gps_v_ne': 0.5,
     'sig_gps_v_d': 1.0,
     'sig_mag': 1.0
+}
+config_quad = {
+    # more trust in mags, higher vibration in accels
+    'sig_w_ax': 0.2,
+    'sig_w_ay': 0.2,
+    'sig_w_az': 0.2,
+    'sig_w_gx': 0.005,
+    'sig_w_gy': 0.005,
+    'sig_w_gz': 0.005,
+    'sig_a_d': 0.01,
+    'tau_a': 100.0,
+    'sig_g_d': 0.00025,
+    'tau_g': 50.0,
+    'sig_gps_p_ne': 3.0,
+    'sig_gps_p_d': 6.0,
+    'sig_gps_v_ne': 0.5,
+    'sig_gps_v_d': 1.0,
+    'sig_mag': 0.2
 }
 # uNavINS default config
 # config = {
@@ -82,10 +100,13 @@ config = {
 #     'sig_mag': 1.0
 # }
 
+#config = config_quad
+config = config_fixed_wing
+
 # select filter
 #filter_name = "EKF15"
-#filter_name = "EKF15_mag"
-filter_name = "uNavINS"
+filter_name = "EKF15_mag"
+#filter_name = "uNavINS"
 #filter_name = "uNavINS_BFS"
 
 filter = nav_wrapper.filter(nav=filter_name,
