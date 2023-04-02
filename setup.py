@@ -2,12 +2,12 @@
 
 from setuptools import setup, Extension
 
-setup(name="rcUAS_insgns",
-      version="1.3",
-      description="INS/GNS Toolbox",
+setup(name="insgnss",
+      version="1.4",
+      description="INS/GNSS Toolbox",
       author="Curtis L. Olson",
       author_email="curtolson@flightgear.org",
-      url="https://github.com/RiceCreekUAS",
+      url="https://github.com/NorthStarUAS",
       packages = ["rcUAS_insgns"],
       ext_modules=[
           Extension("rcUAS_insgns.structs",
