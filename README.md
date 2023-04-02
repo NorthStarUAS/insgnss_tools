@@ -14,7 +14,13 @@ Minnesota.
 
 * Requires the props and flightdata python modules (also available at
   <https://github.com/NorthStarUAS>)
-* Run sudo ./setup.py install to compile the EKF modules and install them.
+* Requires C++ code compiling (and an integrated c++ compiler with your python
+  environment.)
+
+```bash
+./setup.py build
+./setup.py install --user
+```
 
 ## Supported data log formats
 
