@@ -77,7 +77,7 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     // Assemble the matrices
     // .... gravity, g
     grav = Vector3f(0.0, 0.0, g);
-	
+
     // ... H
     H.setZero();
     H.topLeftCorner(6,6).setIdentity();
@@ -100,30 +100,30 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 	      P(8,8) = P_HDG_INIT*P_HDG_INIT;
     P(9,9) = P_AB_INIT*P_AB_INIT; 	P(10,10) = P_AB_INIT*P_AB_INIT;       P(11,11) = P_AB_INIT*P_AB_INIT;
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
-	
+
     // ... R
     R.setZero();
     R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
     R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
     R(6,6) = config.sig_mag*config.sig_mag;            R(7,7) = config.sig_mag*config.sig_mag;            R(8,8) = config.sig_mag*config.sig_mag;
-   
+
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);	  nav.Pv1 = P(4,4);	nav.Pv2 = P(5,5);
     nav.Pa0 = P(6,6);	  nav.Pa1 = P(7,7);	nav.Pa2 = P(8,8);
-	
+
     nav.Pabx = P(9,9);	  nav.Paby = P(10,10);	nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
-	
+
     // .. then initialize states with GPS Data
     nav.lat = gps.lat*D2R;
     nav.lon = gps.lon*D2R;
     nav.alt = gps.alt;
-	
+
     nav.vn = gps.vn;
     nav.ve = gps.ve;
     nav.vd = gps.vd;
-	
+
     // ideal magnetic vector
     long int jd = now_to_julian_days();
     double field[6];
@@ -149,7 +149,7 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
 
     // ... and initialize states with IMU Data, theta from Ax, aircraft
     // at rest
-    nav.the = asin(imu.ax/g); 
+    nav.the = asin(imu.ax/g);
     // phi from Ay, aircraft at rest
     nav.phi = asin(imu.ay/(g*cos(nav.the)));
 
@@ -162,21 +162,25 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     // tilt compensated heading
     nav.psi = atan2(imu.hz*sin(nav.phi)-imu.hy*cos(nav.phi),imu.hx*cos(nav.the)+imu.hy*sin(nav.the)*sin(nav.phi)+imu.hz*sin(nav.the)*cos(nav.phi));
     printf("tilt compensated psi: %.2f\n", nav.psi*R2D);
-	
+
     quat = eul2quat(nav.phi, nav.the, nav.psi);
 
     nav.abx = 0.0;
     nav.aby = 0.0;
     nav.abz = 0.0;
 
-    // I might want to initialize these to zero assuming imu driver
-    // has made some plausible attempt to zero it's own gyro biases.
-    nav.gbx = imu.p;
-    nav.gby = imu.q;
-    nav.gbz = imu.r;
-	
+    // Assume IMU has made no attempt to zero its biases
+    // nav.gbx = imu.p;
+    // nav.gby = imu.q;
+    // nav.gbz = imu.r;
+
+    // Assume IMU has already zero'd its biases
+    nav.gbx = 0;
+    nav.gby = 0;
+    nav.gbz = 0;
+
     imu_last = imu;
-	
+
     nav.time = imu.time;
     nav.err_type = data_valid;
 }
@@ -193,7 +197,7 @@ void EKF15_mag::time_update(IMUdata imu) {
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
     C_B2N = C_N2B.transpose();
-	
+
     // Attitude Update
     // ... Calculate Navigation Rate
     Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
@@ -241,73 +245,73 @@ void EKF15_mag::time_update(IMUdata imu) {
         // Avoid quaternion flips sign
         quat = Quaternionf(-quat.w(), -quat.x(), -quat.y(), -quat.z());
     }
-    
+
     Vector3f att_vec = quat2eul(quat);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
-	
+
     // Velocity Update
     dx = C_B2N * f_b;
     dx += grav;
-	
+
     nav.vn += imu_dt*dx(0);
     nav.ve += imu_dt*dx(1);
     nav.vd += imu_dt*dx(2);
-	
+
     // Position Update
     dx = llarate(vel_vec, pos_ref);
     nav.lat += imu_dt*dx(0);
     nav.lon += imu_dt*dx(1);
     nav.alt += imu_dt*dx(2);
-	
+
     // JACOBIAN
     F.setZero();
     // ... pos2gs
     F(0,3) = 1.0; 	F(1,4) = 1.0; 	F(2,5) = 1.0;
     // ... gs2pos
     F(5,2) = -2 * g / EarthRadius;
-	
+
     // ... gs2att
     temp33 = C_B2N * sk(f_b);
-	
+
     F(3,6) = -2.0*temp33(0,0);  F(3,7) = -2.0*temp33(0,1);  F(3,8) = -2.0*temp33(0,2);
     F(4,6) = -2.0*temp33(1,0);  F(4,7) = -2.0*temp33(1,1);  F(4,8) = -2.0*temp33(1,2);
     F(5,6) = -2.0*temp33(2,0);  F(5,7) = -2.0*temp33(2,1);  F(5,8) = -2.0*temp33(2,2);
-	
+
     // ... gs2acc
     F(3,9) = -C_B2N(0,0);  F(3,10) = -C_B2N(0,1);  F(3,11) = -C_B2N(0,2);
     F(4,9) = -C_B2N(1,0);  F(4,10) = -C_B2N(1,1);  F(4,11) = -C_B2N(1,2);
     F(5,9) = -C_B2N(2,0);  F(5,10) = -C_B2N(2,1);  F(5,11) = -C_B2N(2,2);
-	
+
     // ... att2att
     temp33 = sk(om_ib);
     F(6,6) = -temp33(0,0);  F(6,7) = -temp33(0,1);  F(6,8) = -temp33(0,2);
     F(7,6) = -temp33(1,0);  F(7,7) = -temp33(1,1);  F(7,8) = -temp33(1,2);
     F(8,6) = -temp33(2,0);  F(8,7) = -temp33(2,1);  F(8,8) = -temp33(2,2);
-	
+
     // ... att2gyr
     F(6,12) = -0.5;
     F(7,13) = -0.5;
     F(8,14) = -0.5;
-	
+
     // ... Accel Markov Bias
     F(9,9) = -1.0/config.tau_a;    F(10,10) = -1.0/config.tau_a;  F(11,11) = -1.0/config.tau_a;
     F(12,12) = -1.0/config.tau_g;  F(13,13) = -1.0/config.tau_g;  F(14,14) = -1.0/config.tau_g;
-	
+
     // State Transition Matrix: PHI = I15 + F*dt;
     PHI = I15 + F * imu_dt;
-	
+
     // Process Noise
     G.setZero();
     G(3,0) = -C_B2N(0,0);   G(3,1) = -C_B2N(0,1);   G(3,2) = -C_B2N(0,2);
     G(4,0) = -C_B2N(1,0);   G(4,1) = -C_B2N(1,1);   G(4,2) = -C_B2N(1,2);
     G(5,0) = -C_B2N(2,0);   G(5,1) = -C_B2N(2,1);   G(5,2) = -C_B2N(2,2);
-	
+
     G(6,3) = -0.5;
     G(7,4) = -0.5;
     G(8,5) = -0.5;
-	
+
     G(9,6) = 1.0; 	    G(10,7) = 1.0; 	    G(11,8) = 1.0;
     G(12,9) = 1.0; 	    G(13,10) = 1.0; 	    G(14,11) = 1.0;
 
@@ -315,11 +319,11 @@ void EKF15_mag::time_update(IMUdata imu) {
     Qw = G * Rw * G.transpose() * imu_dt;		// Qw = dt*G*Rw*G'
     Q = PHI * Qw;					// Q = (I+F*dt)*Qw
     Q = (Q + Q.transpose()) * 0.5;			// Q = 0.5*(Q+Q')
-	
+
     // Covariance Time Update
     P = PHI * P * PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
     P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
-	
+
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
     nav.Pa0 = P(6,6);     nav.Pa1 = P(7,7);     nav.Pa2 = P(8,8);
@@ -338,9 +342,9 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
 
     Vector3d pos_gps(gps.lat*D2R, gps.lon*D2R, gps.alt);
     Vector3d pos_gps_ecef = lla2ecef(pos_gps);
-    
+
     Vector3d pos_error_ecef = pos_gps_ecef - pos_ins_ecef;
-    
+
     Vector3f pos_error_ned = ecef2ned(pos_error_ecef, pos_ref);
 
     // measured mag vector (body frame)
@@ -349,7 +353,7 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     mag_sense(1) = imu.hy;
     mag_sense(2) = imu.hz;
     mag_sense.normalize();
-	
+
     Vector3f mag_error; // magnetometer measurement error
     bool mag_error_in_ned = false;
     if ( mag_error_in_ned ) {
@@ -377,32 +381,32 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     y(0) = pos_error_ned(0);
     y(1) = pos_error_ned(1);
     y(2) = pos_error_ned(2);
-		
+
     y(3) = gps.vn - nav.vn;
     y(4) = gps.ve - nav.ve;
     y(5) = gps.vd - nav.vd;
-		
+
     y(6) = mag_error(0);
     y(7) = mag_error(1);
     y(8) = mag_error(2);
-	
+
     // Kalman Gain
     // K = P*H'*inv(H*P*H'+R)
     K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
-		
+
     // Covariance Update
     ImKH = I15 - K * H;	                // ImKH = I - K*H
-		
+
     KRKt = K * R * K.transpose();		// KRKt = K*R*K'
-		
+
     P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
-		
+
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
     nav.Pa0 = P(6,6);     nav.Pa1 = P(7,7);     nav.Pa2 = P(8,8);
     nav.Pabx = P(9,9);    nav.Paby = P(10,10);  nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
-		
+
     // State Update
     x = K * y;
     double denom = fabs(1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
@@ -412,20 +416,20 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     nav.alt = nav.alt - x(2);
     nav.lat = nav.lat + x(0)/(Re + nav.alt);
     nav.lon = nav.lon + x(1)/(Rn + nav.alt)/cos(nav.lat);
-		
+
     nav.vn = nav.vn + x(3);
     nav.ve = nav.ve + x(4);
     nav.vd = nav.vd + x(5);
-		
+
     // Attitude correction
     Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8));
     quat = (quat * dq).normalized();
-		
+
     Vector3f att_vec = quat2eul(quat);
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
-	
+
     nav.abx += x(9);
     nav.aby += x(10);
     nav.abz += x(11);
