@@ -4,8 +4,8 @@ from setuptools import setup, Extension
 
 setup(name="insgnss_tools",
       version="1.4",
-      description="INS/GNSS Toolbox",
-      author="Curtis L. Olson",
+      description="INS/GNSS/EKF Toolbox",
+      author="Curtis L. Olson (U of MN Aerospace Engineering and Mechanics, Demoz Gebre, Chris Regan, Brian Taylor, Hamid M., et. al.)",
       author_email="curtolson@flightgear.org",
       url="https://github.com/NorthStarUAS",
       packages = ["insgnss_tools"],
