@@ -23,7 +23,7 @@ from scipy.optimize import minimize
 import navpy
 
 import data_store
-from aurauas.flightdata import flight_loader
+from flightdata import flight_loader
 import plots
 
 # filter interfaces
@@ -51,7 +51,7 @@ filter_opt = nav_openloop.filter()
 def run_filter(filter, imu_data, gps_data, filter_data, config=None):
     data_dict = data_store.data_store()
     errors = []
-    
+
     # Using while loop starting at k (set to kstart) and going to end
     # of .mat file
     gps_index = 0
@@ -124,7 +124,7 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
             p2 = navpy.lla2ecef(navpt.lat, navpt.lon, navpt.alt,
                                 latlon_unit='rad')
             pe = np.linalg.norm(p1 - p2)
-            
+
             # weight horizontal error more highly than vertical error
             ref = gps_data[0]
             n1 = navpy.lla2ned(gpspt.lat, gpspt.lon, gpspt.alt,
@@ -148,9 +148,9 @@ def run_filter(filter, imu_data, gps_data, filter_data, config=None):
             v1 = np.array( [gpspt.vn, gpspt.ve, gpspt.vd] )
             v2 = np.array( [navpt.vn, navpt.ve, navpt.vd] )
             ve = np.linalg.norm(v1 - v2)
-            
+
             errors.append(ne)   # ned error weighted towards horizontal
-            
+
         # Increment time up one step for the next iteration of the
         # while loop.
         k += 1
@@ -166,20 +166,20 @@ def printParams(xk):
     print 'initial att (rad): %.3f, %.3f, %.3f' % (xk[3], xk[4], xk[5])
     print 'gyro bias (rad/s): %.4f, %.4f, %.4f' % (xk[6], xk[7], xk[8])
     print 'accel bias (m/s^2): %.4f, %.4f, %.4f' % (xk[9], xk[10], xk[11])
-    
+
 # run the filter to optimize, then for each gps_record find the result
 # position and compute an error distance.  Return the list of error
 # values.
 data_opt = None
 def errorFunc(xk, config, imu_data, gps_data, filter_data):
     global data_opt
-    
+
     filter_opt.set_pos(config['start_lat'],
                        config['start_lon'],
                        config['start_alt'])
 
     filter_opt.set_vel(xk[0], xk[1], xk[2])
-    
+
     filter_opt.set_att(xk[3], xk[4], xk[5])
     filter_opt.set_gyro_calib(xk[6], xk[7], xk[8],     # bias
                               0.0, 0.0, 0.0)   # delta
@@ -235,7 +235,7 @@ if len(data['imu']) == 0 and len(data['gps']) == 0:
     quit()
 
 if args.flight:
-    plotname = os.path.basename(args.flight)    
+    plotname = os.path.basename(args.flight)
 elif args.aura_flight:
     plotname = os.path.basename(args.aura_flight)
 elif args.px4_sdlog2:
@@ -292,13 +292,13 @@ biases = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 d2r = math.pi/ 180.0
 r2d = 180.0 / math.pi
-                
+
 while start_time < gps_end:
     # define time span for this iteration
     end_time = start_time + segment_length
     if end_time > gps_end:
         end_time = gps_end
-        
+
     # find starting position
     for k, gpspt in enumerate(data['gps']):
         if gpspt.time - gps_latency >= start_time:
@@ -313,7 +313,7 @@ while start_time < gps_end:
     config['start_time'] = start_time
     config['end_time'] = end_time
     config['call_init'] = False
-    
+
     # use filter solution to estimate intial attitude and velocity
     for k, filterpt in enumerate(data['filter']):
         if filterpt.time >= start_time:
@@ -352,10 +352,10 @@ while start_time < gps_end:
         segment['results'] = res.copy()
         segment['data'] = data_opt
         segments.append(segment)
-        
+
         label = "%.0f-%.0f" % (start_time, end_time)
         plt.update(data_opt, label=label, c='b')
-    
+
         # advance to next segment
         start_time += (segment_length * (1 - segment_overlap))
 
@@ -385,7 +385,7 @@ for i in range(0, len(segments)):
         data0 = s0['data']
         t0 = data0.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
         n0 = data0.data[t0]
-        
+
         s1 = segments[i]
         data1 = s1['data']
         t1 = data1.find_index(config['start_time'] + segment_length * (segment_overlap * 0.5))
@@ -393,7 +393,7 @@ for i in range(0, len(segments)):
 
         start_k = t1
         start_err = data_store.diff_split(n0, n1)
-        
+
     if i == len(segments) - 1:
         s1 = segments[i]
         data1 = s1['data']
@@ -413,7 +413,7 @@ for i in range(0, len(segments)):
         n2 = data2.data[t2]
 
         end_k = t1
-        end_err = data_store.diff_split(n2, n1)        
+        end_err = data_store.diff_split(n2, n1)
     print 'start_k:', start_k, 'end_k:', end_k
 
     for k in range(start_k, end_k):
@@ -433,7 +433,7 @@ if args.flight or args.aura_flight:
 
 # plot final result
 plt.update(result_opt, 'Optimized', c='r', alpha=0.5)
-        
+
 print "Finished fitting all segments, you may now explore the plots."
 plt.explore()
 
