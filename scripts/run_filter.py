@@ -100,14 +100,15 @@ config_quad = {
 #     'sig_mag': 1.0
 # }
 
-#config = config_quad
+# config = config_quad
 config = config_fixed_wing
 
 # select filter
-#filter_name = "EKF15"
-filter_name = "EKF15_mag"
-#filter_name = "uNavINS"
-#filter_name = "uNavINS_BFS"
+# filter_name = "EKF15"
+# filter_name = "EKF15_mag"
+# filter_name = "uNavINS"
+# filter_name = "uNavINS_BFS"
+filter_name = "pyNavEKF15"
 
 filter = nav_wrapper.filter(nav=filter_name,
                             gps_lag_sec=args.gps_lag_sec,
