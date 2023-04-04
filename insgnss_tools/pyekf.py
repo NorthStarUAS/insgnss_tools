@@ -32,7 +32,7 @@ class pyEKF():
 
         measUpdate = False
         if gps.time > self.last_gps_time:
-            print("gps:", gps.as_dict())
+            # print("gps:", gps.as_dict())
             measUpdate = True
             self.last_gps_time = gps.time
         accel_corr, gyro_corr, vel, rpy, pos = \
