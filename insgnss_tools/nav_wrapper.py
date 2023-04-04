@@ -8,8 +8,8 @@ from .ekf15_mag import EKF15_mag
 from .uNavINS import uNavINS
 from .uNavINS_BFS import uNavINS_BFS
 from .openloop import OpenLoop
+from .pyekf import pyEKF
 
-from .NavEKF15 import NavEKF15 as pyNavEKF15
 
 class filter():
     def __init__(self, nav='EKF15', gps_lag_sec=0.0, imu_dt=0.02):
@@ -23,7 +23,7 @@ class filter():
         elif nav == 'uNavINS_BFS':
             self.filter = uNavINS_BFS()
         elif nav == "pyNavEKF15":
-            self.filter = pyNavEKF15()
+            self.filter = pyEKF()
         else:
             print("Unknown nav filter specified aborting:", nav)
             quit()

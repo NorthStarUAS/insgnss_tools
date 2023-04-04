@@ -23,21 +23,21 @@ from tqdm import tqdm
 from flightdata import flight_loader, flight_interp
 
 # filter interfaces
-import nav_wrapper
+from insgnss_tools import nav_wrapper
 
 # support routines
 import alpha_beta
 import wind
 import battery
 
-parser = argparse.ArgumentParser(description='nav filter')
-parser.add_argument('flight', help='flight data log')
-parser.add_argument('filter', metavar='filter', nargs='+',
-                    choices=['EKF15', 'EKF15_mag', 'uNavINS', 'uNavINS_BFS'],
-                    help='filters')
-parser.add_argument('--gps-lag-sec', type=float, default=0.2,
-                    help='gps lag (sec)')
-parser.add_argument('--synthetic-airspeed', action='store_true', help='build synthetic airspeed estimator')
+parser = argparse.ArgumentParser(description="nav filter")
+parser.add_argument("flight", help="flight data log")
+parser.add_argument("filter", metavar="filter", nargs="+",
+                    choices=["EKF15", "EKF15_mag", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
+                    help="filters")
+parser.add_argument("--gps-lag-sec", type=float, default=0.2,
+                    help="gps lag (sec)")
+parser.add_argument("--synthetic-airspeed", action="store_true", help="build synthetic airspeed estimator")
 args = parser.parse_args()
 
 # Select output plots

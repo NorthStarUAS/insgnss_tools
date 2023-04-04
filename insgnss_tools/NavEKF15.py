@@ -28,7 +28,7 @@ R_m = 6378137.0 # earth semi-major axis radius (m)
 def Skew(w):
     C = np.array([
         [0.0, -w[2], w[1]],
-        [w[1], 0.0, -w[0]],
+        [w[2], 0.0, -w[0]],
         [-w[1], w[0], 0.0] ])
 
     return C
@@ -205,7 +205,7 @@ class NavEKF15:
 
         # Assemble the Jacobian (state update matrix)
         self.Fs = np.zeros((15,15))
-        self.Fs[0:3,0:3] = I3
+        self.Fs[0:3,3:6] = I3
         self.Fs[5,2] = -2.0 * g_mps2 / R_m
         self.Fs[3:6,6:9] = -2.0 * T_B2L @ Skew(self.aEst_B_mps2)
         self.Fs[3:6,9:12] = -T_B2L
