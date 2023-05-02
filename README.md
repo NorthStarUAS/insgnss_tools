@@ -1,4 +1,4 @@
-# North Star UAS INS/GNSS/EKF Toolbox
+# NorthStar UAS -- Navigation INS/GNSS EKF Toolbox
 
 INS/GNSS, EKF, Sensor fusion toolbox with python wrappers.  Suitable for use in
 small UAS applications.  The code is structured with dual C++ and python
@@ -42,6 +42,8 @@ Minnesota.
   magnetometer error will dominate the computations. The quality of this filter
   is closely linked to the quality of the magnetometer calibration (or lack of
   magnetic field disturbances.)
+* pyNavEKF15: a pure python/numpy version of the 15-state Kalman filter.
+  Sacrifice some performance, gain simplicity and readability.
 * nav_openloop: Open-loop integrator (forward propagation only.) Given an
   initial starting condition, will integrate position, velocity, and orientation
   from the inertial data alone.  This can be used with the piece-wise segment
