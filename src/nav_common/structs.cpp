@@ -25,7 +25,7 @@ PYBIND11_MODULE(structs, m) {
         .def("as_dict",
              [](const IMUdata &imu) {
                  py::dict result;
-                 result["time"] = imu.time;
+                 result["timestamp"] = imu.time;
                  result["p"] = imu.p;
                  result["q"] = imu.q;
                  result["r"] = imu.r;
@@ -41,7 +41,7 @@ PYBIND11_MODULE(structs, m) {
          )
         .def("from_dict",
              [](IMUdata &imu, const py::dict &d) {
-                 imu.time = py::float_(d["time"]);
+                 imu.time = py::float_(d["timestamp"]);
                  imu.p = py::float_(d["p"]);
                  imu.q = py::float_(d["q"]);
                  imu.r = py::float_(d["r"]);
@@ -59,6 +59,7 @@ PYBIND11_MODULE(structs, m) {
     py::class_<GPSdata>(m, "GPSdata")
         .def(py::init<>())
         .def_readwrite("time", &GPSdata::time)
+        .def_readwrite("unix_sec", &GPSdata::unix_sec)
         .def_readwrite("lat", &GPSdata::lat)
         .def_readwrite("lon", &GPSdata::lon)
         .def_readwrite("alt", &GPSdata::alt)
@@ -69,7 +70,7 @@ PYBIND11_MODULE(structs, m) {
         .def("as_dict",
              [](const GPSdata &gps) {
                  py::dict result;
-                 result["time"] = gps.time;
+                 result["timestamp"] = gps.time;
                  result["unix_sec"] = gps.unix_sec;
                  result["lat"] = gps.lat;
                  result["lon"] = gps.lon;
@@ -83,7 +84,7 @@ PYBIND11_MODULE(structs, m) {
          )
         .def("from_dict",
              [](GPSdata &gps, const py::dict &d) {
-                 gps.time = py::float_(d["time"]);
+                 gps.time = py::float_(d["timestamp"]);
                  gps.unix_sec = py::float_(d["unix_sec"]);
                  gps.lat = py::float_(d["lat"]);
                  gps.lon = py::float_(d["lon"]);
@@ -107,7 +108,7 @@ PYBIND11_MODULE(structs, m) {
         .def("as_dict",
              [](const Airdata &airdata) {
                  py::dict result;
-                 result["time"] = airdata.time;
+                 result["timestamp"] = airdata.time;
                  result["static_press"] = airdata.static_press;
                  result["diff_press"] = airdata.diff_press;
                  result["temp"] = airdata.temp;
@@ -158,7 +159,7 @@ PYBIND11_MODULE(structs, m) {
         .def("as_dict",
              [](const NAVdata &nav) {
                  py::dict result;
-                 result["time"] = nav.time;
+                 result["timestamp"] = nav.time;
                  result["lat"] = nav.lat;
                  result["lon"] = nav.lon;
                  result["alt"] = nav.alt;
