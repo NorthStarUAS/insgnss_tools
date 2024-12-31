@@ -62,7 +62,7 @@ void EKF15::default_config()
     config.sig_g_d  = 0.00025;  // Std dev of correlated gyro bias (rad)
     config.tau_g    = 50.0;     // Correlation time or time constant of b_{gd}
     config.sig_gps_p_ne = 3.0;  // GPS measurement noise std dev (m)
-    config.sig_gps_p_d  = 6.0;  // GPS measurement noise std dev (m)
+    config.sig_gps_p_d  = 4.0;  // GPS measurement noise std dev (m)
     config.sig_gps_v_ne = 0.5;  // GPS measurement noise std dev (m/s)
     config.sig_gps_v_d  = 1.0;  // GPS measurement noise std dev (m/s)
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
@@ -164,6 +164,7 @@ void EKF15::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
+    if ( imu_dt > 0.1 ) { imu_dt = 0.1; }
     nav.time = imu.time;
 
     // ==================  Time Update  ===================
