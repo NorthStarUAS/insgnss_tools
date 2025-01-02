@@ -2,7 +2,8 @@
 using std::cout;
 using std::endl;
 
-#include "../nav_common/nav_functions.h"
+#include "../nav/nav_constants.h"
+#include "../nav/nav_functions.h"
 
 #include "glocal.h"
 #include "openloop.h"
@@ -68,7 +69,7 @@ void OpenLoop::set_pos(double lat_rad, double lon_rad, float alt_m) {
     ecef2ned = lla2quat(lon_rad, lat_rad).cast<float>();
     // Vector3d pos_lla1 = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla1(0)/D2R, pos_lla1(1)/D2R, pos_lla1(2));
-    
+
     // Vector3d t1 = quat_transformd(ecef2ned, pos_ecef);
     // printf("up? %.2f %.2f %.2f\n", t1(0), t1(1), t1(2));
 }
@@ -143,7 +144,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // unproductive, so zero out Fb() for now.
     // Vector3d Fb(0, 0, 0);
     // Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az);
-    
+
     // update attitude from gyro
     float p = imu.p - gxb;
     float q = imu.q - gyb;
@@ -180,7 +181,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.vd = vel_ned(2);
     // transform to ecef frame
     vel_ecef = quat_transformf(ecef2ned.inverse(), vel_ned);
-    
+
     // update the position
     pos_ecef += vel_ecef.cast<double>() * dt;
     //printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
@@ -197,10 +198,10 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // nav.abx = axb + elapsed*axd;
     // nav.aby = ayb + elapsed*ayd;
     // nav.abz = azb + elapsed*azd;
-	
+
     // update ecef2ned transform with just updated position
     ecef2ned = lla2quat(nav.lon, nav.lat).cast<float>();
-    
+
     nav.time = imu.time;
 
     return nav;

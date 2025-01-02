@@ -14,16 +14,10 @@
  *
  */
 
-#include <iostream>
-using std::cout;
-using std::endl;
-#include <stdio.h>
-
-#include "../nav_common/constants.h"
+#include "nav_constants.h"
+#include "nav_functions.h"
 #include "../nav_common/coremag.h"
-#include "../nav_common/nav_functions.h"
-
-#include "EKF_15state.h"
+#include "ekf15_mag.h"
 
 const float P_P_INIT = 10.0;
 const float P_V_INIT = 1.0;
@@ -43,8 +37,8 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15_mag::set_config(NAVconfig config) {
-    this->config = config;
+void EKF15_mag::set_config(NAVconfig _config) {
+    config = _config;
 }
 
 NAVconfig EKF15_mag::get_config() {
@@ -71,6 +65,24 @@ void EKF15_mag::default_config()
 }
 
 void EKF15_mag::init(IMUdata imu, GPSdata gps) {
+    F.resize(15,15);
+    PHI.resize(15,15);
+    P.resize(15,15);
+    Qw.resize(15,15);
+    Q.resize(15,15);
+    ImKH.resize(15,15);
+    KRKt.resize(15,15);
+    I15.resize(15,15);
+
+    G.resize(15,12);
+    K.resize(15,0);
+
+    Rw.resize(12,12);
+
+    H.resize(9,15);
+
+    R.resize(6,6);
+
     I15.setIdentity();
     I3.setIdentity();
 
@@ -125,6 +137,7 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     nav.vd = gps.vd;
 
     // ideal magnetic vector
+    // printf("EKF: unix_sec = %d\n", gps.unix_sec);
     long int jd = now_to_julian_days();
     double field[6];
     calc_magvar( nav.lat, nav.lon,
@@ -133,8 +146,8 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     mag_ned(1) = field[4];
     mag_ned(2) = field[5];
     mag_ned.normalize();
-    cout << field[0] << " " << field[1] << " " << field[2] << endl;
-    cout << "Ideal mag vector (ned): " << mag_ned << endl;
+    // printf("%.2f %.2f %.2f\n", field[0], field[1], field[2]);
+    // printf("Ideal mag vector (ned): %.2f %.2f %.2f\n", mag_ned(0), mag_ned(1), mag_ned(2));
     // // initial heading
     // double init_psi_rad = 90.0*D2R;
     // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
@@ -190,13 +203,11 @@ void EKF15_mag::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
+    if ( imu_dt < 0.0 ) { imu_dt = 0.0; }
+    if ( imu_dt > 0.1 ) { imu_dt = 0.1; }
     nav.time = imu.time;
 
     // ==================  Time Update  ===================
-
-    // AHRS Transformations
-    C_N2B = quat2dcm(quat);
-    C_B2N = C_N2B.transpose();
 
     // Attitude Update
     // ... Calculate Navigation Rate
@@ -250,6 +261,10 @@ void EKF15_mag::time_update(IMUdata imu) {
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
+
+    // AHRS Transformations
+    C_N2B = quat2dcm(quat);
+    C_B2N = C_N2B.transpose();
 
     // Velocity Update
     dx = C_B2N * f_b;
@@ -330,7 +345,7 @@ void EKF15_mag::time_update(IMUdata imu) {
     nav.Pabx = P(9,9);    nav.Paby = P(10,10);  nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 
-    // ==================  DONE TU  ===================
+    // ==================  DONE Time Update  ===================
 }
 
 void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {

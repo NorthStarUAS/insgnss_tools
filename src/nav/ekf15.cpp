@@ -14,14 +14,9 @@
  *
  */
 
-#include <iostream>
-using std::cout;
-using std::endl;
-#include <stdio.h>
-
-#include "../nav_common/nav_functions.h"
-
-#include "EKF_15state.h"
+#include "nav_constants.h"
+#include "nav_functions.h"
+#include "ekf15.h"
 
 const float P_P_INIT = 10.0;
 const float P_V_INIT = 1.0;
@@ -41,8 +36,8 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15::set_config(NAVconfig config) {
-    this->config = config;
+void EKF15::set_config(NAVconfig _config) {
+    config = _config;
 }
 
 NAVconfig EKF15::get_config() {
@@ -62,13 +57,31 @@ void EKF15::default_config()
     config.sig_g_d  = 0.00025;  // Std dev of correlated gyro bias (rad)
     config.tau_g    = 50.0;     // Correlation time or time constant of b_{gd}
     config.sig_gps_p_ne = 3.0;  // GPS measurement noise std dev (m)
-    config.sig_gps_p_d  = 4.0;  // GPS measurement noise std dev (m)
+    config.sig_gps_p_d  = 6.0;  // GPS measurement noise std dev (m)
     config.sig_gps_v_ne = 0.5;  // GPS measurement noise std dev (m/s)
     config.sig_gps_v_d  = 1.0;  // GPS measurement noise std dev (m/s)
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
 void EKF15::init(IMUdata imu, GPSdata gps) {
+    F.resize(15,15);
+    PHI.resize(15,15);
+    P.resize(15,15);
+    Qw.resize(15,15);
+    Q.resize(15,15);
+    ImKH.resize(15,15);
+    KRKt.resize(15,15);
+    I15.resize(15,15);
+
+    G.resize(15,12);
+    K.resize(15,6);
+
+    Rw.resize(12,12);
+
+    H.resize(6,15);
+
+    R.resize(6,6);
+
     I15.setIdentity();
     I3.setIdentity();
 
@@ -135,7 +148,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
 
     // tilt compensated heading
     nav.psi = atan2(imu.hz*sin(nav.phi)-imu.hy*cos(nav.phi),imu.hx*cos(nav.the)+imu.hy*sin(nav.the)*sin(nav.phi)+imu.hz*sin(nav.the)*cos(nav.phi));
-    printf("tilt compensated psi: %.2f\n", nav.psi*R2D);
+    // printf("tilt compensated psi: %.2f\n", nav.psi*R2D);
 
     quat = eul2quat(nav.phi, nav.the, nav.psi);
 
@@ -162,16 +175,13 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
 // Main get_nav filter function
 void EKF15::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
-    // This compute the navigation state at the DAQ's Time Stamp
+    // This computes the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time - imu_last.time;
+    if ( imu_dt < 0.0 ) { imu_dt = 0.0; }
     if ( imu_dt > 0.1 ) { imu_dt = 0.1; }
     nav.time = imu.time;
 
     // ==================  Time Update  ===================
-
-    // AHRS Transformations
-    C_N2B = quat2dcm(quat);
-    C_B2N = C_N2B.transpose();
 
     // Attitude Update
     // ... Calculate Navigation Rate
@@ -225,6 +235,10 @@ void EKF15::time_update(IMUdata imu) {
     nav.phi = att_vec(0);
     nav.the = att_vec(1);
     nav.psi = att_vec(2);
+
+    // AHRS Transformations
+    C_N2B = quat2dcm(quat);
+    C_B2N = C_N2B.transpose();
 
     // Velocity Update
     dx = C_B2N * f_b;
@@ -305,7 +319,7 @@ void EKF15::time_update(IMUdata imu) {
     nav.Pabx = P(9,9);    nav.Paby = P(10,10);  nav.Pabz = P(11,11);
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 
-    // ==================  DONE TU  ===================
+    // ==================  DONE Time Update  ===================
 }
 
 void EKF15::measurement_update(GPSdata gps) {

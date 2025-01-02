@@ -65,11 +65,11 @@ struct NAVdata {
     float qw, qx, qy, qz;   // Quaternion estimate
     float abx, aby, abz;    // [m/sec^2], accelerometer bias estimate
     float gbx, gby, gbz;    // [rad/sec], rate gyro bias estimate
-    float Pp0, Pp1, Pp2;    // [rad], covariance estimate for position
-    float Pv0, Pv1, Pv2;    // [rad], covariance estimate for velocity
+    float Pp0, Pp1, Pp2;    // [m], covariance estimate for position
+    float Pv0, Pv1, Pv2;    // [m/sec], covariance estimate for velocity
     float Pa0, Pa1, Pa2;    // [rad], covariance estimate for angles
-    float Pabx, Paby, Pabz; // [rad], covariance estimate for accelerometer bias
-    float Pgbx, Pgby, Pgbz; // [rad], covariance estimate for rate gyro bias
+    float Pabx, Paby, Pabz; // [m/sec^2], covariance estimate for accelerometer bias
+    float Pgbx, Pgby, Pgbz; // [rad/sec], covariance estimate for rate gyro bias
     enum errdefs err_type;  // NAV filter status
 };
 

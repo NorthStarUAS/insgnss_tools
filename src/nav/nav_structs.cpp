@@ -1,14 +1,14 @@
 // The following constructs a python interface for this class and
 // associated structures.
 
-#include "structs.h"
+#include "nav_structs.h"
 
 #ifdef HAVE_PYBIND11
 
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-PYBIND11_MODULE(structs, m) {
+PYBIND11_MODULE(nav_structs, m) {
     py::class_<IMUdata>(m, "IMUdata")
         .def(py::init<>())
         .def_readwrite("time", &IMUdata::time)

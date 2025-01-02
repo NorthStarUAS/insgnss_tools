@@ -3,7 +3,7 @@ namespace py = pybind11;
 
 #include <math.h>
 
-#include "../nav_common/structs.h"
+#include "../nav_common/nav_structs.h"
 
 #include "uNavINS.h"
 
@@ -35,11 +35,11 @@ public:
         filt.Set_PosSigmaD( config.sig_gps_p_d );
         filt.Set_VelSigmaNE( config.sig_gps_v_ne );
         filt.Set_VelSigmaD( config.sig_gps_v_d );
-        
+
         // commit these values
         filt.Configure();
     }
-    
+
     void update(IMUdata imu, GPSdata gps) {
         Vector3f wMeas_rps( imu.p, imu.q, imu.r );
         Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
@@ -54,7 +54,7 @@ public:
                     (unsigned long)(gps.time * 100),
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
-    
+
     NAVdata get_nav() {
         NAVdata result;
         result.time = current_time;
@@ -86,7 +86,7 @@ public:
         result.Pa0 = result.Pa1 = result.Pa2 = 0.0;
         result.Pabx = result.Paby = result.Pabz = 0.0;
         result.Pgbx = result.Pgby = result.Pgbz = 0.0;
-        
+
         return result;
     }
 
@@ -94,7 +94,7 @@ private:
 
     float current_time;
     uNavINS filt;
-    
+
 };
 
 PYBIND11_MODULE(uNavINS, m) {

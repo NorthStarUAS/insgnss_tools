@@ -4,12 +4,12 @@
  *	\details
  *     Module:          navfunc.h
  *     Modified:        Brian Taylor (convert to eigen3)
- *						Gokhan Inalhan (remaining) 
+ *						Gokhan Inalhan (remaining)
  *                      Demoz Gebre (first three functions)
  *                      Adhika Lie
  *                      Jung Soon Jang
- *     Description:     navfunc.h contains all the variable, 
- *                      constants and function prototypes that are 
+ *     Description:     navfunc.h contains all the variable,
+ *                      constants and function prototypes that are
  *                      used with the inertial navigation software.
  *	\ingroup nav_fcns
  *
@@ -22,8 +22,14 @@
 
 #pragma once
 
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
+#if defined(ARDUINO)
+# include <math.h>
+# include <eigen.h>
+# include <Eigen/Geometry>
+#else
+# include "eigen3/Eigen/Core"
+# include "eigen3/Eigen/Geometry"
+#endif
 using namespace Eigen;
 
 // Constants
@@ -55,7 +61,7 @@ Vector3d lla2ecef(Vector3d lla);
 // This function calculates the Latitude, Longitude and Altitude given
 // the ECEF Coordinates.
 Vector3d ecef2lla( Vector3d ecef_pos );
-    
+
 // This function converts a vector in ecef to ned coordinate centered
 // at pos_ref.
 Vector3f ecef2ned(Vector3d ecef, Vector3d pos_ref);

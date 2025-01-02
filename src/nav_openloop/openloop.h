@@ -22,9 +22,7 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav_common/constants.h"
-#include "../nav_common/structs.h"
-#include "../nav_common/nav_functions.h"
+#include "../nav/nav_structs.h"
 
 class OpenLoop {
 
@@ -49,7 +47,7 @@ public:
     //            float x21, float x22, float x23,
     //            float x31, float x32, float x33);
     NAVdata update(IMUdata imu /*, GPSdata gps*/);
-    
+
 private:
 
     double lat_rad, lon_rad;          // position
@@ -63,7 +61,7 @@ private:
     //float axs, ays, azs;	      // accel scale factor
     //float axd, ayd, azd;	      // accel time variation
     //Matrix3d G;		      // g force gyro bias matrix
-    
+
     Vector3d pos_ecef, pos_lla;
     Quaternionf ned2body, body2ned;
     Quaternionf ecef2ned, ned2ecef;

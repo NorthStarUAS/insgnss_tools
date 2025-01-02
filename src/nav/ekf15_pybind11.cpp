@@ -1,8 +1,8 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-#include "../nav_common/structs.h"
-#include "EKF_15state.h"
+#include "nav_structs.h"
+#include "ekf15.h"
 
 // this is a glue class to bridge between the existing python API and
 // the actual uNavINS class API.  This could be handled other ways,
@@ -20,7 +20,7 @@ public:
         // commit these values
         filt.set_config(config);
     }
-    
+
     void update(IMUdata imu, GPSdata gps) {
         current_time = imu.time;
         if ( ! initialized ) {
@@ -36,7 +36,7 @@ public:
             }
         }
     }
-    
+
     NAVdata get_nav() {
         return filt.get_nav();
     }
@@ -47,7 +47,7 @@ private:
     float last_gps_time = 0.0;
     bool initialized = false;
     EKF15 filt;
-    
+
 };
 
 PYBIND11_MODULE(ekf15, m) {

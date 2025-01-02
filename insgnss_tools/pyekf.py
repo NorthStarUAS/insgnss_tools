@@ -1,6 +1,6 @@
 from math import pi
 
-from insgnss_tools.structs import NAVdata
+from insgnss_tools.nav_structs import NAVdata
 
 from .NavEKF15 import NavEKF15
 
@@ -56,6 +56,22 @@ class pyEKF():
         self.nav.lat = pos[0]
         self.nav.lon = pos[1]
         self.nav.alt = pos[2]
+
+        self.nav.Pp0 = self.filter.P[0,0]
+        self.nav.Pp1 = self.filter.P[1,1]
+        self.nav.Pp2 = self.filter.P[2,2]
+        self.nav.Pv0 = self.filter.P[3,3]
+        self.nav.Pv1 = self.filter.P[4,4]
+        self.nav.Pv2 = self.filter.P[5,5]
+        self.nav.Pa0 = self.filter.P[6,6]
+        self.nav.Pa1 = self.filter.P[7,7]
+        self.nav.Pa2 = self.filter.P[8,8]
+        self.nav.Pabx = self.filter.P[9,9]
+        self.nav.Paby = self.filter.P[10,10]
+        self.nav.Pabz = self.filter.P[11,11]
+        self.nav.Pgbx = self.filter.P[12,12]
+        self.nav.Pgby = self.filter.P[13,13]
+        self.nav.Pgbz = self.filter.P[14,14]
 
     def get_nav(self):
         # print("nav:", self.nav.as_dict())

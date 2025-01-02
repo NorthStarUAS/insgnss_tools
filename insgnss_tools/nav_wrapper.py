@@ -2,7 +2,7 @@
 # 1. simplify calling the C++ ekf filters
 # 2. optional gps lag support (external to the filter)
 
-from .structs import IMUdata, GPSdata, NAVconfig
+from .nav_structs import IMUdata, GPSdata, NAVconfig
 from .ekf15 import EKF15
 from .ekf15_mag import EKF15_mag
 from .uNavINS import uNavINS
