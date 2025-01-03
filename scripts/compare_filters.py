@@ -71,13 +71,15 @@ def run_filter(filter, data, call_init=True):
     for i in tqdm(range(iter.size())):
         record = iter.next()
         imupt = record['imu']
+        imupt["time_sec"] = imupt["timestamp"]
         if 'gps' in record:
             gpspt = record['gps']
+            gpspt["time_sec"] = gpspt["timestamp"]
             if gps_init_sec is None:
-                gps_init_sec = gpspt['time']
+                gps_init_sec = gpspt['time_sec']
 
         # if not inited or gps not yet reached it's settle time
-        if gps_init_sec is None or gpspt['time'] < gps_init_sec + gps_settle_secs:
+        if gps_init_sec is None or gpspt['time_sec'] < gps_init_sec + gps_settle_secs:
             continue
 
         navpt = filter.update(imupt, gpspt)
@@ -97,7 +99,7 @@ print("Creating interpolation structures..")
 interp = flight_interp.InterpolationGroup(data)
 
 print("imu records:", len(data['imu']))
-imu_dt = (data['imu'][-1]['time'] - data['imu'][0]['time']) \
+imu_dt = (data['imu'][-1]['timestamp'] - data['imu'][0]['timestamp']) \
     / float(len(data['imu']))
 print("imu dt: %.3f" % imu_dt)
 print("gps records:", len(data['gps']))
@@ -320,22 +322,22 @@ for name in args.filter:
 
 df_imu = []
 df_imu.append( pd.DataFrame(data['imu']) )
-df_imu[0].set_index('time', inplace=True, drop=False)
+df_imu[0].set_index('time_sec', inplace=True, drop=False)
 
 df_gps = []
 df_gps.append( pd.DataFrame(data['gps']) )
-df_gps[0].set_index('time', inplace=True, drop=False)
+df_gps[0].set_index('time_sec', inplace=True, drop=False)
 
 df_nav = []
-df_nav.append( pd.DataFrame(data['filter']) )
-df_nav[0].set_index('time', inplace=True, drop=False)
+df_nav.append( pd.DataFrame(data['nav']) )
+df_nav[0].set_index('timestamp', inplace=True, drop=False)
 
 for nav in nav_list:
     df_nav.append( pd.DataFrame(nav) )
-    df_nav[-1].set_index('time', inplace=True, drop=False)
+    df_nav[-1].set_index('time_sec', inplace=True, drop=False)
 
 df1_wind = pd.DataFrame(winds)
-df1_wind.set_index('time', inplace=True, drop=False)
+df1_wind.set_index('time_sec', inplace=True, drop=False)
 
 # Plotting
 
@@ -346,18 +348,18 @@ r2d = np.rad2deg
 if PLOT_SENSORS:
     plt.figure()
     plt.title('Raw Accels')
-    plt.plot(df_imu[0]['ax'], label='ax', alpha=0.75)
-    plt.plot(df_imu[0]['ay'], label='ay', alpha=0.75)
-    plt.plot(df_imu[0]['az'], label='az', alpha=0.75)
+    plt.plot(df_imu[0]['ax_mps2'], label='ax', alpha=0.75)
+    plt.plot(df_imu[0]['ay_mps2'], label='ay', alpha=0.75)
+    plt.plot(df_imu[0]['az_mps2'], label='az', alpha=0.75)
     plt.ylabel('mps^2', weight='bold')
     plt.legend(loc=0)
     plt.grid()
 
     plt.figure()
     plt.title('Raw Gyros')
-    plt.plot(df_imu[0]['p'], label='p', alpha=0.75)
-    plt.plot(df_imu[0]['q'], label='q', alpha=0.75)
-    plt.plot(df_imu[0]['r'], label='r', alpha=0.75)
+    plt.plot(df_imu[0]['p_rps'], label='p', alpha=0.75)
+    plt.plot(df_imu[0]['q_rps'], label='q', alpha=0.75)
+    plt.plot(df_imu[0]['r_rps'], label='r', alpha=0.75)
     plt.ylabel('rad/sec', weight='bold')
     plt.legend(loc=0)
     plt.grid()
@@ -378,7 +380,7 @@ if PLOT_ATTITUDE:
     att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
     att_ax[0,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[0,0].plot(r2d(df_nav[i]['phi']), label=labels[i], alpha=.8)
+        att_ax[0,0].plot(r2d(df_nav[i]['phi_rad']), label=labels[i], alpha=.8)
     att_ax[0,0].grid()
 
     att_ax[0,1].plot([],[]) # consume gps color
@@ -393,7 +395,7 @@ if PLOT_ATTITUDE:
     att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
     att_ax[1,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[1,0].plot(r2d(df_nav[i]['the']), label=labels[i], alpha=.8)
+        att_ax[1,0].plot(r2d(df_nav[i]['the_rad']), label=labels[i], alpha=.8)
     att_ax[1,0].grid()
 
     att_ax[1,1].plot([],[]) # consume gps color
@@ -408,7 +410,7 @@ if PLOT_ATTITUDE:
     att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
     att_ax[2,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[2,0].plot(r2d(df_nav[i]['psi']), label=labels[i], alpha=.8)
+        att_ax[2,0].plot(r2d(df_nav[i]['psi_rad']), label=labels[i], alpha=.8)
     att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
@@ -430,24 +432,24 @@ if PLOT_VELOCITIES:
     # vn Plot
     ax1.set_title("NED Velocities")
     ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(df_gps[0]['vn'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax1.plot(df_gps[0]['vn_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax1.plot(df_nav[i]['vn'], label=labels[i], lw=2, alpha=.8)
+        ax1.plot(df_nav[i]['vn_mps'], label=labels[i], lw=2, alpha=.8)
     ax1.grid()
     ax1.legend(loc=0)
 
     # ve Plot
     ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(df_gps[0]['ve'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax2.plot(df_gps[0]['ve_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax2.plot(df_nav[i]['ve'], label=labels[i], lw=2, alpha=.8)
+        ax2.plot(df_nav[i]['ve_mps'], label=labels[i], lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
     ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(df_gps[0]['vd'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax3.plot(df_gps[0]['vd_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax3.plot(df_nav[i]['vd'], label=labels[i], lw=2, alpha=.8)
+        ax3.plot(df_nav[i]['vd_mps'], label=labels[i], lw=2, alpha=.8)
     ax3.set_xlabel('Time (secs)', weight='bold')
     ax3.grid()
 
@@ -455,9 +457,9 @@ if PLOT_VELOCITIES:
 if PLOT_ALTITUDE:
     plt.figure()
     plt.title('Altitude')
-    plt.plot(df_gps[0]['alt'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    plt.plot(df_gps[0]['alt_m'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(df_nav[i]['alt'], label=labels[i], lw=2, alpha=.8)
+        plt.plot(df_nav[i]['alt_m'], label=labels[i], lw=2, alpha=.8)
     plt.ylabel('Altitude (m)', weight='bold')
     plt.legend(loc=0)
     plt.grid()
@@ -468,9 +470,9 @@ if PLOT_GROUNDTRACK:
     plt.title("Ground Track")
     plt.ylabel('Latitude (degrees)', weight='bold')
     plt.xlabel('Longitude (degrees)', weight='bold')
-    plt.plot(df_gps[0]['lon'], df_gps[0]['lat'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    plt.plot(df_gps[0]['lon_deg'], df_gps[0]['lat_deg'], '-*', label='GPS Sensor', lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(r2d(df_nav[i]['lon']), r2d(df_nav[i]['lat']), label=labels[i], lw=2, alpha=.8)
+        plt.plot(r2d(df_nav[i]['lon_rad']), r2d(df_nav[i]['lat_rad']), label=labels[i], lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     ax = plt.gca()

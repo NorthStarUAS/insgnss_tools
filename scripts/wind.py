@@ -28,7 +28,7 @@ class Wind():
         self.last_time = time
 
         if dt > 0.0 and airspeed_kt >= 10.0:
-            # update values if 'flying' and time has elapsed
+            # update values if "flying" and time has elapsed
             psi = 0.5*math.pi - yaw_rad
 
             # estimate body velocity
@@ -81,13 +81,13 @@ class Wind():
         for i in tqdm(range(iter.size())):
             record = iter.next()
             if len(record):
-                t = record['imu']['time']
-                if 'air' in record:
-                    airspeed = record['air']['airspeed']
-                if 'filter' in record:
-                    psi = record['filter']['psi']
-                    vn = record['filter']['vn']
-                    ve = record['filter']['ve']
+                t = record["imu"]["time_sec"]
+                if "airdata" in record:
+                    airspeed = record["airdata"]["airspeed"]
+                if "nav" in record:
+                    psi = record["nav"]["psi_rad"]
+                    vn = record["nav"]["vn_mps"]
+                    ve = record["nav"]["ve_mps"]
                 if airspeed > 10.0:
                     (wn, we, ps) = self.update(t, airspeed, psi, vn, ve)
                     #print wn, we, math.atan2(wn, we), math.atan2(wn, we)*r2d
@@ -96,8 +96,8 @@ class Wind():
                     wind_kt = math.sqrt( we*we + wn*wn ) * mps2kt
                     #print wn, we, ps, wind_deg, wind_kt
                 # make sure we log one record per each imu record
-                winds.append( { 'time': t,
-                                'wind_deg': wind_deg,
-                                'wind_kt': wind_kt,
-                                'pitot_scale': ps } )
+                winds.append( { "time_sec": t,
+                                "wind_deg": wind_deg,
+                                "wind_kt": wind_kt,
+                                "pitot_scale": ps } )
         return winds
