@@ -70,16 +70,16 @@ def run_filter(filter, data, call_init=True):
     iter = flight_interp.IterateGroup(data)
     for i in tqdm(range(iter.size())):
         record = iter.next()
-        imupt = record['imu']
+        imupt = record["imu"]
         imupt["time_sec"] = imupt["timestamp"]
-        if 'gps' in record:
-            gpspt = record['gps']
+        if "gps" in record:
+            gpspt = record["gps"]
             gpspt["time_sec"] = gpspt["timestamp"]
             if gps_init_sec is None:
-                gps_init_sec = gpspt['time_sec']
+                gps_init_sec = gpspt["time_sec"]
 
         # if not inited or gps not yet reached it's settle time
-        if gps_init_sec is None or gpspt['time_sec'] < gps_init_sec + gps_settle_secs:
+        if gps_init_sec is None or gpspt["time_sec"] < gps_init_sec + gps_settle_secs:
             continue
 
         navpt = filter.update(imupt, gpspt)
@@ -98,20 +98,20 @@ data, flight_format = flight_loader.load(path)
 print("Creating interpolation structures..")
 interp = flight_interp.InterpolationGroup(data)
 
-print("imu records:", len(data['imu']))
-imu_dt = (data['imu'][-1]['timestamp'] - data['imu'][0]['timestamp']) \
-    / float(len(data['imu']))
+print("imu records:", len(data["imu"]))
+imu_dt = (data["imu"][-1]["timestamp"] - data["imu"][0]["timestamp"]) \
+    / float(len(data["imu"]))
 print("imu dt: %.3f" % imu_dt)
-print("gps records:", len(data['gps']))
-if 'air' in data:
-    print("airdata records:", len(data['air']))
-if 'filter' in data:
-    print("filter records:", len(data['filter']))
-if 'pilot' in data:
-    print("pilot records:", len(data['pilot']))
-if 'act' in data:
-    print("act records:", len(data['act']))
-if len(data['imu']) == 0 and len(data['gps']) == 0:
+print("gps records:", len(data["gps"]))
+if "airdata" in data:
+    print("airdata records:", len(data["airdata"]))
+if "nav" in data:
+    print("nav records:", len(data["nav"]))
+if "pilot" in data:
+    print("pilot records:", len(data["pilot"]))
+if "act" in data:
+    print("act records:", len(data["act"]))
+if len(data["imu"]) == 0 and len(data["gps"]) == 0:
     print("not enough data loaded to continue.")
     quit()
 
@@ -120,9 +120,9 @@ plotname = os.path.basename(args.flight)
 if False:
     # quick hack estimate gyro biases (would be better to only do this
     # while they are stable or at least not flying
-    print('p mean (dps):', data['imu'].loc[:,'p'].mean()*r2d)
-    print('q mean (dps):', data['imu'].loc[:,'q'].mean()*r2d)
-    print('r mean (dps):', data['imu'].loc[:,'r'].mean()*r2d)
+    print("p mean (dps):", data["imu"].loc[:,"p"].mean()*r2d)
+    print("q mean (dps):", data["imu"].loc[:,"q"].mean()*r2d)
+    print("r mean (dps):", data["imu"].loc[:,"r"].mean()*r2d)
 
 if False:
     # quick rough hack at a magnetometer calibration
@@ -132,7 +132,7 @@ if False:
     x_max = -1000000.0
     y_max = -1000000.0
     z_max = -1000000.0
-    for imu in data['imu']:
+    for imu in data["imu"]:
         if imu.hx < x_min: x_min = imu.hx
         if imu.hy < y_min: y_min = imu.hy
         if imu.hz < z_min: z_min = imu.hz
@@ -148,93 +148,93 @@ if False:
     cx = (x_min + x_max) * 0.5
     cy = (y_min + y_max) * 0.5
     cz = (z_min + z_max) * 0.5
-    for imu in data['imu']:
+    for imu in data["imu"]:
         imu.hx = ((imu.hx - x_min) / dx) * 2.0 - 1.0
         imu.hy = ((imu.hy - y_min) / dy) * 2.0 - 1.0
         imu.hz = ((imu.hz - z_min) / dz) * 2.0 - 1.0
 
 # Default config
 config = {
-    'sig_w_ax': 0.05,
-    'sig_w_ay': 0.05,
-    'sig_w_az': 0.05,
-    'sig_w_gx': 0.00175,
-    'sig_w_gy': 0.00175,
-    'sig_w_gz': 0.00175,
-    'sig_a_d': 0.02,
-    'tau_a': 100.0,
-    'sig_g_d': 0.0005,
-    'tau_g': 50.0,
-    'sig_gps_p_ne': 2.0,
-    'sig_gps_p_d': 6.0,
-    'sig_gps_v_ne': 0.5,
-    'sig_gps_v_d': 3.0,
-    'sig_mag': 0.3
+    "sig_w_ax": 0.05,
+    "sig_w_ay": 0.05,
+    "sig_w_az": 0.05,
+    "sig_w_gx": 0.00175,
+    "sig_w_gy": 0.00175,
+    "sig_w_gz": 0.00175,
+    "sig_a_d": 0.02,
+    "tau_a": 100.0,
+    "sig_g_d": 0.0005,
+    "tau_g": 50.0,
+    "sig_gps_p_ne": 2.0,
+    "sig_gps_p_d": 6.0,
+    "sig_gps_v_ne": 0.5,
+    "sig_gps_v_d": 3.0,
+    "sig_mag": 0.3
 }
 
 config2 = dict(config)
 # more trust in gps (sentera camera, low change in velocity?)
-config2['sig_gps_p_ne'] = 2.0
-config2['sig_gps_p_d'] = 4.0
-config2['sig_gps_v_ne'] = 0.3
-config2['sig_gps_v_d'] = 2.0
+config2["sig_gps_p_ne"] = 2.0
+config2["sig_gps_p_d"] = 4.0
+config2["sig_gps_v_ne"] = 0.3
+config2["sig_gps_v_d"] = 2.0
 
 # almost no trust in IMU ...
-# config': navigation.structs.NAVconfig()
-# 'sig_w_ax': 2.0,
-# 'sig_w_ay': 2.0,
-# 'sig_w_az': 2.0,
-# 'sig_w_gx': 0.1,
-# 'sig_w_gy': 0.1,
-# 'sig_w_gz': 0.1,
-# 'sig_a_d': 0.1,
-# 'tau_a': 100.0,
-# 'sig_g_d': 0.00873,
-# 'tau_g': 50.0,
-# 'sig_gps_p_ne': 3.0,
-# 'sig_gps_p_d': 5.0,
-# 'sig_gps_v_ne': 0.5,
-# 'sig_gps_v_d': 1.0,
-# 'sig_mag': 0.2,
+# config: navigation.structs.NAVconfig()
+# "sig_w_ax": 2.0,
+# "sig_w_ay": 2.0,
+# "sig_w_az": 2.0,
+# "sig_w_gx": 0.1,
+# "sig_w_gy": 0.1,
+# "sig_w_gz": 0.1,
+# "sig_a_d": 0.1,
+# "tau_a": 100.0,
+# "sig_g_d": 0.00873,
+# "tau_g": 50.0,
+# "sig_gps_p_ne": 3.0,
+# "sig_gps_p_d": 5.0,
+# "sig_gps_v_ne": 0.5,
+# "sig_gps_v_d": 1.0,
+# "sig_mag": 0.2,
 # filter2.set_config(config)
 
 # less than default trust in IMU ...
-# config': navigation.structs.NAVconfig()
-# 'sig_w_ax': 0.1,
-# 'sig_w_ay': 0.1
-# 'sig_w_az': 0.1,
-# 'sig_w_gx': 0.003,
-# 'sig_w_gy': 0.003,
-# 'sig_w_gz': 0.003,
-# 'sig_a_d': 0.1,
-# 'tau_a': 100.0,
-# 'sig_g_d': 0.00873,
-# 'tau_g': 50.0,
-# 'sig_gps_p_ne': 3.0,
-# 'sig_gps_p_d': 5.0,
-# 'sig_gps_v_ne': 0.5,
-# 'sig_gps_v_d': 1.0,
-# 'sig_mag': 0.2,
+# config: navigation.structs.NAVconfig()
+# "sig_w_ax": 0.1,
+# "sig_w_ay": 0.1
+# "sig_w_az": 0.1,
+# "sig_w_gx": 0.003,
+# "sig_w_gy": 0.003,
+# "sig_w_gz": 0.003,
+# "sig_a_d": 0.1,
+# "tau_a": 100.0,
+# "sig_g_d": 0.00873,
+# "tau_g": 50.0,
+# "sig_gps_p_ne": 3.0,
+# "sig_gps_p_d": 5.0,
+# "sig_gps_v_ne": 0.5,
+# "sig_gps_v_d": 1.0,
+# "sig_mag": 0.2,
 # filter1.set_config(config)
 # filter2.set_config(config)
 
 # too high trust in IMU ...
-# config': navigation.structs.NAVconfig()
-# 'sig_w_ax': 0.02,
-# 'sig_w_ay': 0.02,
-# 'sig_w_az': 0.02,
-# 'sig_w_gx': 0.00175,
-# 'sig_w_gy': 0.00175,
-# 'sig_w_gz': 0.00175,
-# 'sig_a_d': 0.1,
-# 'tau_a': 100.0,
-# 'sig_g_d': 0.00873,
-# 'tau_g': 50.0,
-# 'sig_gps_p_ne': 15.0,
-# 'sig_gps_p_d': 20.0,
-# 'sig_gps_v_ne': 2.0,
-# 'sig_gps_v_d': 4.0,
-# 'sig_mag': 0.3,
+# config: navigation.structs.NAVconfig()
+# "sig_w_ax": 0.02,
+# "sig_w_ay": 0.02,
+# "sig_w_az": 0.02,
+# "sig_w_gx": 0.00175,
+# "sig_w_gy": 0.00175,
+# "sig_w_gz": 0.00175,
+# "sig_a_d": 0.1,
+# "tau_a": 100.0,
+# "sig_g_d": 0.00873,
+# "tau_g": 50.0,
+# "sig_gps_p_ne": 15.0,
+# "sig_gps_p_d": 20.0,
+# "sig_gps_v_ne": 2.0,
+# "sig_gps_v_d": 4.0,
+# "sig_mag": 0.3,
 # filter1.set_config(config)
 nav_list = []
 time_list = []
@@ -251,20 +251,20 @@ for name in args.filter:
 for i in range(len(args.filter)):
     print("filter:", args.filter[i], "= %.3f sec" % time_list[i])
 
-if flight_format == 'aura_csv' or flight_format == 'aura_txt':
+if flight_format == "aura_csv" or flight_format == "aura_txt":
     filter_post = os.path.join(args.flight, "filter-post.txt")
     #flight_loader.save(filter_post, nav1)
 
-if flight_format == 'umn3':
+if flight_format == "umn3":
     basedir = os.path.dirname(args.flight)
     filter_post = os.path.join(basedir, "filter-post.csv")
     #flight_loader.save(filter_post, nav1)
 
-if flight_format == 'px4_ulog':
+if flight_format == "px4_ulog":
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
 
-if flight_format == 'sentera':
+if flight_format == "sentera":
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
 
@@ -280,18 +280,18 @@ if False:
     for i in tqdm(range(iter.size())):
         record = iter.next()
         if len(record):
-            imupt = record['imu']
-            if 'air' in record:
-                airpt = record['air']
-                airspeed = airpt['airspeed']
+            imupt = record["imu"]
+            if "air" in record:
+                airpt = record["air"]
+                airspeed = airpt["airspeed"]
             else:
                 airspeed = 0
-            if 'filter' in record:
-                navpt = record['filter']
-            if airspeed > 10.0 and 'psi' in navpt:
+            if "filter" in record:
+                navpt = record["filter"]
+            if airspeed > 10.0 and "psi" in navpt:
                 # assumes we've calculated and logged the wind series
                 wind = winds[i]
-                wind_rad = 0.5*math.pi - wind['wind_deg']*d2r
+                wind_rad = 0.5*math.pi - wind["wind_deg"]*d2r
                 we = math.cos(wind_rad)
                 wn = math.sin(wind_rad)
                 alpha_beta.update(navpt, airpt, imupt, wn, we)
@@ -306,38 +306,38 @@ if False:
     for i in tqdm(range(iter.size())):
         record = iter.next()
         if len(record):
-            imupt = record['imu']
-            if 'act' in record:
-                actpt = record['act']
-            if 'health' in record:
-                healthpt = record['health']
-            if 'time' in actpt and 'time' in healthpt:
-                battery_model.update( actpt['throttle'],
-                                      healthpt['main_vcc'],
-                                      imupt['time'] )
+            imupt = record["imu"]
+            if "act" in record:
+                actpt = record["act"]
+            if "health" in record:
+                healthpt = record["health"]
+            if "time" in actpt and "time" in healthpt:
+                battery_model.update( actpt["throttle"],
+                                      healthpt["main_vcc"],
+                                      imupt["time"] )
 
 labels = ["On Board"]
 for name in args.filter:
     labels.append(name)
 
 df_imu = []
-df_imu.append( pd.DataFrame(data['imu']) )
-df_imu[0].set_index('time_sec', inplace=True, drop=False)
+df_imu.append( pd.DataFrame(data["imu"]) )
+df_imu[0].set_index("time_sec", inplace=True, drop=False)
 
 df_gps = []
-df_gps.append( pd.DataFrame(data['gps']) )
-df_gps[0].set_index('time_sec', inplace=True, drop=False)
+df_gps.append( pd.DataFrame(data["gps"]) )
+df_gps[0].set_index("time_sec", inplace=True, drop=False)
 
 df_nav = []
-df_nav.append( pd.DataFrame(data['nav']) )
-df_nav[0].set_index('timestamp', inplace=True, drop=False)
+df_nav.append( pd.DataFrame(data["nav"]) )
+df_nav[0].set_index("timestamp", inplace=True, drop=False)
 
 for nav in nav_list:
     df_nav.append( pd.DataFrame(nav) )
-    df_nav[-1].set_index('time_sec', inplace=True, drop=False)
+    df_nav[-1].set_index("time_sec", inplace=True, drop=False)
 
 df1_wind = pd.DataFrame(winds)
-df1_wind.set_index('time_sec', inplace=True, drop=False)
+df1_wind.set_index("time_sec", inplace=True, drop=False)
 
 # Plotting
 
@@ -347,81 +347,81 @@ r2d = np.rad2deg
 # plot raw accels (useful for bench calibration)
 if PLOT_SENSORS:
     plt.figure()
-    plt.title('Raw Accels')
-    plt.plot(df_imu[0]['ax_mps2'], label='ax', alpha=0.75)
-    plt.plot(df_imu[0]['ay_mps2'], label='ay', alpha=0.75)
-    plt.plot(df_imu[0]['az_mps2'], label='az', alpha=0.75)
-    plt.ylabel('mps^2', weight='bold')
+    plt.title("Raw Accels")
+    plt.plot(df_imu[0]["ax_mps2"], label="ax", alpha=0.75)
+    plt.plot(df_imu[0]["ay_mps2"], label="ay", alpha=0.75)
+    plt.plot(df_imu[0]["az_mps2"], label="az", alpha=0.75)
+    plt.ylabel("mps^2", weight="bold")
     plt.legend(loc=0)
     plt.grid()
 
     plt.figure()
-    plt.title('Raw Gyros')
-    plt.plot(df_imu[0]['p_rps'], label='p', alpha=0.75)
-    plt.plot(df_imu[0]['q_rps'], label='q', alpha=0.75)
-    plt.plot(df_imu[0]['r_rps'], label='r', alpha=0.75)
-    plt.ylabel('rad/sec', weight='bold')
+    plt.title("Raw Gyros")
+    plt.plot(df_imu[0]["p_rps"], label="p", alpha=0.75)
+    plt.plot(df_imu[0]["q_rps"], label="q", alpha=0.75)
+    plt.plot(df_imu[0]["r_rps"], label="r", alpha=0.75)
+    plt.ylabel("rad/sec", weight="bold")
     plt.legend(loc=0)
     plt.grid()
-    # print 'size:', len(q), len(r)
+    # print "size:", len(q), len(r)
     # for i in range(len(q)):
     #     if q[i] != r[i]:
     #         print q[i], r[i]
 
 if PLOT_ATTITUDE:
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
+    prop_cycle = plt.rcParams["axes.prop_cycle"]
+    colors = prop_cycle.by_key()["color"]
     print("colors:", colors)
 
     att_fig, att_ax = plt.subplots(3,2, sharex=True)
 
     # Roll Plot
-    att_ax[0,0].set_title('Attitude Angles')
-    att_ax[0,0].set_ylabel('Roll (deg)', weight='bold')
+    att_ax[0,0].set_title("Attitude Angles")
+    att_ax[0,0].set_ylabel("Roll (deg)", weight="bold")
     att_ax[0,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[0,0].plot(r2d(df_nav[i]['phi_rad']), label=labels[i], alpha=.8)
+        att_ax[0,0].plot(r2d(df_nav[i]["phi_rad"]), label=labels[i], alpha=.8)
     att_ax[0,0].grid()
 
     att_ax[0,1].plot([],[]) # consume gps color
     att_ax[0,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[0,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i+1])
-        att_ax[0,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa0'])), c=colors[i+1])
-    att_ax[0,1].set_ylabel('3*stddev', weight='bold')
+        att_ax[0,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa0"])), c=colors[i+1])
+        att_ax[0,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa0"])), c=colors[i+1])
+    att_ax[0,1].set_ylabel("3*stddev", weight="bold")
     att_ax[0,1].grid()
 
     # Pitch Plot
-    att_ax[1,0].set_ylabel('Pitch (deg)', weight='bold')
+    att_ax[1,0].set_ylabel("Pitch (deg)", weight="bold")
     att_ax[1,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[1,0].plot(r2d(df_nav[i]['the_rad']), label=labels[i], alpha=.8)
+        att_ax[1,0].plot(r2d(df_nav[i]["the_rad"]), label=labels[i], alpha=.8)
     att_ax[1,0].grid()
 
     att_ax[1,1].plot([],[]) # consume gps color
     att_ax[1,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[1,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i+1])
-        att_ax[1,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa1'])), c=colors[i+1])
-    att_ax[1,1].set_ylabel('3*stddev', weight='bold')
+        att_ax[1,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa1"])), c=colors[i+1])
+        att_ax[1,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa1"])), c=colors[i+1])
+    att_ax[1,1].set_ylabel("3*stddev", weight="bold")
     att_ax[1,1].grid()
 
     # Yaw Plot
-    att_ax[2,0].set_ylabel('Yaw (deg)', weight='bold')
+    att_ax[2,0].set_ylabel("Yaw (deg)", weight="bold")
     att_ax[2,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[2,0].plot(r2d(df_nav[i]['psi_rad']), label=labels[i], alpha=.8)
-    att_ax[2,0].set_xlabel('Time (sec)', weight='bold')
+        att_ax[2,0].plot(r2d(df_nav[i]["psi_rad"]), label=labels[i], alpha=.8)
+    att_ax[2,0].set_xlabel("Time (sec)", weight="bold")
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
 
     att_ax[2,1].plot([],[]) # consume gps color
     att_ax[2,1].plot([],[]) # consume on board color
     for i in range(1, len(labels)):
-        att_ax[2,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i+1])
-        att_ax[2,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]['Pa2'])), c=colors[i+1])
-    att_ax[2,1].set_xlabel('Time (sec)', weight='bold')
-    att_ax[2,1].set_ylabel('3*stddev', weight='bold')
+        att_ax[2,1].plot(nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa2"])), c=colors[i+1])
+        att_ax[2,1].plot(-nsig*np.rad2deg(np.sqrt(df_nav[i]["Pa2"])), c=colors[i+1])
+    att_ax[2,1].set_xlabel("Time (sec)", weight="bold")
+    att_ax[2,1].set_ylabel("3*stddev", weight="bold")
     att_ax[2,1].grid()
 
     #fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
@@ -431,36 +431,36 @@ if PLOT_VELOCITIES:
 
     # vn Plot
     ax1.set_title("NED Velocities")
-    ax1.set_ylabel('vn (mps)', weight='bold')
-    ax1.plot(df_gps[0]['vn_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax1.set_ylabel("vn (mps)", weight="bold")
+    ax1.plot(df_gps[0]["vn_mps"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax1.plot(df_nav[i]['vn_mps'], label=labels[i], lw=2, alpha=.8)
+        ax1.plot(df_nav[i]["vn_mps"], label=labels[i], lw=2, alpha=.8)
     ax1.grid()
     ax1.legend(loc=0)
 
     # ve Plot
-    ax2.set_ylabel('ve (mps)', weight='bold')
-    ax2.plot(df_gps[0]['ve_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax2.set_ylabel("ve (mps)", weight="bold")
+    ax2.plot(df_gps[0]["ve_mps"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax2.plot(df_nav[i]['ve_mps'], label=labels[i], lw=2, alpha=.8)
+        ax2.plot(df_nav[i]["ve_mps"], label=labels[i], lw=2, alpha=.8)
     ax2.grid()
 
     # vd Plot
-    ax3.set_ylabel('vd (mps)', weight='bold')
-    ax3.plot(df_gps[0]['vd_mps'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    ax3.set_ylabel("vd (mps)", weight="bold")
+    ax3.plot(df_gps[0]["vd_mps"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        ax3.plot(df_nav[i]['vd_mps'], label=labels[i], lw=2, alpha=.8)
-    ax3.set_xlabel('Time (secs)', weight='bold')
+        ax3.plot(df_nav[i]["vd_mps"], label=labels[i], lw=2, alpha=.8)
+    ax3.set_xlabel("Time (secs)", weight="bold")
     ax3.grid()
 
 # Altitude Plot
 if PLOT_ALTITUDE:
     plt.figure()
-    plt.title('Altitude')
-    plt.plot(df_gps[0]['alt_m'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    plt.title("Altitude")
+    plt.plot(df_gps[0]["alt_m"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(df_nav[i]['alt_m'], label=labels[i], lw=2, alpha=.8)
-    plt.ylabel('Altitude (m)', weight='bold')
+        plt.plot(df_nav[i]["alt_m"], label=labels[i], lw=2, alpha=.8)
+    plt.ylabel("Altitude (m)", weight="bold")
     plt.legend(loc=0)
     plt.grid()
 
@@ -468,71 +468,71 @@ if PLOT_ALTITUDE:
 if PLOT_GROUNDTRACK:
     plt.figure()
     plt.title("Ground Track")
-    plt.ylabel('Latitude (degrees)', weight='bold')
-    plt.xlabel('Longitude (degrees)', weight='bold')
-    plt.plot(df_gps[0]['lon_deg'], df_gps[0]['lat_deg'], '-*', label='GPS Sensor', lw=2, alpha=.5)
+    plt.ylabel("Latitude (degrees)", weight="bold")
+    plt.xlabel("Longitude (degrees)", weight="bold")
+    plt.plot(df_gps[0]["lon_deg"], df_gps[0]["lat_deg"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(r2d(df_nav[i]['lon_rad']), r2d(df_nav[i]['lat_rad']), label=labels[i], lw=2, alpha=.8)
+        plt.plot(r2d(df_nav[i]["lon_rad"]), r2d(df_nav[i]["lat_rad"]), label=labels[i], lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     ax = plt.gca()
-    ax.axis('equal')
+    ax.axis("equal")
 
 if PLOT_BIASES:
     bias_fig, bias_ax = plt.subplots(3,2, sharex=True)
 
     # Gyro Biases
     bias_ax[0,0].set_title("Gyro Biases")
-    bias_ax[0,0].set_ylabel('p (deg/s)', weight='bold')
+    bias_ax[0,0].set_ylabel("p (deg/s)", weight="bold")
     for i in range(len(labels)):
-        if 'gbx' in df_nav[i]:
-            bias_ax[0,0].plot(r2d(df_nav[i]['gbx']), label=labels[i])
+        if "gbx" in df_nav[i]:
+            bias_ax[0,0].plot(r2d(df_nav[i]["gbx"]), label=labels[i])
         else:
             bias_ax[0,0].plot(0, label=labels[i])
     bias_ax[0,0].grid()
 
-    bias_ax[1,0].set_ylabel('q (deg/s)', weight='bold')
+    bias_ax[1,0].set_ylabel("q (deg/s)", weight="bold")
     for i in range(len(labels)):
-        if 'gby' in df_nav[i]:
-            bias_ax[1,0].plot(r2d(df_nav[i]['gby']), label=labels[i])
+        if "gby" in df_nav[i]:
+            bias_ax[1,0].plot(r2d(df_nav[i]["gby"]), label=labels[i])
         else:
             bias_ax[1,0].plot(0, label=labels[i])
     bias_ax[1,0].grid()
 
-    bias_ax[2,0].set_ylabel('r (deg/s)', weight='bold')
-    bias_ax[2,0].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,0].set_ylabel("r (deg/s)", weight="bold")
+    bias_ax[2,0].set_xlabel("Time (secs)", weight="bold")
     for i in range(len(labels)):
-        if 'gbz' in df_nav[i]:
-            bias_ax[2,0].plot(r2d(df_nav[i]['gbz']), label=labels[i])
+        if "gbz" in df_nav[i]:
+            bias_ax[2,0].plot(r2d(df_nav[i]["gbz"]), label=labels[i])
         else:
             bias_ax[2,0].plot(0, label=labels[i])
     bias_ax[2,0].grid()
 
     # Accel Biases
     bias_ax[0,1].set_title("Accel Biases")
-    bias_ax[0,1].set_ylabel('ax (m/s^2)', weight='bold')
+    bias_ax[0,1].set_ylabel("ax (m/s^2)", weight="bold")
     for i in range(len(labels)):
-        if 'abx' in df_nav[i]:
-            bias_ax[0,1].plot(df_nav[i]['abx'], label=labels[i])
+        if "abx" in df_nav[i]:
+            bias_ax[0,1].plot(df_nav[i]["abx"], label=labels[i])
         else:
             bias_ax[0,1].plot(0, label=labels[i])
     bias_ax[0,1].grid()
 
-    bias_ax[1,1].set_ylabel('ay (m/s^2)', weight='bold')
+    bias_ax[1,1].set_ylabel("ay (m/s^2)", weight="bold")
     for i in range(len(labels)):
-        if 'aby' in df_nav[i]:
-            bias_ax[1,1].plot(df_nav[i]['aby'], label=labels[i])
+        if "aby" in df_nav[i]:
+            bias_ax[1,1].plot(df_nav[i]["aby"], label=labels[i])
         else:
             bias_ax[1,1].plot(0, label=labels[i])
     bias_ax[1,1].grid()
 
-    bias_ax[2,1].set_ylabel('az (m/s^2)', weight='bold')
+    bias_ax[2,1].set_ylabel("az (m/s^2)", weight="bold")
     for i in range(len(labels)):
-        if 'abz' in df_nav[i]:
-            bias_ax[2,1].plot(df_nav[i]['abz'], label=labels[i])
+        if "abz" in df_nav[i]:
+            bias_ax[2,1].plot(df_nav[i]["abz"], label=labels[i])
         else:
             bias_ax[2,1].plot(0, label=labels[i])
-    bias_ax[2,1].set_xlabel('Time (secs)', weight='bold')
+    bias_ax[2,1].set_xlabel("Time (secs)", weight="bold")
     bias_ax[2,1].grid()
     bias_ax[2,1].legend(loc=1)
 
@@ -554,14 +554,14 @@ def gen_func( coeffs, min, max, steps ):
 # Wind Plot
 if PLOT_WIND:
     fig, ax1 = plt.subplots()
-    ax1.set_title('Wind Estimate')
-    ax1.set_ylabel('Degrees', weight='bold')
-    ax1.plot(df1_wind['wind_deg'], label='Direction (deg)', c='r', lw=2, alpha=.8)
+    ax1.set_title("Wind Estimate")
+    ax1.set_ylabel("Degrees", weight="bold")
+    ax1.plot(df1_wind["wind_deg"], label="Direction (deg)", c="r", lw=2, alpha=.8)
 
     ax2 = ax1.twinx()
-    ax2.plot(df1_wind['wind_kt'], label='Speed (kt)', c='b', lw=2, alpha=.8)
-    ax2.plot(df1_wind['pitot_scale'], label='Pitot Scale', c='k', lw=2, alpha=.8)
-    ax2.set_ylabel('Knots', weight='bold')
+    ax2.plot(df1_wind["wind_kt"], label="Speed (kt)", c="b", lw=2, alpha=.8)
+    ax2.plot(df1_wind["pitot_scale"], label="Pitot Scale", c="k", lw=2, alpha=.8)
+    ax2.set_ylabel("Knots", weight="bold")
     ax1.legend(loc=4)
     ax2.legend(loc=1)
     ax1.grid()
@@ -584,14 +584,14 @@ if False:
     roll_cal, res, _, _, _ = np.polyfit( roll_array, r_array, 3, full=True )
     print(roll_cal)
     xvals, yvals, minx, miny = gen_func(roll_cal, roll_array.min(), roll_array.max(), 1000)
-    print('bank bias deg (for L1 config) =', -r2d(minx), 'deg')
-    print('zero yaw rate @ bank =', r2d(minx), 'deg')
+    print("bank bias deg (for L1 config) =", -r2d(minx), "deg")
+    print("zero yaw rate @ bank =", r2d(minx), "deg")
     fig, ax1 = plt.subplots()
-    ax1.set_title('Turn Calibration')
-    ax1.set_xlabel('Bank angle (rad)', weight='bold')
-    ax1.set_ylabel('Turn rate (rad/sec)', weight='bold')
-    ax1.plot(roll_array, r_array, 'x', label='bank vs. turn', c='r', lw=2, alpha=.8)
-    ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
+    ax1.set_title("Turn Calibration")
+    ax1.set_xlabel("Bank angle (rad)", weight="bold")
+    ax1.set_ylabel("Turn rate (rad/sec)", weight="bold")
+    ax1.plot(roll_array, r_array, "x", label="bank vs. turn", c="r", lw=2, alpha=.8)
+    ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
 
 # plot alpha vs. CL (estimate)
 if len(alpha_beta.cl_array):
@@ -601,10 +601,10 @@ if len(alpha_beta.cl_array):
     print(cl_cal)
     xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
     fig, ax1 = plt.subplots()
-    ax1.set_title('Alpha/CL')
-    ax1.set_xlabel('Alpha (est, deg)', weight='bold')
-    ax1.set_ylabel('CL', weight='bold')
-    ax1.plot(alpha_array, cl_array, 'x', label='alpha vs CL', c='r', lw=2, alpha=.8)
-    ax1.plot(xvals, yvals, label='fit', c='b', lw=2, alpha=.8)
+    ax1.set_title("Alpha/CL")
+    ax1.set_xlabel("Alpha (est, deg)", weight="bold")
+    ax1.set_ylabel("CL", weight="bold")
+    ax1.plot(alpha_array, cl_array, "x", label="alpha vs CL", c="r", lw=2, alpha=.8)
+    ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
 
 plt.show()
