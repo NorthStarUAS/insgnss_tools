@@ -143,13 +143,15 @@ iter = flight_interp.IterateGroup(data)
 for i in tqdm(range(iter.size())):
     record = iter.next()
     imupt = record["imu"]
+    imupt["time_sec"] = imupt["timestamp"]
     if "gps" in record:
         gpspt = record["gps"]
+        gpspt["time_sec"] = gpspt["timestamp"]
         if gps_init_sec is None:
             gps_init_sec = gpspt["timestamp"]
 
     # if not inited or gps not yet reached it's settle time
-    if gps_init_sec is None or gpspt["timestamp"] < gps_init_sec + gps_settle_secs:
+    if gps_init_sec is None or gpspt["time_sec"] < gps_init_sec + gps_settle_secs:
         continue
 
     navpt = filter.update(imupt, gpspt)
@@ -163,12 +165,12 @@ for i in tqdm(range(iter.size())):
 plotname = os.path.basename(args.flight)
 
 df0_gps = pd.DataFrame(data["gps"])
-df0_gps.set_index("timestamp", inplace=True, drop=False)
+df0_gps.set_index("time_sec", inplace=True, drop=False)
 df0_nav = pd.DataFrame(data["nav"])
 df0_nav.set_index("timestamp", inplace=True, drop=False)
 
 df1_nav = pd.DataFrame(results)
-df1_nav.set_index("timestamp", inplace=True, drop=False)
+df1_nav.set_index("time_sec", inplace=True, drop=False)
 
 r2d = np.rad2deg
 
@@ -199,21 +201,21 @@ fig, [ax1, ax2, ax3] = plt.subplots(3,1, sharex=True)
 # vn Plot
 ax1.set_title("NED Velocities")
 ax1.set_ylabel("vn (mps)", weight="bold")
-ax1.plot(df0_gps["vn"], "-*", label="GPS Sensor", c="g", alpha=.5)
+ax1.plot(df0_gps["vn_mps"], "-*", label="GPS Sensor", c="g", alpha=.5)
 ax1.plot(df0_nav["vn"], label="On Board")
 ax1.plot(df1_nav["vn"], label=filter.name)
 ax1.grid()
 
 # ve Plot
 ax2.set_ylabel("ve (mps)", weight="bold")
-ax2.plot(df0_gps["ve"], "-*", label="GPS Sensor", c="g", alpha=.5)
+ax2.plot(df0_gps["ve_mps"], "-*", label="GPS Sensor", c="g", alpha=.5)
 ax2.plot(df0_nav["ve"], label="On Board")
 ax2.plot(df1_nav["ve"], label=filter.name)
 ax2.grid()
 
 # vd Plot
 ax3.set_ylabel("vd (mps)", weight="bold")
-ax3.plot(df0_gps["vd"], "-*", label="GPS Sensor", c="g", alpha=.5)
+ax3.plot(df0_gps["vd_mps"], "-*", label="GPS Sensor", c="g", alpha=.5)
 ax3.plot(df0_nav["vd"], label="On Board")
 ax3.plot(df1_nav["vd"], label=filter.name)
 ax3.set_xlabel("TIME (SECONDS)", weight="bold")
@@ -223,7 +225,7 @@ ax3.legend(loc=0)
 # Altitude
 plt.figure()
 plt.title("Altitude")
-plt.plot(df0_gps["alt"], "-*", label="GPS Sensor", c="g", alpha=.5)
+plt.plot(df0_gps["alt_m"], "-*", label="GPS Sensor", c="g", alpha=.5)
 plt.plot(df1_nav["alt"], label=filter.name)
 plt.ylabel("Altitude (m)", weight="bold")
 plt.legend(loc=0)
@@ -234,7 +236,7 @@ plt.figure()
 plt.title("Ground track")
 plt.ylabel("Latitude (degrees)", weight="bold")
 plt.xlabel("Longitude (degrees)", weight="bold")
-plt.plot(df0_gps["lon"], df0_gps["lat"], "*", label="GPS Sensor", c="g", alpha=.5)
+plt.plot(df0_gps["lon_deg"], df0_gps["lat_deg"], "*", label="GPS Sensor", c="g", alpha=.5)
 plt.plot(r2d(df1_nav["lon"]), r2d(df1_nav["lat"]), label=filter.name)
 plt.grid()
 plt.legend(loc=0)

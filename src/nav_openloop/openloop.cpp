@@ -56,7 +56,7 @@ void OpenLoop::init_by_nav(NAVdata nav)
     set_att(nav.phi, nav.the, nav.psi);
     set_gyro_calib(nav.gbx, nav.gby, nav.gbz, 0.0, 0.0, 0.0);
     set_accel_calib(nav.abx, nav.aby, nav.abz, 0.0, 0.0, 0.0);
-    tprev = nav.time;
+    tprev = nav.time_sec;
 }
 
 void OpenLoop::set_pos(double lat_rad, double lon_rad, float alt_m) {
@@ -127,7 +127,7 @@ void OpenLoop::set_accel_calib(float axb, float ayb, float azb,
 
 NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // compute time-elapsed 'dt'
-    float tnow = imu.time;
+    float tnow = imu.time_sec;
     // if ( tstart < 0.0 ) {
     //	tstart = tnow;
     // }
@@ -146,13 +146,13 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // Vector3d Fb = G * Vector3d(imu.ax, imu.ay, imu.az);
 
     // update attitude from gyro
-    float p = imu.p - gxb;
-    float q = imu.q - gyb;
-    float r = imu.r - gzb;
-    //float p = (1 + gxs) * imu.p - (gxb + elapsed*gxd) - Fb(0);
-    //float q = (1 + gys) * imu.q - (gyb + elapsed*gyd) - Fb(1);
-    //float r = (1 + gzs) * imu.r - (gzb + elapsed*gzd) - Fb(2);
-    Quaternionf rot_body = eul2quat(p*dt, q*dt, r*dt);
+    float p_rps = imu.p_rps - gxb;
+    float q_rps = imu.q_rps - gyb;
+    float r_rps = imu.r_rps - gzb;
+    //float p = (1 + gxs) * imu.p_rps - (gxb + elapsed*gxd) - Fb(0);
+    //float q = (1 + gys) * imu.q_rps - (gyb + elapsed*gyd) - Fb(1);
+    //float r = (1 + gzs) * imu.r_rps - (gzb + elapsed*gzd) - Fb(2);
+    Quaternionf rot_body = eul2quat(p_rps*dt, q_rps*dt, r_rps*dt);
     ned2body *= rot_body;
     ned2body.normalize();
     body2ned = ned2body.inverse();
@@ -163,13 +163,13 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     nav.psi = att_vec(2);
 
     // rotate accelerometer vector into ned frame
-    float ax = imu.ax - axb;
-    float ay = imu.ay - ayb;
-    float az = imu.az - azb;
+    float ax_mps2 = imu.ax_mps2 - axb;
+    float ay_mps2 = imu.ay_mps2 - ayb;
+    float az_mps2 = imu.az_mps2 - azb;
     //float ax = (1 + axs) * imu.ax - (axb + elapsed*axd);
     //float ay = (1 + ays) * imu.ay - (ayb + elapsed*ayd);
     //float az = (1 + azs) * imu.az - (azb + elapsed*azd);
-    Vector3f accel_ned = quat_transformf(body2ned, Vector3f(ax, ay, az));
+    Vector3f accel_ned = quat_transformf(body2ned, Vector3f(ax_mps2, ay_mps2, az_mps2));
 
     // add the local gravity vector.
     accel_ned += glocal_ned;
@@ -202,7 +202,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // update ecef2ned transform with just updated position
     ecef2ned = lla2quat(nav.lon, nav.lat).cast<float>();
 
-    nav.time = imu.time;
+    nav.time_sec = imu.time_sec;
 
     return nav;
 }

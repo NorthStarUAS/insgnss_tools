@@ -128,13 +128,13 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 
     // .. then initialize states with GPS Data
-    nav.lat = gps.lat*D2R;
-    nav.lon = gps.lon*D2R;
-    nav.alt = gps.alt;
+    nav.lat = gps.lat_deg*D2R;
+    nav.lon = gps.lon_deg*D2R;
+    nav.alt = gps.alt_m;
 
-    nav.vn = gps.vn;
-    nav.ve = gps.ve;
-    nav.vd = gps.vd;
+    nav.vn = gps.vn_mps;
+    nav.ve = gps.ve_mps;
+    nav.vd = gps.vd_mps;
 
     // ideal magnetic vector
     // printf("EKF: unix_sec = %d\n", gps.unix_sec);
@@ -162,9 +162,9 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
 
     // ... and initialize states with IMU Data, theta from Ax, aircraft
     // at rest
-    nav.the = asin(imu.ax/g);
+    nav.the = asin(imu.ax_mps2/g);
     // phi from Ay, aircraft at rest
-    nav.phi = asin(imu.ay/(g*cos(nav.the)));
+    nav.phi = asin(imu.ay_mps2/(g*cos(nav.the)));
 
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
@@ -194,7 +194,7 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
 
     imu_last = imu;
 
-    nav.time = imu.time;
+    nav.time_sec = imu.time_sec;
     nav.err_type = data_valid;
 }
 
@@ -202,10 +202,10 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
 void EKF15_mag::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This compute the navigation state at the DAQ's Time Stamp
-    float imu_dt = imu.time - imu_last.time;
+    float imu_dt = imu.time_sec - imu_last.time_sec;
     if ( imu_dt < 0.0 ) { imu_dt = 0.0; }
     if ( imu_dt > 0.1 ) { imu_dt = 0.1; }
-    nav.time = imu.time;
+    nav.time_sec = imu.time_sec;
 
     // ==================  Time Update  ===================
 
@@ -218,33 +218,33 @@ void EKF15_mag::time_update(IMUdata imu) {
         // Get the new Specific forces and Rotation Rate from previous
         // frame (k) to use in this frame (k+1).  Rectangular
         // integration.
-        f_b(0) = imu_last.ax - nav.abx;
-        f_b(1) = imu_last.ay - nav.aby;
-        f_b(2) = imu_last.az - nav.abz;
+        f_b(0) = imu_last.ax_mps2 - nav.abx;
+        f_b(1) = imu_last.ay_mps2 - nav.aby;
+        f_b(2) = imu_last.az_mps2 - nav.abz;
 
-        om_ib(0) = imu_last.p - nav.gbx;
-        om_ib(1) = imu_last.q - nav.gby;
-        om_ib(2) = imu_last.r - nav.gbz;
+        om_ib(0) = imu_last.p_rps - nav.gbx;
+        om_ib(1) = imu_last.q_rps - nav.gby;
+        om_ib(2) = imu_last.r_rps - nav.gbz;
     } else if ( false ) {
         // Combine the Specific forces and Rotation Rate from previous
         // frame (k) with current frame (k+1) to use in this frame
         // (k+1).  Trapazoidal integration.
-        f_b(0) = 0.5 * (imu_last.ax + imu.ax) - nav.abx;
-        f_b(1) = 0.5 * (imu_last.ay + imu.ay) - nav.aby;
-        f_b(2) = 0.5 * (imu_last.az + imu.az) - nav.abz;
+        f_b(0) = 0.5 * (imu_last.ax_mps2 + imu.ax_mps2) - nav.abx;
+        f_b(1) = 0.5 * (imu_last.ay_mps2 + imu.ay_mps2) - nav.aby;
+        f_b(2) = 0.5 * (imu_last.az_mps2 + imu.az_mps2) - nav.abz;
 
-        om_ib(0) = 0.5 * (imu_last.p + imu.p) - nav.gbx;
-        om_ib(1) = 0.5 * (imu_last.q + imu.q) - nav.gby;
-        om_ib(2) = 0.5 * (imu_last.r + imu.r) - nav.gbz;
+        om_ib(0) = 0.5 * (imu_last.p_rps + imu.p_rps) - nav.gbx;
+        om_ib(1) = 0.5 * (imu_last.q_rps + imu.q_rps) - nav.gby;
+        om_ib(2) = 0.5 * (imu_last.r_rps + imu.r_rps) - nav.gbz;
     } else {
         // Chris says the first two ways are BS
-        f_b(0) = imu.ax - nav.abx;
-        f_b(1) = imu.ay - nav.aby;
-        f_b(2) = imu.az - nav.abz;
+        f_b(0) = imu.ax_mps2 - nav.abx;
+        f_b(1) = imu.ay_mps2 - nav.aby;
+        f_b(2) = imu.az_mps2 - nav.abz;
 
-        om_ib(0) = imu.p - nav.gbx;
-        om_ib(1) = imu.q - nav.gby;
-        om_ib(2) = imu.r - nav.gbz;
+        om_ib(0) = imu.p_rps - nav.gbx;
+        om_ib(1) = imu.q_rps - nav.gby;
+        om_ib(2) = imu.r_rps - nav.gbz;
     }
 
     imu_last = imu;
@@ -355,7 +355,7 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
     Vector3d pos_ins_ecef = lla2ecef(pos_ref);
 
-    Vector3d pos_gps(gps.lat*D2R, gps.lon*D2R, gps.alt);
+    Vector3d pos_gps(gps.lat_deg*D2R, gps.lon_deg*D2R, gps.alt_m);
     Vector3d pos_gps_ecef = lla2ecef(pos_gps);
 
     Vector3d pos_error_ecef = pos_gps_ecef - pos_ins_ecef;
@@ -397,9 +397,9 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     y(1) = pos_error_ned(1);
     y(2) = pos_error_ned(2);
 
-    y(3) = gps.vn - nav.vn;
-    y(4) = gps.ve - nav.ve;
-    y(5) = gps.vd - nav.vd;
+    y(3) = gps.vn_mps - nav.vn;
+    y(4) = gps.ve_mps - nav.ve;
+    y(5) = gps.vd_mps - nav.vd;
 
     y(6) = mag_error(0);
     y(7) = mag_error(1);

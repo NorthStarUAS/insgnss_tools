@@ -11,87 +11,87 @@ namespace py = pybind11;
 PYBIND11_MODULE(nav_structs, m) {
     py::class_<IMUdata>(m, "IMUdata")
         .def(py::init<>())
-        .def_readwrite("time", &IMUdata::time)
-        .def_readwrite("p", &IMUdata::p)
-        .def_readwrite("q", &IMUdata::q)
-        .def_readwrite("r", &IMUdata::r)
-        .def_readwrite("ax", &IMUdata::ax)
-        .def_readwrite("ay", &IMUdata::ay)
-        .def_readwrite("az", &IMUdata::az)
+        .def_readwrite("time_sec", &IMUdata::time_sec)
+        .def_readwrite("p_rps", &IMUdata::p_rps)
+        .def_readwrite("q_rps", &IMUdata::q_rps)
+        .def_readwrite("r_rps", &IMUdata::r_rps)
+        .def_readwrite("ax_mps2", &IMUdata::ax_mps2)
+        .def_readwrite("ay_mps2", &IMUdata::ay_mps2)
+        .def_readwrite("az_mps2", &IMUdata::az_mps2)
         .def_readwrite("hx", &IMUdata::hx)
         .def_readwrite("hy", &IMUdata::hy)
         .def_readwrite("hz", &IMUdata::hz)
-        .def_readwrite("temp", &IMUdata::temp)
+        .def_readwrite("temp_C", &IMUdata::temp_C)
         .def("as_dict",
              [](const IMUdata &imu) {
                  py::dict result;
-                 result["timestamp"] = imu.time;
-                 result["p"] = imu.p;
-                 result["q"] = imu.q;
-                 result["r"] = imu.r;
-                 result["ax"] = imu.ax;
-                 result["ay"] = imu.ay;
-                 result["az"] = imu.az;
+                 result["time_sec"] = imu.time_sec;
+                 result["p_rps"] = imu.p_rps;
+                 result["q_rps"] = imu.q_rps;
+                 result["r_rps"] = imu.r_rps;
+                 result["ax_mps2"] = imu.ax_mps2;
+                 result["ay_mps2"] = imu.ay_mps2;
+                 result["az_mps2"] = imu.az_mps2;
                  result["hx"] = imu.hx;
                  result["hy"] = imu.hy;
                  result["hz"] = imu.hz;
-                 result["temp"] = imu.temp;
+                 result["temp_C"] = imu.temp_C;
                  return result;
              }
          )
         .def("from_dict",
              [](IMUdata &imu, const py::dict &d) {
-                 imu.time = py::float_(d["timestamp"]);
-                 imu.p = py::float_(d["p"]);
-                 imu.q = py::float_(d["q"]);
-                 imu.r = py::float_(d["r"]);
-                 imu.ax = py::float_(d["ax"]);
-                 imu.ay = py::float_(d["ay"]);
-                 imu.az = py::float_(d["az"]);
+                 imu.time_sec = py::float_(d["time_sec"]);
+                 imu.p_rps = py::float_(d["p_rps"]);
+                 imu.q_rps = py::float_(d["q_rps"]);
+                 imu.r_rps = py::float_(d["r_rps"]);
+                 imu.ax_mps2 = py::float_(d["ax_mps2"]);
+                 imu.ay_mps2 = py::float_(d["ay_mps2"]);
+                 imu.az_mps2 = py::float_(d["az_mps2"]);
                  imu.hx = py::float_(d["hx"]);
                  imu.hy = py::float_(d["hy"]);
                  imu.hz = py::float_(d["hz"]);
-                 imu.temp = py::float_(d["temp"]);
+                 imu.temp_C = py::float_(d["temp_C"]);
              }
          )
         ;
 
     py::class_<GPSdata>(m, "GPSdata")
         .def(py::init<>())
-        .def_readwrite("time", &GPSdata::time)
+        .def_readwrite("time_sec", &GPSdata::time_sec)
         .def_readwrite("unix_sec", &GPSdata::unix_sec)
-        .def_readwrite("lat", &GPSdata::lat)
-        .def_readwrite("lon", &GPSdata::lon)
-        .def_readwrite("alt", &GPSdata::alt)
-        .def_readwrite("vn", &GPSdata::vn)
-        .def_readwrite("ve", &GPSdata::ve)
-        .def_readwrite("vd", &GPSdata::vd)
+        .def_readwrite("lat_deg", &GPSdata::lat_deg)
+        .def_readwrite("lon_deg", &GPSdata::lon_deg)
+        .def_readwrite("alt_m", &GPSdata::alt_m)
+        .def_readwrite("vn_mps", &GPSdata::vn_mps)
+        .def_readwrite("ve_mps", &GPSdata::ve_mps)
+        .def_readwrite("vd_mps", &GPSdata::vd_mps)
         .def_readwrite("sats", &GPSdata::sats)
         .def("as_dict",
              [](const GPSdata &gps) {
                  py::dict result;
-                 result["timestamp"] = gps.time;
+                 result["time_sec"] = gps.time_sec;
                  result["unix_sec"] = gps.unix_sec;
-                 result["lat"] = gps.lat;
-                 result["lon"] = gps.lon;
-                 result["alt"] = gps.alt;
-                 result["vn"] = gps.vn;
-                 result["ve"] = gps.ve;
-                 result["vd"] = gps.vd;
+                 result["lat_deg"] = gps.lat_deg;
+                 result["lon_deg"] = gps.lon_deg;
+                 result["alt_m"] = gps.alt_m;
+                 result["vn_mps"] = gps.vn_mps;
+                 result["ve_mps"] = gps.ve_mps;
+                 result["vd_mps"] = gps.vd_mps;
                  result["sats"] = gps.sats;
                  return result;
              }
          )
         .def("from_dict",
              [](GPSdata &gps, const py::dict &d) {
-                 gps.time = py::float_(d["timestamp"]);
+                 gps.time_sec = py::float_(d["time_sec"]);
                  gps.unix_sec = py::float_(d["unix_sec"]);
-                 gps.lat = py::float_(d["lat"]);
-                 gps.lon = py::float_(d["lon"]);
-                 gps.alt = py::float_(d["alt"]);
-                 gps.vn = py::float_(d["vn"]);
-                 gps.ve = py::float_(d["ve"]);
-                 gps.vd = py::float_(d["vd"]);
+                 gps.lat_deg = py::float_(d["lat_deg"]);
+                 gps.lon_deg = py::float_(d["lon_deg"]);
+                 gps.alt_m = py::float_(d["alt_m"]);
+                 gps.vn_mps = py::float_(d["vn_mps"]);
+                 gps.ve_mps = py::float_(d["ve_mps"]);
+                 gps.vd_mps = py::float_(d["vd_mps"]);
                  gps.sats = py::int_(d["sats"]);
               }
          )
@@ -99,7 +99,7 @@ PYBIND11_MODULE(nav_structs, m) {
 
     py::class_<Airdata>(m, "Airdata")
         .def(py::init<>())
-        .def_readwrite("time", &Airdata::time)
+        .def_readwrite("time_sec", &Airdata::time_sec)
         .def_readwrite("static_press", &Airdata::static_press)
         .def_readwrite("diff_press", &Airdata::diff_press)
         .def_readwrite("temp", &Airdata::temp)
@@ -108,7 +108,7 @@ PYBIND11_MODULE(nav_structs, m) {
         .def("as_dict",
              [](const Airdata &airdata) {
                  py::dict result;
-                 result["timestamp"] = airdata.time;
+                 result["time_sec"] = airdata.time_sec;
                  result["static_press"] = airdata.static_press;
                  result["diff_press"] = airdata.diff_press;
                  result["temp"] = airdata.temp;
@@ -121,7 +121,7 @@ PYBIND11_MODULE(nav_structs, m) {
 
     py::class_<NAVdata>(m, "NAVdata")
         .def(py::init<>())
-        .def_readwrite("time", &NAVdata::time)
+        .def_readwrite("time_sec", &NAVdata::time_sec)
         .def_readwrite("lat", &NAVdata::lat)
         .def_readwrite("lon", &NAVdata::lon)
         .def_readwrite("alt", &NAVdata::alt)
@@ -159,7 +159,7 @@ PYBIND11_MODULE(nav_structs, m) {
         .def("as_dict",
              [](const NAVdata &nav) {
                  py::dict result;
-                 result["timestamp"] = nav.time;
+                 result["time_sec"] = nav.time_sec;
                  result["lat"] = nav.lat;
                  result["lon"] = nav.lon;
                  result["alt"] = nav.alt;

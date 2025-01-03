@@ -3,7 +3,7 @@ namespace py = pybind11;
 
 #include <math.h>
 
-#include "../nav_common/nav_structs.h"
+#include "../nav/nav_structs.h"
 
 #include "uNavINS.h"
 
@@ -46,18 +46,18 @@ public:
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
         Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
         Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
-        current_time = imu.time;
+        current_time = imu.time_sec;
         if ( ! filt.Initialized() ) {
             filt.Initialize(wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
         }
-        filt.Update((uint64_t)(imu.time * 1e+6),
-                    (unsigned long)(gps.time * 100),
+        filt.Update((uint64_t)(imu.time_sec * 1e+6),
+                    (unsigned long)(gps.time_sec * 100),
                     wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
     }
 
     NAVdata get_nav() {
         NAVdata result;
-        result.time = current_time;
+        result.time_sec = current_time;
         Vector3d PosEst_rrm = filt.Get_PosEst();
         result.lat = PosEst_rrm[0];
         result.lon = PosEst_rrm[1];

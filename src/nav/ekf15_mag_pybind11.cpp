@@ -22,15 +22,15 @@ public:
     }
 
     void update(IMUdata imu, GPSdata gps) {
-        current_time = imu.time;
+        current_time = imu.time_sec;
         if ( ! initialized ) {
             filt.init(imu, gps);
             initialized = true;
         } else {
-            if ( gps.time <= last_gps_time ) {
+            if ( gps.time_sec <= last_gps_time ) {
                 filt.time_update(imu);
             } else {
-                last_gps_time = gps.time;
+                last_gps_time = gps.time_sec;
                 filt.time_update(imu);
                 filt.measurement_update(imu, gps);
             }

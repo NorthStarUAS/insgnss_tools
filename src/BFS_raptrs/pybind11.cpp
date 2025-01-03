@@ -3,7 +3,7 @@ namespace py = pybind11;
 
 #include <math.h>
 
-#include "../nav_common/nav_structs.h"
+#include "../nav/nav_structs.h"
 
 #include "uNavINS.h"
 
@@ -36,9 +36,9 @@ public:
     }
 
     void update(IMUdata imu, GPSdata gps) {
-        current_time = imu.time;
-        filt.update((uint64_t)(imu.time * 1e+6),
-                    (unsigned long)(gps.time * 100),
+        current_time = imu.time_sec;
+        filt.update((uint64_t)(imu.time_sec * 1e+6),
+                    (unsigned long)(gps.time_sec * 100),
                     gps.vn, gps.ve, gps.vd,
                     gps.lat*D2R, gps.lon*D2R, gps.alt,
                     imu.p, imu.q, imu.r,
@@ -48,7 +48,7 @@ public:
 
     NAVdata get_nav() {
         NAVdata result;
-        result.time = current_time;
+        result.time_sec = current_time;
         result.lat = filt.getLatitude_rad();
         result.lon = filt.getLongitude_rad();
         result.alt = filt.getAltitude_m();
