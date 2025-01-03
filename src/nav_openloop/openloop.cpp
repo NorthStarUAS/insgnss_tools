@@ -51,9 +51,9 @@ void OpenLoop::init(double lat_rad, double lon_rad, float alt_m,
 void OpenLoop::init_by_nav(NAVdata nav)
 {
     this->nav = nav;
-    set_pos(nav.lat, nav.lon, nav.alt);
-    set_vel(nav.vn, nav.ve, nav.vd);
-    set_att(nav.phi, nav.the, nav.psi);
+    set_pos(nav.lat_rad, nav.lon_rad, nav.alt_m);
+    set_vel(nav.vn_mps, nav.ve_mps, nav.vd_mps);
+    set_att(nav.phi_rad, nav.the_rad, nav.psi_rad);
     set_gyro_calib(nav.gbx, nav.gby, nav.gbz, 0.0, 0.0, 0.0);
     set_accel_calib(nav.abx, nav.aby, nav.abz, 0.0, 0.0, 0.0);
     tprev = nav.time_sec;
@@ -158,9 +158,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     body2ned = ned2body.inverse();
     body2ned.normalize();
     Vector3f att_vec = quat2eul(ned2body);
-    nav.phi = att_vec(0);
-    nav.the = att_vec(1);
-    nav.psi = att_vec(2);
+    nav.phi_rad = att_vec(0);
+    nav.the_rad = att_vec(1);
+    nav.psi_rad = att_vec(2);
 
     // rotate accelerometer vector into ned frame
     float ax_mps2 = imu.ax_mps2 - axb;
@@ -176,9 +176,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
 
     // update the velocity vector
     vel_ned += accel_ned*dt;
-    nav.vn = vel_ned(0);
-    nav.ve = vel_ned(1);
-    nav.vd = vel_ned(2);
+    nav.vn_mps = vel_ned(0);
+    nav.ve_mps = vel_ned(1);
+    nav.vd_mps = vel_ned(2);
     // transform to ecef frame
     vel_ecef = quat_transformf(ecef2ned.inverse(), vel_ned);
 
@@ -187,9 +187,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     //printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
     pos_lla = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla(0), pos_lla(1), pos_lla(2));
-    nav.lat = pos_lla(0);
-    nav.lon = pos_lla(1);
-    nav.alt = pos_lla(2);
+    nav.lat_rad = pos_lla(0);
+    nav.lon_rad = pos_lla(1);
+    nav.alt_m = pos_lla(2);
 
     // populate the bias fields
     // nav.gbx = gxb + elapsed*gxd;
@@ -200,7 +200,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // nav.abz = azb + elapsed*azd;
 
     // update ecef2ned transform with just updated position
-    ecef2ned = lla2quat(nav.lon, nav.lat).cast<float>();
+    ecef2ned = lla2quat(nav.lon_rad, nav.lat_rad).cast<float>();
 
     nav.time_sec = imu.time_sec;
 

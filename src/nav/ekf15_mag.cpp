@@ -128,20 +128,19 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
     nav.Pgbx = P(12,12);  nav.Pgby = P(13,13);  nav.Pgbz = P(14,14);
 
     // .. then initialize states with GPS Data
-    nav.lat = gps.lat_deg*D2R;
-    nav.lon = gps.lon_deg*D2R;
-    nav.alt = gps.alt_m;
+    nav.lat_rad = gps.lat_deg*D2R;
+    nav.lon_rad = gps.lon_deg*D2R;
+    nav.alt_m = gps.alt_m;
 
-    nav.vn = gps.vn_mps;
-    nav.ve = gps.ve_mps;
-    nav.vd = gps.vd_mps;
+    nav.vn_mps = gps.vn_mps;
+    nav.ve_mps = gps.ve_mps;
+    nav.vd_mps = gps.vd_mps;
 
     // ideal magnetic vector
     // printf("EKF: unix_sec = %d\n", gps.unix_sec);
     long int jd = now_to_julian_days();
     double field[6];
-    calc_magvar( nav.lat, nav.lon,
-		 nav.alt / 1000.0, jd, field );
+    calc_magvar( nav.lat_rad, nav.lon_rad, nav.alt_m / 1000.0, jd, field );
     mag_ned(0) = field[3];
     mag_ned(1) = field[4];
     mag_ned(2) = field[5];
@@ -156,27 +155,27 @@ void EKF15_mag::init(IMUdata imu, GPSdata gps) {
 
     // fixme: for now match the reference implementation so we can
     // compare intermediate calculations.
-    // nav.the = 0*D2R;
-    // nav.phi = 0*D2R;
-    // nav.psi = 90.0*D2R;
+    // nav.the_rad = 0*D2R;
+    // nav.phi_rad = 0*D2R;
+    // nav.psi_rad = 90.0*D2R;
 
     // ... and initialize states with IMU Data, theta from Ax, aircraft
     // at rest
-    nav.the = asin(imu.ax_mps2/g);
+    nav.the_rad = asin(imu.ax_mps2/g);
     // phi from Ay, aircraft at rest
-    nav.phi = asin(imu.ay_mps2/(g*cos(nav.the)));
+    nav.phi_rad = asin(imu.ay_mps2/(g*cos(nav.the_rad)));
 
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
-    // nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
-    // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi*R2D);
+    // nav.psi_rad = 90*D2R - atan2(imu.hx, -imu.hy);
+    // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi_rad*R2D);
     // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
 
     // tilt compensated heading
-    nav.psi = atan2(imu.hz*sin(nav.phi)-imu.hy*cos(nav.phi),imu.hx*cos(nav.the)+imu.hy*sin(nav.the)*sin(nav.phi)+imu.hz*sin(nav.the)*cos(nav.phi));
-    printf("tilt compensated psi: %.2f\n", nav.psi*R2D);
+    nav.psi_rad = atan2(imu.hz*sin(nav.phi_rad)-imu.hy*cos(nav.phi_rad),imu.hx*cos(nav.the_rad)+imu.hy*sin(nav.the_rad)*sin(nav.phi_rad)+imu.hz*sin(nav.the_rad)*cos(nav.phi_rad));
+    printf("tilt compensated psi: %.2f\n", nav.psi_rad*R2D);
 
-    quat = eul2quat(nav.phi, nav.the, nav.psi);
+    quat = eul2quat(nav.phi_rad, nav.the_rad, nav.psi_rad);
 
     nav.abx = 0.0;
     nav.aby = 0.0;
@@ -211,8 +210,8 @@ void EKF15_mag::time_update(IMUdata imu) {
 
     // Attitude Update
     // ... Calculate Navigation Rate
-    Vector3f vel_vec(nav.vn, nav.ve, nav.vd);
-    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
+    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
+    Vector3d pos_ref(nav.lat_rad, nav.lon_rad, nav.alt_m);
 
     if ( false ) {
         // Get the new Specific forces and Rotation Rate from previous
@@ -258,9 +257,9 @@ void EKF15_mag::time_update(IMUdata imu) {
     }
 
     Vector3f att_vec = quat2eul(quat);
-    nav.phi = att_vec(0);
-    nav.the = att_vec(1);
-    nav.psi = att_vec(2);
+    nav.phi_rad = att_vec(0);
+    nav.the_rad = att_vec(1);
+    nav.psi_rad = att_vec(2);
 
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
@@ -270,15 +269,15 @@ void EKF15_mag::time_update(IMUdata imu) {
     dx = C_B2N * f_b;
     dx += grav;
 
-    nav.vn += imu_dt*dx(0);
-    nav.ve += imu_dt*dx(1);
-    nav.vd += imu_dt*dx(2);
+    nav.vn_mps += imu_dt*dx(0);
+    nav.ve_mps += imu_dt*dx(1);
+    nav.vd_mps += imu_dt*dx(2);
 
     // Position Update
     dx = llarate(vel_vec, pos_ref);
-    nav.lat += imu_dt*dx(0);
-    nav.lon += imu_dt*dx(1);
-    nav.alt += imu_dt*dx(2);
+    nav.lat_rad += imu_dt*dx(0);
+    nav.lon_rad += imu_dt*dx(1);
+    nav.alt_m += imu_dt*dx(2);
 
     // JACOBIAN
     F.setZero();
@@ -352,7 +351,7 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
 
     // Position, converted to NED
-    Vector3d pos_ref(nav.lat, nav.lon, nav.alt);
+    Vector3d pos_ref(nav.lat_rad, nav.lon_rad, nav.alt_m);
     Vector3d pos_ins_ecef = lla2ecef(pos_ref);
 
     Vector3d pos_gps(gps.lat_deg*D2R, gps.lon_deg*D2R, gps.alt_m);
@@ -397,9 +396,9 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
     y(1) = pos_error_ned(1);
     y(2) = pos_error_ned(2);
 
-    y(3) = gps.vn_mps - nav.vn;
-    y(4) = gps.ve_mps - nav.ve;
-    y(5) = gps.vd_mps - nav.vd;
+    y(3) = gps.vn_mps - nav.vn_mps;
+    y(4) = gps.ve_mps - nav.ve_mps;
+    y(5) = gps.vd_mps - nav.vd_mps;
 
     y(6) = mag_error(0);
     y(7) = mag_error(1);
@@ -424,26 +423,26 @@ void EKF15_mag::measurement_update(IMUdata imu, GPSdata gps) {
 
     // State Update
     x = K * y;
-    double denom = fabs(1.0 - (ECC2 * sin(nav.lat) * sin(nav.lat)));
+    double denom = fabs(1.0 - (ECC2 * sin(nav.lat_rad) * sin(nav.lat_rad)));
     double denom_sqrt = sqrt(denom);
     double Re = EarthRadius / denom_sqrt;
     double Rn = EarthRadius * (1-ECC2) * denom_sqrt / denom;
-    nav.alt = nav.alt - x(2);
-    nav.lat = nav.lat + x(0)/(Re + nav.alt);
-    nav.lon = nav.lon + x(1)/(Rn + nav.alt)/cos(nav.lat);
+    nav.alt_m = nav.alt_m - x(2);
+    nav.lat_rad = nav.lat_rad + x(0)/(Re + nav.alt_m);
+    nav.lon_rad = nav.lon_rad + x(1)/(Rn + nav.alt_m)/cos(nav.lat_rad);
 
-    nav.vn = nav.vn + x(3);
-    nav.ve = nav.ve + x(4);
-    nav.vd = nav.vd + x(5);
+    nav.vn_mps = nav.vn_mps + x(3);
+    nav.ve_mps = nav.ve_mps + x(4);
+    nav.vd_mps = nav.vd_mps + x(5);
 
     // Attitude correction
     Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8));
     quat = (quat * dq).normalized();
 
     Vector3f att_vec = quat2eul(quat);
-    nav.phi = att_vec(0);
-    nav.the = att_vec(1);
-    nav.psi = att_vec(2);
+    nav.phi_rad = att_vec(0);
+    nav.the_rad = att_vec(1);
+    nav.psi_rad = att_vec(2);
 
     nav.abx += x(9);
     nav.aby += x(10);

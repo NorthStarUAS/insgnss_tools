@@ -122,15 +122,15 @@ PYBIND11_MODULE(nav_structs, m) {
     py::class_<NAVdata>(m, "NAVdata")
         .def(py::init<>())
         .def_readwrite("time_sec", &NAVdata::time_sec)
-        .def_readwrite("lat", &NAVdata::lat)
-        .def_readwrite("lon", &NAVdata::lon)
-        .def_readwrite("alt", &NAVdata::alt)
-        .def_readwrite("vn", &NAVdata::vn)
-        .def_readwrite("ve", &NAVdata::ve)
-        .def_readwrite("vd", &NAVdata::vd)
-        .def_readwrite("phi", &NAVdata::phi)
-        .def_readwrite("the", &NAVdata::the)
-        .def_readwrite("psi", &NAVdata::psi)
+        .def_readwrite("lat_rad", &NAVdata::lat_rad)
+        .def_readwrite("lon_rad", &NAVdata::lon_rad)
+        .def_readwrite("alt_m", &NAVdata::alt_m)
+        .def_readwrite("vn_mps", &NAVdata::vn_mps)
+        .def_readwrite("ve_mps", &NAVdata::ve_mps)
+        .def_readwrite("vd_mps", &NAVdata::vd_mps)
+        .def_readwrite("phi_rad", &NAVdata::phi_rad)
+        .def_readwrite("the_rad", &NAVdata::the_rad)
+        .def_readwrite("psi_rad", &NAVdata::psi_rad)
         .def_readwrite("qw", &NAVdata::qw)
         .def_readwrite("qx", &NAVdata::qx)
         .def_readwrite("qy", &NAVdata::qy)
@@ -160,15 +160,15 @@ PYBIND11_MODULE(nav_structs, m) {
              [](const NAVdata &nav) {
                  py::dict result;
                  result["time_sec"] = nav.time_sec;
-                 result["lat"] = nav.lat;
-                 result["lon"] = nav.lon;
-                 result["alt"] = nav.alt;
-                 result["vn"] = nav.vn;
-                 result["ve"] = nav.ve;
-                 result["vd"] = nav.vd;
-                 result["phi"] = nav.phi;
-                 result["the"] = nav.the;
-                 result["psi"] = nav.psi;
+                 result["lat_rad"] = nav.lat_rad;
+                 result["lon_rad"] = nav.lon_rad;
+                 result["alt_m"] = nav.alt_m;
+                 result["vn_mps"] = nav.vn_mps;
+                 result["ve_mps"] = nav.ve_mps;
+                 result["vd_mps"] = nav.vd_mps;
+                 result["phi_rad"] = nav.phi_rad;
+                 result["the_rad"] = nav.the_rad;
+                 result["psi_rad"] = nav.psi_rad;
                  result["qw"] = nav.qw;
                  result["qx"] = nav.qx;
                  result["qy"] = nav.qy;

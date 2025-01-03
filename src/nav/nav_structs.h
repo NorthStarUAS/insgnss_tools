@@ -53,15 +53,15 @@ enum errdefs {
 /// Navigation filter data structure
 struct NAVdata {
     float time_sec;         // [sec], timestamp of NAV filter
-    double lat;             // [rad], geodetic latitude estimate
-    double lon;             // [rad], geodetic longitude estimate
-    float alt;              // [m], altitude relative to WGS84 estimate
-    float vn;               // [m/sec], north velocity estimate
-    float ve;               // [m/sec], east velocity estimate
-    float vd;               // [m/sec], down velocity estimate
-    float phi;              // [rad], Euler roll angle estimate
-    float the;              // [rad], Euler pitch angle estimate
-    float psi;              // [rad], Euler yaw angle estimate
+    double lat_rad;         // [rad], geodetic latitude estimate
+    double lon_rad;         // [rad], geodetic longitude estimate
+    float alt_m;            // [m], altitude relative to WGS84 estimate
+    float vn_mps;           // [m/sec], north velocity estimate
+    float ve_mps;           // [m/sec], east velocity estimate
+    float vd_mps;           // [m/sec], down velocity estimate
+    float phi_rad;          // [rad], Euler roll angle estimate
+    float the_rad;          // [rad], Euler pitch angle estimate
+    float psi_rad;          // [rad], Euler yaw angle estimate
     float qw, qx, qy, qz;   // Quaternion estimate
     float abx, aby, abz;    // [m/sec^2], accelerometer bias estimate
     float gbx, gby, gbz;    // [rad/sec], rate gyro bias estimate
