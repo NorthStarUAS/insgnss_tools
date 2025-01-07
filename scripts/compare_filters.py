@@ -75,6 +75,12 @@ def run_filter(filter, data, call_init=True):
         if "gps" in record:
             gpspt = record["gps"]
             gpspt["time_sec"] = gpspt["timestamp"]
+            if "unix_usec" in gpspt:
+                gpspt["unix_sec"] = gpspt["unix_usec"] / 1000000.0
+            if "latitude_raw" in gpspt:
+                gpspt["latitude_deg"] = gpspt["latitude_raw"] / 10000000.0
+            if "longitude_raw" in gpspt:
+                gpspt["longitude_deg"] = gpspt["longitude_raw"] / 10000000.0
             if gps_init_sec is None:
                 gps_init_sec = gpspt["time_sec"]
 
@@ -272,7 +278,7 @@ if True:
     w = wind.Wind()
     winds = w.estimate(data, None)
 
-if False:
+if True:
     print("Estimating alpha/beta (experimental):")
     navpt = {}
     airpt = {}
@@ -281,19 +287,17 @@ if False:
         record = iter.next()
         if len(record):
             imupt = record["imu"]
-            if "air" in record:
-                airpt = record["air"]
-                airspeed = airpt["airspeed"]
+            if "airdata" in record:
+                airpt = record["airdata"]
+                airspeed_mps = airpt["airspeed_mps"]
             else:
-                airspeed = 0
-            if "filter" in record:
-                navpt = record["filter"]
-            if airspeed > 10.0 and "psi" in navpt:
-                # assumes we've calculated and logged the wind series
+                airspeed_mps = 0
+            if "nav" in record and airspeed_mps > 8.0:
+                navpt = record["nav"]
+                # assumes we've calculated the wind series
                 wind = winds[i]
-                wind_rad = 0.5*math.pi - wind["wind_deg"]*d2r
-                we = math.cos(wind_rad)
-                wn = math.sin(wind_rad)
+                we = wind["we_mps"]
+                wn = wind["wn_mps"]
                 alpha_beta.update(navpt, airpt, imupt, wn, we)
     alpha_beta.gen_stats()
 
@@ -380,7 +384,7 @@ if PLOT_ATTITUDE:
     att_ax[0,0].set_ylabel("Roll (deg)", weight="bold")
     att_ax[0,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[0,0].plot(r2d(df_nav[i]["phi_rad"]), label=labels[i], alpha=.8)
+        att_ax[0,0].plot(df_nav[i]["phi_deg"], label=labels[i], alpha=.8)
     att_ax[0,0].grid()
 
     att_ax[0,1].plot([],[]) # consume gps color
@@ -395,7 +399,7 @@ if PLOT_ATTITUDE:
     att_ax[1,0].set_ylabel("Pitch (deg)", weight="bold")
     att_ax[1,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[1,0].plot(r2d(df_nav[i]["the_rad"]), label=labels[i], alpha=.8)
+        att_ax[1,0].plot(df_nav[i]["theta_deg"], label=labels[i], alpha=.8)
     att_ax[1,0].grid()
 
     att_ax[1,1].plot([],[]) # consume gps color
@@ -410,7 +414,7 @@ if PLOT_ATTITUDE:
     att_ax[2,0].set_ylabel("Yaw (deg)", weight="bold")
     att_ax[2,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[2,0].plot(r2d(df_nav[i]["psi_rad"]), label=labels[i], alpha=.8)
+        att_ax[2,0].plot(df_nav[i]["psi_deg"], label=labels[i], alpha=.8)
     att_ax[2,0].set_xlabel("Time (sec)", weight="bold")
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
@@ -457,9 +461,10 @@ if PLOT_VELOCITIES:
 if PLOT_ALTITUDE:
     plt.figure()
     plt.title("Altitude")
-    plt.plot(df_gps[0]["alt_m"], "-*", label="GPS Sensor", lw=2, alpha=.5)
+    plt.plot(df_gps[0]["altitude_m"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(df_nav[i]["alt_m"], label=labels[i], lw=2, alpha=.8)
+        print(df_nav[i])
+        plt.plot(df_nav[i]["altitude_m"], label=labels[i], lw=2, alpha=.8)
     plt.ylabel("Altitude (m)", weight="bold")
     plt.legend(loc=0)
     plt.grid()
@@ -470,9 +475,9 @@ if PLOT_GROUNDTRACK:
     plt.title("Ground Track")
     plt.ylabel("Latitude (degrees)", weight="bold")
     plt.xlabel("Longitude (degrees)", weight="bold")
-    plt.plot(df_gps[0]["lon_deg"], df_gps[0]["lat_deg"], "-*", label="GPS Sensor", lw=2, alpha=.5)
+    plt.plot(df_gps[0]["longitude_deg"], df_gps[0]["latitude_deg"], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(r2d(df_nav[i]["lon_rad"]), r2d(df_nav[i]["lat_rad"]), label=labels[i], lw=2, alpha=.8)
+        plt.plot(df_nav[i]["longitude_deg"], df_nav[i]["latitude_deg"], label=labels[i], lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     ax = plt.gca()
@@ -566,6 +571,20 @@ if PLOT_WIND:
     ax2.legend(loc=1)
     ax1.grid()
 
+    fig, [ax1, ax2] = plt.subplots(2,1, sharex=True)
+
+    # wn Plot
+    ax1.set_title("Wind NED Velocities")
+    ax1.set_ylabel("wn (mps)", weight="bold")
+    ax1.plot(df1_wind["wn_mps"], label="Wind North", lw=2, alpha=.5)
+    ax1.grid()
+    ax1.legend(loc=0)
+
+    # we Plot
+    ax2.set_ylabel("we (mps)", weight="bold")
+    ax2.plot(df1_wind["we_mps"], label="Wind East", lw=2, alpha=.5)
+    ax2.grid()
+
 if False:
     # plot roll vs. yaw rate
     roll_array = []
@@ -597,6 +616,7 @@ if False:
 if len(alpha_beta.cl_array):
     cl_array = np.array(alpha_beta.cl_array)
     alpha_array = np.array(alpha_beta.alpha_array)
+    alpha_ish_array = np.array(alpha_beta.alpha_ish_array)
     cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 1, full=True )
     print(cl_cal)
     xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
@@ -605,6 +625,15 @@ if len(alpha_beta.cl_array):
     ax1.set_xlabel("Alpha (est, deg)", weight="bold")
     ax1.set_ylabel("CL", weight="bold")
     ax1.plot(alpha_array, cl_array, "x", label="alpha vs CL", c="r", lw=2, alpha=.8)
+    ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
+
+    cl_cal, res, _, _, _ = np.polyfit( alpha_ish_array, alpha_array, 1, full=True )
+    xvals, yvals, minx, miny = gen_func(cl_cal, alpha_ish_array.min(), alpha_ish_array.max(), 1000)
+    fig, ax1 = plt.subplots()
+    ax1.set_title("az/qbar")
+    ax1.set_xlabel("az/qbar", weight="bold")
+    ax1.set_ylabel("Alpha (est, deg)", weight="bold")
+    ax1.plot(alpha_ish_array, alpha_array, "x", label="az/qbar vs alpha", c="r", lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
 
 plt.show()
