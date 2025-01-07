@@ -18,8 +18,8 @@ Minnesota.
   environment.)
 
 ```bash
-./setup.py build
-./setup.py install --user
+CC="ccache gcc" ./setup.py build
+CC="ccache gcc" ./setup.py install --user
 ```
 
 ## Supported data log formats

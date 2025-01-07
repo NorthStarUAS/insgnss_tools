@@ -60,9 +60,9 @@ PYBIND11_MODULE(nav_structs, m) {
         .def(py::init<>())
         .def_readwrite("time_sec", &GPSdata::time_sec)
         .def_readwrite("unix_sec", &GPSdata::unix_sec)
-        .def_readwrite("lat_deg", &GPSdata::lat_deg)
-        .def_readwrite("lon_deg", &GPSdata::lon_deg)
-        .def_readwrite("alt_m", &GPSdata::alt_m)
+        .def_readwrite("latitude_deg", &GPSdata::latitude_deg)
+        .def_readwrite("longitude_deg", &GPSdata::longitude_deg)
+        .def_readwrite("altitude_m", &GPSdata::altitude_m)
         .def_readwrite("vn_mps", &GPSdata::vn_mps)
         .def_readwrite("ve_mps", &GPSdata::ve_mps)
         .def_readwrite("vd_mps", &GPSdata::vd_mps)
@@ -72,9 +72,9 @@ PYBIND11_MODULE(nav_structs, m) {
                  py::dict result;
                  result["time_sec"] = gps.time_sec;
                  result["unix_sec"] = gps.unix_sec;
-                 result["lat_deg"] = gps.lat_deg;
-                 result["lon_deg"] = gps.lon_deg;
-                 result["alt_m"] = gps.alt_m;
+                 result["latitude_deg"] = gps.latitude_deg;
+                 result["longitude_deg"] = gps.longitude_deg;
+                 result["altitude_m"] = gps.altitude_m;
                  result["vn_mps"] = gps.vn_mps;
                  result["ve_mps"] = gps.ve_mps;
                  result["vd_mps"] = gps.vd_mps;
@@ -86,9 +86,9 @@ PYBIND11_MODULE(nav_structs, m) {
              [](GPSdata &gps, const py::dict &d) {
                  gps.time_sec = py::float_(d["time_sec"]);
                  gps.unix_sec = py::float_(d["unix_sec"]);
-                 gps.lat_deg = py::float_(d["lat_deg"]);
-                 gps.lon_deg = py::float_(d["lon_deg"]);
-                 gps.alt_m = py::float_(d["alt_m"]);
+                 gps.latitude_deg = py::float_(d["latitude_deg"]);
+                 gps.longitude_deg = py::float_(d["longitude_deg"]);
+                 gps.altitude_m = py::float_(d["altitude_m"]);
                  gps.vn_mps = py::float_(d["vn_mps"]);
                  gps.ve_mps = py::float_(d["ve_mps"]);
                  gps.vd_mps = py::float_(d["vd_mps"]);
@@ -122,15 +122,15 @@ PYBIND11_MODULE(nav_structs, m) {
     py::class_<NAVdata>(m, "NAVdata")
         .def(py::init<>())
         .def_readwrite("time_sec", &NAVdata::time_sec)
-        .def_readwrite("lat_rad", &NAVdata::lat_rad)
-        .def_readwrite("lon_rad", &NAVdata::lon_rad)
-        .def_readwrite("alt_m", &NAVdata::alt_m)
+        .def_readwrite("latitude_deg", &NAVdata::latitude_deg)
+        .def_readwrite("longitude_deg", &NAVdata::longitude_deg)
+        .def_readwrite("altitude_m", &NAVdata::altitude_m)
         .def_readwrite("vn_mps", &NAVdata::vn_mps)
         .def_readwrite("ve_mps", &NAVdata::ve_mps)
         .def_readwrite("vd_mps", &NAVdata::vd_mps)
-        .def_readwrite("phi_rad", &NAVdata::phi_rad)
-        .def_readwrite("the_rad", &NAVdata::the_rad)
-        .def_readwrite("psi_rad", &NAVdata::psi_rad)
+        .def_readwrite("phi_deg", &NAVdata::phi_deg)
+        .def_readwrite("theta_deg", &NAVdata::theta_deg)
+        .def_readwrite("psi_deg", &NAVdata::psi_deg)
         .def_readwrite("qw", &NAVdata::qw)
         .def_readwrite("qx", &NAVdata::qx)
         .def_readwrite("qy", &NAVdata::qy)
@@ -160,15 +160,15 @@ PYBIND11_MODULE(nav_structs, m) {
              [](const NAVdata &nav) {
                  py::dict result;
                  result["time_sec"] = nav.time_sec;
-                 result["lat_rad"] = nav.lat_rad;
-                 result["lon_rad"] = nav.lon_rad;
-                 result["alt_m"] = nav.alt_m;
+                 result["latitude_deg"] = nav.latitude_deg;
+                 result["longitude_deg"] = nav.longitude_deg;
+                 result["altitude_m"] = nav.altitude_m;
                  result["vn_mps"] = nav.vn_mps;
                  result["ve_mps"] = nav.ve_mps;
                  result["vd_mps"] = nav.vd_mps;
-                 result["phi_rad"] = nav.phi_rad;
-                 result["the_rad"] = nav.the_rad;
-                 result["psi_rad"] = nav.psi_rad;
+                 result["phi_deg"] = nav.phi_deg;
+                 result["theta_deg"] = nav.theta_deg;
+                 result["psi_deg"] = nav.psi_deg;
                  result["qw"] = nav.qw;
                  result["qx"] = nav.qx;
                  result["qy"] = nav.qy;

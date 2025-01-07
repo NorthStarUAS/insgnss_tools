@@ -23,9 +23,10 @@ struct IMUdata {
 struct GPSdata {
     float time_sec;                  // seconds
     double unix_sec;		         // seconds in unix time reference
-    double lat_deg, lon_deg;         // rad
-    float alt_m;                     // meter
-    float vn_mps, ve_mps, vd_mps;	 // m/sec
+    double latitude_deg;
+    double longitude_deg;
+    float altitude_m;
+    float vn_mps, ve_mps, vd_mps;    // NED velocities
     int sats;
 };
 
@@ -53,15 +54,15 @@ enum errdefs {
 /// Navigation filter data structure
 struct NAVdata {
     float time_sec;         // [sec], timestamp of NAV filter
-    double lat_rad;         // [rad], geodetic latitude estimate
-    double lon_rad;         // [rad], geodetic longitude estimate
-    float alt_m;            // [m], altitude relative to WGS84 estimate
+    double latitude_deg;    // [deg], geodetic latitude estimate
+    double longitude_deg;   // [deg], geodetic longitude estimate
+    float altitude_m;       // [m], altitude relative to WGS84 estimate
     float vn_mps;           // [m/sec], north velocity estimate
     float ve_mps;           // [m/sec], east velocity estimate
     float vd_mps;           // [m/sec], down velocity estimate
-    float phi_rad;          // [rad], Euler roll angle estimate
-    float the_rad;          // [rad], Euler pitch angle estimate
-    float psi_rad;          // [rad], Euler yaw angle estimate
+    float phi_deg;          // [deg], Euler roll angle estimate
+    float theta_deg;        // [deg], Euler pitch angle estimate
+    float psi_deg;          // [deg], Euler yaw angle estimate
     float qw, qx, qy, qz;   // Quaternion estimate
     float abx, aby, abz;    // [m/sec^2], accelerometer bias estimate
     float gbx, gby, gbz;    // [rad/sec], rate gyro bias estimate
