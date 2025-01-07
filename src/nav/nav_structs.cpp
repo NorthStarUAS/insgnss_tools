@@ -78,7 +78,7 @@ PYBIND11_MODULE(nav_structs, m) {
                  result["vn_mps"] = gps.vn_mps;
                  result["ve_mps"] = gps.ve_mps;
                  result["vd_mps"] = gps.vd_mps;
-                 result["sats"] = gps.sats;
+                 result["num_sats"] = gps.sats;
                  return result;
              }
          )
@@ -92,7 +92,7 @@ PYBIND11_MODULE(nav_structs, m) {
                  gps.vn_mps = py::float_(d["vn_mps"]);
                  gps.ve_mps = py::float_(d["ve_mps"]);
                  gps.vd_mps = py::float_(d["vd_mps"]);
-                 gps.sats = py::int_(d["sats"]);
+                 gps.sats = py::int_(d["num_sats"]);
               }
          )
         ;

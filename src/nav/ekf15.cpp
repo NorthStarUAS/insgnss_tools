@@ -144,8 +144,8 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
 
     // this is atan2(x, -y) because the aircraft body X,Y axis are
     // swapped with the cartesion axes from the top down perspective
-    // nav.psi = 90*D2R - atan2(imu.hx, -imu.hy);
-    // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi*R2D);
+    // nav.psi_rad = 90*D2R - atan2(imu.hx, -imu.hy);
+    // printf("ekf: hx: %.2f hy: %.2f psi: %.2f\n", imu.hx, imu.hy, nav.psi_rad*R2D);
     // printf("atan2: %.2f\n", atan2(imu.hx, -imu.hy)*R2D);
 
     // tilt compensated heading
