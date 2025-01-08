@@ -16,10 +16,11 @@ mps2kt = 1.94384
 kt2mps = 1 / mps2kt
 
 class Wind():
-    def __init__(self):
+    def __init__(self, flying_threshold_mps):
         self.wind_time_factor = 60
         self.pitot_time_factor = 240
         self.last_time = 0.0
+        self.flying_threshold_mps = flying_threshold_mps
 
     def update(self, time, airspeed_mps, yaw_rad, vn, ve):
         dt = 0.0
@@ -27,7 +28,7 @@ class Wind():
             dt = time - self.last_time
         self.last_time = time
 
-        if dt > 0.0 and airspeed_mps >= 8.0:
+        if dt > 0.0 and airspeed_mps >= self.flying_threshold_mps:
             # update values if "flying" and time has elapsed
             psi = 0.5*math.pi - yaw_rad
 
@@ -49,12 +50,13 @@ class Wind():
 
             # estimate pitot tube bias
             ps = 1.0
-            if airspeed_mps > 9.0:
-                true_speed_mps = math.sqrt( true_e*true_e + true_n*true_n )
-                ps = true_speed_mps / airspeed_mps
-                # don't let the scale factor exceed some reasonable limits
-                if ps < 0.75: ps = 0.75
-                if ps > 1.25: ps = 1.25
+
+            true_speed_mps = math.sqrt( true_e*true_e + true_n*true_n )
+            ps = true_speed_mps / airspeed_mps
+            # don't let the scale factor exceed some reasonable limits
+            if ps < 0.75: ps = 0.75
+            if ps > 1.25: ps = 1.25
+
             self.filt_ps.update(ps, dt)
 
         return self.filt_wn.value, self.filt_we.value, self.filt_ps.value

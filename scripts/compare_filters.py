@@ -83,6 +83,9 @@ def run_filter(filter, data, call_init=True):
                 gpspt["longitude_deg"] = gpspt["longitude_raw"] / 10000000.0
             if gps_init_sec is None:
                 gps_init_sec = gpspt["time_sec"]
+        if "airdata" in record:
+            airpt = record["airdata"]
+            airpt["time_sec"] = airpt["timestamp"]
 
         # if not inited or gps not yet reached it's settle time
         if gps_init_sec is None or gpspt["time_sec"] < gps_init_sec + gps_settle_secs:
@@ -274,8 +277,10 @@ if flight_format == "sentera":
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
 
+flying_threshold_mps = 38  # mps
+
 if True:
-    w = wind.Wind()
+    w = wind.Wind(flying_threshold_mps)
     winds = w.estimate(data, None)
 
 if True:
@@ -292,7 +297,11 @@ if True:
                 airspeed_mps = airpt["airspeed_mps"]
             else:
                 airspeed_mps = 0
-            if "nav" in record and airspeed_mps > 8.0:
+            if "inceptors" in record:
+                flaps = record["inceptors"]["flaps"]
+            else:
+                flaps = 0
+            if "nav" in record and airspeed_mps >= flying_threshold_mps and flaps < 0.1:
                 navpt = record["nav"]
                 # assumes we've calculated the wind series
                 wind = winds[i]
@@ -331,6 +340,10 @@ df_imu[0].set_index("time_sec", inplace=True, drop=False)
 df_gps = []
 df_gps.append( pd.DataFrame(data["gps"]) )
 df_gps[0].set_index("time_sec", inplace=True, drop=False)
+
+df_airdata = []
+df_airdata.append( pd.DataFrame(data["airdata"]) )
+df_airdata[0].set_index("time_sec", inplace=True, drop=False)
 
 df_nav = []
 df_nav.append( pd.DataFrame(data["nav"]) )
@@ -614,6 +627,7 @@ if False:
 
 # plot alpha vs. CL (estimate)
 if len(alpha_beta.cl_array):
+    time_array = np.array(alpha_beta.time_array)
     cl_array = np.array(alpha_beta.cl_array)
     alpha_array = np.array(alpha_beta.alpha_array)
     alpha_ish_array = np.array(alpha_beta.alpha_ish_array)
@@ -629,11 +643,19 @@ if len(alpha_beta.cl_array):
 
     cl_cal, res, _, _, _ = np.polyfit( alpha_ish_array, alpha_array, 1, full=True )
     xvals, yvals, minx, miny = gen_func(cl_cal, alpha_ish_array.min(), alpha_ish_array.max(), 1000)
+    func = np.poly1d(cl_cal)
     fig, ax1 = plt.subplots()
     ax1.set_title("az/qbar")
     ax1.set_xlabel("az/qbar", weight="bold")
     ax1.set_ylabel("Alpha (est, deg)", weight="bold")
     ax1.plot(alpha_ish_array, alpha_array, "x", label="az/qbar vs alpha", c="r", lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
+
+    if "alpha_deg" in df_airdata[0]:
+        plt.figure()
+        plt.plot(df_imu[0]["time_sec"], func(df_imu[0]['az_mps2'] / (0.5 * df_airdata[0]["airspeed_mps"] * df_airdata[0]["airspeed_mps"] * 1.225)), label="alpha re-estimated")
+        plt.plot(time_array, alpha_array, label="Alpha Estimate (deg)")
+        plt.plot(df_airdata[0]["alpha_deg"], label="Alpha Measured (deg)")
+        plt.legend()
 
 plt.show()
