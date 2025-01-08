@@ -271,13 +271,14 @@ if flight_format == "umn3":
 
 if flight_format == "px4_ulog":
     filter_post = args.flight + "_filter_post.txt"
-    flight_loader.save(filter_post, nav1)
+    flight_loader.save(filter_post, nav_list[0])
 
 if flight_format == "sentera":
     filter_post = args.flight + "_filter_post.txt"
     flight_loader.save(filter_post, nav1)
 
-flying_threshold_mps = 38  # mps
+flying_threshold_mps = 8  # mps
+# flying_threshold_mps = 35  # mps
 
 if True:
     w = wind.Wind(flying_threshold_mps)
@@ -301,7 +302,7 @@ if True:
                 flaps = record["inceptors"]["flaps"]
             else:
                 flaps = 0
-            if "nav" in record and airspeed_mps >= flying_threshold_mps and flaps < 0.1:
+            if "nav" in record and airspeed_mps >= flying_threshold_mps and abs(flaps - 0) < 0.1:
                 navpt = record["nav"]
                 # assumes we've calculated the wind series
                 wind = winds[i]
