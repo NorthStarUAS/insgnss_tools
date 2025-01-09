@@ -8,6 +8,7 @@ namespace py = pybind11;
 #include "uNavINS.h"
 
 const double D2R = M_PI / 180.0; // degrees to radians
+const double R2D = 180.0 / M_PI; // radians to degrees
 
 // this is a glue class to bridge between the existing python API and
 // the actual uNavINS class API.  This could be handled other ways,
@@ -39,25 +40,25 @@ public:
         current_time = imu.time_sec;
         filt.update((uint64_t)(imu.time_sec * 1e+6),
                     (unsigned long)(gps.time_sec * 100),
-                    gps.vn, gps.ve, gps.vd,
-                    gps.lat*D2R, gps.lon*D2R, gps.alt,
-                    imu.p, imu.q, imu.r,
-                    imu.ax, imu.ay, imu.az,
+                    gps.vn_mps, gps.ve_mps, gps.vd_mps,
+                    gps.latitude_deg*D2R, gps.longitude_deg*D2R, gps.altitude_m,
+                    imu.p_rps, imu.q_rps, imu.r_rps,
+                    imu.ax_mps2, imu.ay_mps2, imu.az_mps2,
                     imu.hx, imu.hy, imu.hz);
     }
 
     NAVdata get_nav() {
         NAVdata result;
         result.time_sec = current_time;
-        result.lat = filt.getLatitude_rad();
-        result.lon = filt.getLongitude_rad();
-        result.alt = filt.getAltitude_m();
-        result.vn = filt.getVelNorth_ms();
-        result.ve = filt.getVelEast_ms();
-        result.vd = filt.getVelDown_ms();
-        result.phi = filt.getRoll_rad();
-        result.the = filt.getPitch_rad();
-        result.psi = filt.getHeading_rad();
+        result.latitude_deg = filt.getLatitude_rad()*R2D;
+        result.longitude_deg = filt.getLongitude_rad()*R2D;
+        result.altitude_m = filt.getAltitude_m()*R2D;
+        result.vn_mps = filt.getVelNorth_ms();
+        result.ve_mps = filt.getVelEast_ms();
+        result.vd_mps = filt.getVelDown_ms();
+        result.phi_deg = filt.getRoll_rad()*R2D;
+        result.theta_deg = filt.getPitch_rad()*R2D;
+        result.psi_deg = filt.getHeading_rad()*R2D;
         result.abx = filt.getAccelBiasX_mss();
         result.aby = filt.getAccelBiasY_mss();
         result.abz = filt.getAccelBiasZ_mss();

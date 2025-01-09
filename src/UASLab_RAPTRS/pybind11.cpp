@@ -8,6 +8,7 @@ namespace py = pybind11;
 #include "uNavINS.h"
 
 const double D2R = M_PI / 180.0; // degrees to radians
+const double R2D = 180.0 / M_PI; // radians to degrees
 
 // this is a glue class to bridge between the existing python API and
 // the actual uNavINS class API.  This could be handled other ways,
@@ -41,11 +42,11 @@ public:
     }
 
     void update(IMUdata imu, GPSdata gps) {
-        Vector3f wMeas_rps( imu.p, imu.q, imu.r );
-        Vector3f aMeas_mps2( imu.ax, imu.ay, imu.az );
+        Vector3f wMeas_rps( imu.p_rps, imu.q_rps, imu.r_rps );
+        Vector3f aMeas_mps2( imu.ax_mps2, imu.ay_mps2, imu.az_mps2 );
         Vector3f magMeas( imu.hx, imu.hy, imu.hz );
-        Vector3d pMeas_D_rrm( gps.lat*D2R, gps.lon*D2R, gps.alt );
-        Vector3f vMeas_L_mps( gps.vn, gps.ve, gps.vd );
+        Vector3d pMeas_D_rrm( gps.latitude_deg*D2R, gps.longitude_deg*D2R, gps.altitude_m );
+        Vector3f vMeas_L_mps( gps.vn_mps, gps.ve_mps, gps.vd_mps );
         current_time = imu.time_sec;
         if ( ! filt.Initialized() ) {
             filt.Initialize(wMeas_rps, aMeas_mps2, magMeas, pMeas_D_rrm, vMeas_L_mps);
@@ -59,17 +60,17 @@ public:
         NAVdata result;
         result.time_sec = current_time;
         Vector3d PosEst_rrm = filt.Get_PosEst();
-        result.lat = PosEst_rrm[0];
-        result.lon = PosEst_rrm[1];
-        result.alt = PosEst_rrm[2];
+        result.latitude_deg = PosEst_rrm[0]*R2D;
+        result.longitude_deg = PosEst_rrm[1]*R2D;
+        result.altitude_m = PosEst_rrm[2];
         Vector3f VelEst_mps = filt.Get_VelEst();
-        result.vn = VelEst_mps[0];
-        result.ve = VelEst_mps[1];
-        result.vd = VelEst_mps[2];
+        result.vn_mps = VelEst_mps[0];
+        result.ve_mps = VelEst_mps[1];
+        result.vd_mps = VelEst_mps[2];
         Vector3f OrientEst_rad = filt.Get_OrientEst();
-        result.phi = OrientEst_rad[0];
-        result.the = OrientEst_rad[1];
-        result.psi = OrientEst_rad[2];
+        result.phi_deg = OrientEst_rad[0]*R2D;
+        result.theta_deg = OrientEst_rad[1]*R2D;
+        result.psi_deg = OrientEst_rad[2]*R2D;
         Vector3f AccelBias_mps2 = filt.Get_AccelBias();
         result.abx = AccelBias_mps2[0];
         result.aby = AccelBias_mps2[1];
