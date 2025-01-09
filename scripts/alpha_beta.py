@@ -24,6 +24,7 @@ g = -9.81
 af = 0
 lff = 0
 
+time_array = []
 cl_array = []
 alpha_array = []
 alpha_ish_array = []
@@ -31,8 +32,6 @@ alpha_ish_array = []
 def update(navpt, airpt, imupt, wn, we):
     global af
     global lff
-    global cl_array
-    global a_array
 
     if not 'psi_deg' in navpt:
         return
@@ -62,9 +61,14 @@ def update(navpt, airpt, imupt, wn, we):
     if tmp < 0: tmp = 0
     v_est = math.sqrt(tmp)
     # print("ab:", alpha, CL)
-    if alpha >= 0 and CL > 0.0 and CL < 1.5:
+    if alpha >= -2 and CL > 0.0 and CL < 1.5:
         qbar = 0.5 * vc_mps * vc_mps * 1.225
         alpha_ish = imupt['az_mps2'] / qbar
+        # if alpha_ish < -0.030:
+        #     print("navpt:", navpt)
+        #     print("imupt:", imupt)
+        #     print("airpt:", airpt)
+        time_array.append(imupt["time_sec"])
         cl_array.append(CL)
         alpha_array.append(alpha)
         alpha_ish_array.append(alpha_ish)
