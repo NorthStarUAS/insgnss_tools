@@ -89,7 +89,13 @@ class Wind():
                 if "airdata" in record:
                     airspeed_mps = record["airdata"]["airspeed_mps"]
                 if "nav" in record:
-                    psi_rad = record["nav"]["psi_deg"] * d2r
+                    if "psi_deg" in record["nav"]:
+                        psi_rad = record["nav"]["psi_deg"] * d2r
+                    elif "yaw_deg" in record["nav"]:
+                        psi_rad = record["nav"]["yaw_deg"] * d2r
+                    else:
+                        print("no psi_deg or yaw_deg in nav record")
+                        psi_rad = 0
                     vn = record["nav"]["vn_mps"]
                     ve = record["nav"]["ve_mps"]
                 if airspeed_mps > 8.0:
