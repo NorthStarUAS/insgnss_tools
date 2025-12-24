@@ -398,7 +398,10 @@ if PLOT_ATTITUDE:
     att_ax[0,0].set_ylabel("Roll (deg)", weight="bold")
     att_ax[0,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[0,0].plot(df_nav[i]["phi_deg"], label=labels[i], alpha=.8)
+        if "phi_deg" in df_nav[i]:
+            att_ax[0,0].plot(df_nav[i]["phi_deg"], label=labels[i], alpha=.8)
+        elif "roll_deg" in df_nav[i]:
+            att_ax[0,0].plot(df_nav[i]["roll_deg"], label=labels[i], alpha=.8)
     att_ax[0,0].grid()
 
     att_ax[0,1].plot([],[]) # consume gps color
@@ -413,7 +416,10 @@ if PLOT_ATTITUDE:
     att_ax[1,0].set_ylabel("Pitch (deg)", weight="bold")
     att_ax[1,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[1,0].plot(df_nav[i]["theta_deg"], label=labels[i], alpha=.8)
+        if "theta_deg" in df_nav[i]:
+            att_ax[1,0].plot(df_nav[i]["theta_deg"], label=labels[i], alpha=.8)
+        elif "pitch_deg" in df_nav[i]:
+            att_ax[1,0].plot(df_nav[i]["pitch_deg"], label=labels[i], alpha=.8)
     att_ax[1,0].grid()
 
     att_ax[1,1].plot([],[]) # consume gps color
@@ -428,7 +434,10 @@ if PLOT_ATTITUDE:
     att_ax[2,0].set_ylabel("Yaw (deg)", weight="bold")
     att_ax[2,0].plot([],[]) # consume gps color
     for i in range(len(labels)):
-        att_ax[2,0].plot(df_nav[i]["psi_deg"], label=labels[i], alpha=.8)
+        if "psi_deg" in df_nav[i]:
+            att_ax[2,0].plot(df_nav[i]["psi_deg"], label=labels[i], alpha=.8)
+        elif "yaw_deg" in df_nav[i]:
+            att_ax[2,0].plot(df_nav[i]["yaw_deg"], label=labels[i], alpha=.8)
     att_ax[2,0].set_xlabel("Time (sec)", weight="bold")
     att_ax[2,0].grid()
     att_ax[2,0].legend(loc=1)
