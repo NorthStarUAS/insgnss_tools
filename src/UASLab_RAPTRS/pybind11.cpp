@@ -3,7 +3,7 @@ namespace py = pybind11;
 
 #include <math.h>
 
-#include "../nav/nav_structs.h"
+#include "../nav_eigen/nav_structs.h"
 
 #include "uNavINS.h"
 
