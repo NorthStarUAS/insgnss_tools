@@ -23,7 +23,7 @@
  * $Id: nav_functions.c 922 2012-10-17 19:14:09Z joh07594 $
  */
 
-#include "nav_functions.h"
+#include "nav_functions_eigen.h"
 
 // This function calculates the rate of change of latitude, longitude,
 // and altitude using WGS-84.

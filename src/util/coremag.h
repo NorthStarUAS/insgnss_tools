@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 
+#include <time.h>
+
 /* Convert date to Julian day 1950-2049 */
 unsigned long int yymmdd_to_julian_days( int yy, int mm, int dd );
 

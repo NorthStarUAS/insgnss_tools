@@ -8,9 +8,9 @@
 // #define ECC2	     0.0066943799901 		/* major eccentricity squared */
 #define FLATTENING   0.0033528106650 		/* flattening of the ellipsoid */
 #define GRAVITY_0    9.7803730       		/* zeroth coefficient for gravity model */
-#define GRAVITY_1    0.0052891       		/* first coefficient for the gravity model */ 
+#define GRAVITY_1    0.0052891       		/* first coefficient for the gravity model */
 #define GRAVITY_2    0.0000059       		/* second coefficient for the gravity model */
-#define GRAVITY_NOM  9.81            		/* nominal gravity */ 
+#define GRAVITY_NOM  9.81            		/* nominal gravity */
 #define SCHULER2     1.533421593170545E-06 	/* Schuler Frequency (rad/sec) Squared */
 #define FT2M         0.3048                	/* feet to meters conversion factor */
 #define KTS2ms       0.5144                	/* Knots to meters/sec conversion factor */
@@ -25,7 +25,7 @@
 const float g = 9.814;
 
 /* additional constants */
-const double D2R = M_PI / 180.0; // degrees to radians
-const double R2D = 180.0 / M_PI; // radians to degrees
-const double F2M = 0.3048;       // feets to meters
-const double M2F = 1.0 / F2M;    // meters to feets
+const double d2r = M_PI / 180.0; // degrees to radians
+const double r2d = 180.0 / M_PI; // radians to degrees
+const double ft2m = 0.3048;       // feets to meters
+const double m2ft = 1.0 / ft2m;    // meters to feets

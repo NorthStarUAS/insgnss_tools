@@ -4,7 +4,7 @@
 
 from .nav_structs import IMUdata, GPSdata, NAVconfig
 from .ekf15_eigen import EKF15_eigen
-from .ekf15_mag import EKF15_mag
+from .ekf15_mag_eigen import EKF15_mag_eigen
 from .uNavINS import uNavINS
 from .uNavINS_BFS import uNavINS_BFS
 from .openloop import OpenLoop
@@ -16,8 +16,8 @@ class filter():
         self.name = nav
         if nav == 'EKF15_eigen':
             self.filter = EKF15_eigen()
-        elif nav == 'EKF15_mag':
-            self.filter = EKF15_mag()
+        elif nav == 'EKF15_mag_eigen':
+            self.filter = EKF15_mag_eigen()
         elif nav == 'uNavINS':
             self.filter = uNavINS()
         elif nav == 'uNavINS_BFS':

@@ -1,4 +1,4 @@
-/*! \file nav_functions.h
+/*! \file nav_functions_eigen.h
  *	\brief Auxiliary functions for nav filter header file
  *
  *	\details
@@ -17,7 +17,7 @@
  * \author Aerospace Engineering and Mechanics
  * \copyright Copyright 2011 Regents of the University of Minnesota. All rights reserved.
  *
- * $Id: nav_functions.h 922 2012-10-17 19:14:09Z joh07594 $
+ * $Id: nav_functions_eigen.h 922 2012-10-17 19:14:09Z joh07594 $
  */
 
 #pragma once

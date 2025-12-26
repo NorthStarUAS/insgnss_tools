@@ -3,7 +3,7 @@ using std::cout;
 using std::endl;
 
 #include "../util/nav_constants.h"
-#include "../nav_eigen/nav_functions.h"
+#include "../nav_eigen/nav_functions_eigen.h"
 
 #include "glocal.h"
 #include "openloop.h"
@@ -51,9 +51,9 @@ void OpenLoop::init(double lat_rad, double lon_rad, float alt_m,
 void OpenLoop::init_by_nav(NAVdata nav)
 {
     this->nav = nav;
-    set_pos(nav.latitude_deg*D2R, nav.longitude_deg*D2R, nav.altitude_m);
+    set_pos(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
     set_vel(nav.vn_mps, nav.ve_mps, nav.vd_mps);
-    set_att(nav.phi_deg*D2R, nav.theta_deg*D2R, nav.psi_deg*D2R);
+    set_att(nav.phi_deg*d2r, nav.theta_deg*d2r, nav.psi_deg*d2r);
     set_gyro_calib(nav.gbx, nav.gby, nav.gbz, 0.0, 0.0, 0.0);
     set_accel_calib(nav.abx, nav.aby, nav.abz, 0.0, 0.0, 0.0);
     tprev = nav.time_sec;
@@ -158,9 +158,9 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     body2ned = ned2body.inverse();
     body2ned.normalize();
     Vector3f att_vec = quat2eul(ned2body);
-    nav.phi_deg = att_vec(0)*R2D;
-    nav.theta_deg = att_vec(1)*R2D;
-    nav.psi_deg = att_vec(2)*R2D;
+    nav.phi_deg = att_vec(0)*r2d;
+    nav.theta_deg = att_vec(1)*r2d;
+    nav.psi_deg = att_vec(2)*r2d;
 
     // rotate accelerometer vector into ned frame
     float ax_mps2 = imu.ax_mps2 - axb;
@@ -187,8 +187,8 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     //printf("ecef: %.2f %.2f %.2f\n", pos_ecef(0), pos_ecef(1), pos_ecef(2));
     pos_lla = ecef2lla(pos_ecef);
     //printf("lla: %.8f %.8f %.2f\n", pos_lla(0), pos_lla(1), pos_lla(2));
-    nav.latitude_deg = pos_lla(0)*R2D;
-    nav.longitude_deg = pos_lla(1)*R2D;
+    nav.latitude_deg = pos_lla(0)*r2d;
+    nav.longitude_deg = pos_lla(1)*r2d;
     nav.altitude_m = pos_lla(2);
 
     // populate the bias fields
@@ -200,7 +200,7 @@ NAVdata OpenLoop::update(IMUdata imu /*, GPSdata gps*/) {
     // nav.abz = azb + elapsed*azd;
 
     // update ecef2ned transform with just updated position
-    ecef2ned = lla2quat(nav.longitude_deg*D2R, nav.latitude_deg*D2R).cast<float>();
+    ecef2ned = lla2quat(nav.longitude_deg*d2r, nav.latitude_deg*d2r).cast<float>();
 
     nav.time_sec = imu.time_sec;
 
