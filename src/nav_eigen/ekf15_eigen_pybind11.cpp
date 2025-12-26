@@ -2,7 +2,7 @@
 namespace py = pybind11;
 
 #include "nav_structs.h"
-#include "ekf15.h"
+#include "ekf15_eigen.h"
 
 // this is a glue class to bridge between the existing python API and
 // the actual uNavINS class API.  This could be handled other ways,
@@ -46,12 +46,12 @@ private:
     float current_time = 0.0;
     float last_gps_time = 0.0;
     bool initialized = false;
-    EKF15 filt;
+    EKF15_eigen filt;
 
 };
 
-PYBIND11_MODULE(ekf15, m) {
-    py::class_<APIHelper>(m, "EKF15", py::module_local())
+PYBIND11_MODULE(ekf15_eigen, m) {
+    py::class_<APIHelper>(m, "EKF15_eigen", py::module_local())
         .def(py::init<>())
         .def("set_config", &APIHelper::set_config)
         .def("update", &APIHelper::update)

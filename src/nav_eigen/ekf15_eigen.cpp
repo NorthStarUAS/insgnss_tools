@@ -16,7 +16,7 @@
 
 #include "nav_constants.h"
 #include "nav_functions.h"
-#include "ekf15.h"
+#include "ekf15_eigen.h"
 
 const float P_P_INIT = 10.0;
 const float P_V_INIT = 1.0;
@@ -36,15 +36,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15::set_config(NAVconfig _config) {
+void EKF15_eigen::set_config(NAVconfig _config) {
     config = _config;
 }
 
-NAVconfig EKF15::get_config() {
+NAVconfig EKF15_eigen::get_config() {
     return config;
 }
 
-void EKF15::default_config()
+void EKF15_eigen::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -63,7 +63,7 @@ void EKF15::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-void EKF15::init(IMUdata imu, GPSdata gps) {
+void EKF15_eigen::init(IMUdata imu, GPSdata gps) {
     F.resize(15,15);
     PHI.resize(15,15);
     P.resize(15,15);
@@ -176,7 +176,7 @@ void EKF15::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-void EKF15::time_update(IMUdata imu) {
+void EKF15_eigen::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This computes the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time_sec - imu_last.time_sec;
@@ -325,7 +325,7 @@ void EKF15::time_update(IMUdata imu) {
     // ==================  DONE Time Update  ===================
 }
 
-void EKF15::measurement_update(GPSdata gps) {
+void EKF15_eigen::measurement_update(GPSdata gps) {
     // ==================  GPS Update  ===================
 
     // Position, converted to NED
@@ -400,7 +400,7 @@ void EKF15::measurement_update(GPSdata gps) {
 }
 
 
-NAVdata EKF15::get_nav() {
+NAVdata EKF15_eigen::get_nav() {
     nav.qw = quat.w();
     nav.qx = quat.x();
     nav.qy = quat.y();

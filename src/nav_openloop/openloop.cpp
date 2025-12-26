@@ -2,8 +2,8 @@
 using std::cout;
 using std::endl;
 
-#include "../nav/nav_constants.h"
-#include "../nav/nav_functions.h"
+#include "../nav_eigen/nav_constants.h"
+#include "../nav_eigen/nav_functions.h"
 
 #include "glocal.h"
 #include "openloop.h"

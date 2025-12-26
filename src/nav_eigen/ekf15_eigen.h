@@ -34,14 +34,14 @@ using namespace Eigen;
 typedef Matrix<float,6,1> Vector6f;
 typedef Matrix<float,15,1> Vector15f;
 
-class EKF15 {
+class EKF15_eigen {
 
 public:
 
-    EKF15() {
+    EKF15_eigen() {
         default_config();
     }
-    ~EKF15() {}
+    ~EKF15_eigen() {}
 
     // set/get error characteristics of navigation sensors
     void set_config(NAVconfig _config);

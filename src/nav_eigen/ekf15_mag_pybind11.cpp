@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-#include "../nav/nav_structs.h"
+#include "../nav_eigen/nav_structs.h"
 #include "ekf15_mag.h"
 
 // this is a glue class to bridge between the existing python API and

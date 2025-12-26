@@ -22,7 +22,7 @@
 #include <eigen3/Eigen/LU>
 using namespace Eigen;
 
-#include "../nav/nav_structs.h"
+#include "../nav_eigen/nav_structs.h"
 
 class OpenLoop {
 
