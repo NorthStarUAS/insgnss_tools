@@ -92,7 +92,6 @@ def run_filter(filter, data, call_init=True):
             continue
 
         navpt = filter.update(imupt, gpspt)
-        print("navpt:", navpt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
