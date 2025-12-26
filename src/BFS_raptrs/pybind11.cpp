@@ -3,7 +3,7 @@ namespace py = pybind11;
 
 #include <math.h>
 
-#include "../nav/nav_structs.h"
+#include "../nav_eigen/nav_structs.h"
 
 #include "uNavINS.h"
 
@@ -52,7 +52,7 @@ public:
         result.time_sec = current_time;
         result.latitude_deg = filt.getLatitude_rad()*R2D;
         result.longitude_deg = filt.getLongitude_rad()*R2D;
-        result.altitude_m = filt.getAltitude_m()*R2D;
+        result.altitude_m = filt.getAltitude_m();
         result.vn_mps = filt.getVelNorth_ms();
         result.ve_mps = filt.getVelEast_ms();
         result.vd_mps = filt.getVelDown_ms();

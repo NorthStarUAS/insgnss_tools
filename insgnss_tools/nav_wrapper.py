@@ -3,7 +3,7 @@
 # 2. optional gps lag support (external to the filter)
 
 from .nav_structs import IMUdata, GPSdata, NAVconfig
-from .ekf15 import EKF15
+from .ekf15_eigen import EKF15_eigen
 from .ekf15_mag import EKF15_mag
 from .uNavINS import uNavINS
 from .uNavINS_BFS import uNavINS_BFS
@@ -12,10 +12,10 @@ from .pyekf import pyEKF
 
 
 class filter():
-    def __init__(self, nav='EKF15', gps_lag_sec=0.0, imu_dt=0.02):
+    def __init__(self, nav='EKF15_eigen', gps_lag_sec=0.0, imu_dt=0.02):
         self.name = nav
-        if nav == 'EKF15':
-            self.filter = EKF15()
+        if nav == 'EKF15_eigen':
+            self.filter = EKF15_eigen()
         elif nav == 'EKF15_mag':
             self.filter = EKF15_mag()
         elif nav == 'uNavINS':

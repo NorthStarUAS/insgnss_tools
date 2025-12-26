@@ -33,9 +33,9 @@ import battery
 parser = argparse.ArgumentParser(description="nav filter")
 parser.add_argument("flight", help="flight data log")
 parser.add_argument("filter", metavar="filter", nargs="+",
-                    choices=["EKF15", "EKF15_mag", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
+                    choices=["EKF15_eigen", "EKF15_mag", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
                     help="filters")
-parser.add_argument("--gps-lag-sec", type=float, default=0.2,
+parser.add_argument("--gps-lag-sec", type=float, default=0.0,
                     help="gps lag (sec)")
 parser.add_argument("--synthetic-airspeed", action="store_true", help="build synthetic airspeed estimator")
 args = parser.parse_args()
@@ -92,6 +92,7 @@ def run_filter(filter, data, call_init=True):
             continue
 
         navpt = filter.update(imupt, gpspt)
+        print("navpt:", navpt)
 
         # Store the desired results obtained from the compiled test
         # navigation filter and the baseline filter
@@ -175,9 +176,9 @@ config = {
     "sig_g_d": 0.0005,
     "tau_g": 50.0,
     "sig_gps_p_ne": 2.0,
-    "sig_gps_p_d": 6.0,
+    "sig_gps_p_d": 3.0,
     "sig_gps_v_ne": 0.5,
-    "sig_gps_v_d": 3.0,
+    "sig_gps_v_d": 1.0,
     "sig_mag": 0.3
 }
 
@@ -498,9 +499,13 @@ if PLOT_GROUNDTRACK:
     plt.title("Ground Track")
     plt.ylabel("Latitude (degrees)", weight="bold")
     plt.xlabel("Longitude (degrees)", weight="bold")
-    plt.plot(df_gps[0]["longitude_deg"], df_gps[0]["latitude_deg"], "-*", label="GPS Sensor", lw=2, alpha=.5)
+    lon = df_gps[0]["longitude_deg"]
+    lat = df_gps[0]["latitude_deg"]
+    plt.plot(lon[abs(lon)>0], lat[abs(lon)>0], "-*", label="GPS Sensor", lw=2, alpha=.5)
     for i in range(len(labels)):
-        plt.plot(df_nav[i]["longitude_deg"], df_nav[i]["latitude_deg"], label=labels[i], lw=2, alpha=.8)
+        lon = df_nav[i]["longitude_deg"]
+        lat = df_nav[i]["latitude_deg"]
+        plt.plot(lon[abs(lon)>0], lat[abs(lon)>0], label=labels[i], lw=2, alpha=.8)
     plt.grid()
     plt.legend(loc=0)
     ax = plt.gca()
@@ -640,7 +645,9 @@ if len(alpha_beta.cl_array):
     time_array = np.array(alpha_beta.time_array)
     cl_array = np.array(alpha_beta.cl_array)
     alpha_array = np.array(alpha_beta.alpha_array)
-    alpha_ish_array = np.array(alpha_beta.alpha_ish_array)
+    az_over_qbar_array = np.array(alpha_beta.az_over_qbar_array)
+    pitch_array = np.array(alpha_beta.pitch_array)
+
     cl_cal, res, _, _, _ = np.polyfit( alpha_array, cl_array, 1, full=True )
     print(cl_cal)
     xvals, yvals, minx, miny = gen_func(cl_cal, alpha_array.min(), alpha_array.max(), 1000)
@@ -651,15 +658,25 @@ if len(alpha_beta.cl_array):
     ax1.plot(alpha_array, cl_array, "x", label="alpha vs CL", c="r", lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
 
-    cl_cal, res, _, _, _ = np.polyfit( alpha_ish_array, alpha_array, 1, full=True )
-    xvals, yvals, minx, miny = gen_func(cl_cal, alpha_ish_array.min(), alpha_ish_array.max(), 1000)
+    cl_cal, res, _, _, _ = np.polyfit( az_over_qbar_array, alpha_array, 1, full=True )
+    xvals, yvals, minx, miny = gen_func(cl_cal, az_over_qbar_array.min(), az_over_qbar_array.max(), 1000)
     func = np.poly1d(cl_cal)
     fig, ax1 = plt.subplots()
     ax1.set_title("az/qbar")
     ax1.set_xlabel("az/qbar", weight="bold")
     ax1.set_ylabel("Alpha (est, deg)", weight="bold")
-    ax1.plot(alpha_ish_array, alpha_array, "x", label="az/qbar vs alpha", c="r", lw=2, alpha=.8)
+    ax1.plot(az_over_qbar_array, alpha_array, "x", label="az/qbar vs alpha", c="r", lw=2, alpha=.8)
     ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
+
+    print("time:", len(df_imu[0]["time_sec"]))
+    print("airdata:", len(df_airdata[0]["airspeed_mps"]))
+
+    plt.figure()
+    plt.plot(time_array, func(az_over_qbar_array), label="alpha re-estimated")
+    plt.plot(time_array, alpha_array, label="Alpha Estimate (deg)")
+    # plt.plot(df_airdata[0]["alpha_deg"], label="Alpha Measured (deg)")
+    plt.plot(time_array, pitch_array, label="Pitch (deg)")
+    plt.legend()
 
     if "alpha_deg" in df_airdata[0]:
         plt.figure()
