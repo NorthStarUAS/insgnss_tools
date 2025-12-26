@@ -2,7 +2,7 @@
 using std::cout;
 using std::endl;
 
-#include "../nav_eigen/nav_constants.h"
+#include "../util/nav_constants.h"
 #include "../nav_eigen/nav_functions.h"
 
 #include "glocal.h"

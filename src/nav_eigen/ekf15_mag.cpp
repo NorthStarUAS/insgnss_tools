@@ -14,7 +14,7 @@
  *
  */
 
-#include "nav_constants.h"
+#include "../util/nav_constants.h"
 #include "nav_functions.h"
 #include "../util/coremag.h"
 #include "ekf15_mag.h"
