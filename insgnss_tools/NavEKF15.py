@@ -17,7 +17,7 @@
 
 
 import numpy as np
-from . import Kinematics
+from . import BasicKinematics
 
 # Model Constants
 g_mps2 = 9.807 # Acceleration due to gravity
@@ -149,7 +149,7 @@ class NavEKF15:
             s0_BL_rad = self.InitAttitude(a0_B_mps2, v0_L_mps)
 
         # Euler to quaternion
-        self.qEst_BL = Kinematics.Euler2Quat(s0_BL_rad)
+        self.qEst_BL = BasicKinematics.Euler2Quat(s0_BL_rad)
 
         # set initialized flag
         self.initialized = True
@@ -176,7 +176,7 @@ class NavEKF15:
             self.wEst_B_rps = wMeas_B_rps - self.wBias_rps
 
         # Euler angles from quaternion
-        self.sEst_BL_rad = Kinematics.Quat2Euler(self.qEst_BL)
+        self.sEst_BL_rad = BasicKinematics.Quat2Euler(self.qEst_BL)
 
         return self.aEst_B_mps2, self.wEst_B_rps, self.vEst_L_mps, self.sEst_BL_rad, self.rEst_D_rrm
 
@@ -184,12 +184,12 @@ class NavEKF15:
     def TimeUpdate(self, dt_s):
 
         # Compute DCM (Body to/from NED) Transformations from Quaternion
-        T_L2B = Kinematics.Quat2DCM(self.qEst_BL)
+        T_L2B = BasicKinematics.Quat2DCM(self.qEst_BL)
         T_B2L = T_L2B.T
 
         # Attitude Update
         qDelta_BL = np.hstack((1, 0.5*dt_s*self.wEst_B_rps))
-        self.qEst_BL = Kinematics.QuatMult(self.qEst_BL, qDelta_BL)
+        self.qEst_BL = BasicKinematics.QuatMult(self.qEst_BL, qDelta_BL)
 
         # Avoid quaternion flips sign
         if (self.qEst_BL[0] < 0):
@@ -200,7 +200,7 @@ class NavEKF15:
         self.vEst_L_mps += dt_s * (T_B2L @ self.aEst_B_mps2 + aGrav_mps2)
 
         # Position Update
-        rDot_D = Kinematics.L2D_Rate(self.vEst_L_mps, self.rEst_D_rrm)
+        rDot_D = BasicKinematics.L2D_Rate(self.vEst_L_mps, self.rEst_D_rrm)
         self.rEst_D_rrm += (dt_s * rDot_D)
 
         # Assemble the Jacobian (state update matrix)
@@ -236,8 +236,8 @@ class NavEKF15:
     # Measurement Update
     def MeasUpdate(self, rMeas_D_rrm, vMeas_L_mps):
         # Position Error, converted to NED
-        T_E2L = Kinematics.TransE2L(self.rEst_D_rrm) # Compute ECEF to NED
-        pErr_L_m = T_E2L @ (Kinematics.D2E(rMeas_D_rrm) - Kinematics.D2E(self.rEst_D_rrm)) # Compute position error, apply transformation
+        T_E2L = BasicKinematics.TransE2L(self.rEst_D_rrm) # Compute ECEF to NED
+        pErr_L_m = T_E2L @ (BasicKinematics.D2E(rMeas_D_rrm) - BasicKinematics.D2E(self.rEst_D_rrm)) # Compute position error, apply transformation
 
         # Velocity Error
         vErr_L_mps = vMeas_L_mps - self.vEst_L_mps
@@ -268,7 +268,7 @@ class NavEKF15:
         wBiasDelta = x[12:15] # Rotation Rate Bias Deltas
 
         # Position update
-        Rew, Rns = Kinematics.EarthRad(self.rEst_D_rrm[0])
+        Rew, Rns = BasicKinematics.EarthRad(self.rEst_D_rrm[0])
 
         self.rEst_D_rrm[2] += -pDelta_D[2]
         self.rEst_D_rrm[0] += pDelta_D[0] / (Rew + self.rEst_D_rrm[2])
@@ -279,7 +279,7 @@ class NavEKF15:
 
         # Attitude correction
         qDelta_BL = np.array([1.0, quatDelta[0], quatDelta[1], quatDelta[2]])
-        self.qEst_BL = Kinematics.QuatMult(self.qEst_BL, qDelta_BL)
+        self.qEst_BL = BasicKinematics.QuatMult(self.qEst_BL, qDelta_BL)
 
         # Update biases from states
         self.aBias_mps2 += aBiasDelta

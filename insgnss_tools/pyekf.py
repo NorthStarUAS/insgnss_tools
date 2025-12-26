@@ -27,8 +27,8 @@ class pyEKF():
 
         if self.first_frame and imu.time_sec > 0 and gps.time_sec > 0:
             self.first_frame = False
-            self.filter.Initialize([imu.p, imu.q, imu.r], [imu.ax, imu.ay, imu.az],
-                                   [gps.lat*d2r, gps.lon*d2r, gps.alt], [gps.vn, gps.ve, gps.vd])
+            self.filter.Initialize([imu.p_rps, imu.q_rps, imu.r_rps], [imu.ax_mps2, imu.ay_mps2, imu.az_mps2],
+                                   [gps.latitude_deg*d2r, gps.longitude_deg*d2r, gps.altitude_m], [gps.vn_mps, gps.ve_mps, gps.vd_mps])
 
         measUpdate = False
         if gps.time_sec > self.last_gps_time:
@@ -37,8 +37,8 @@ class pyEKF():
             self.last_gps_time = gps.time_sec
         accel_corr, gyro_corr, vel, rpy, pos = \
             self.filter.Update(measUpdate,
-                               [imu.p, imu.q, imu.r], [imu.ax, imu.ay, imu.az],
-                               [gps.lat*d2r, gps.lon*d2r, gps.alt], [gps.vn, gps.ve, gps.vd],
+                               [imu.p_rps, imu.q_rps, imu.r_rps], [imu.ax_mps2, imu.ay_mps2, imu.az_mps2],
+                               [gps.latitude_deg*d2r, gps.longitude_deg*d2r, gps.altitude_m], [gps.vn_mps, gps.ve_mps, gps.vd_mps],
                                dt)
         self.nav.time_sec = imu.time_sec
         self.nav.abx = self.filter.aBias_mps2[0]
@@ -47,15 +47,15 @@ class pyEKF():
         self.nav.gbx = self.filter.wBias_rps[0]
         self.nav.gby = self.filter.wBias_rps[1]
         self.nav.gbz = self.filter.wBias_rps[2]
-        self.nav.vn = vel[0]
-        self.nav.ve = vel[1]
-        self.nav.vd = vel[2]
-        self.nav.phi = rpy[0]
-        self.nav.the = rpy[1]
-        self.nav.psi = rpy[2]
-        self.nav.lat = pos[0]
-        self.nav.lon = pos[1]
-        self.nav.alt = pos[2]
+        self.nav.vn_mps = vel[0]
+        self.nav.ve_mps = vel[1]
+        self.nav.vd_mps = vel[2]
+        self.nav.phi_deg = rpy[0]*r2d
+        self.nav.theta_deg = rpy[1]*r2d
+        self.nav.psi_deg = rpy[2]*r2d
+        self.nav.latitude_deg = pos[0]*r2d
+        self.nav.longitude_deg = pos[1]*r2d
+        self.nav.altitude_m = pos[2]
 
         self.nav.Pp0 = self.filter.P[0,0]
         self.nav.Pp1 = self.filter.P[1,1]
