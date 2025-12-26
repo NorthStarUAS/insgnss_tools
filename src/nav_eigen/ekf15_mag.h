@@ -28,7 +28,7 @@
 
 using namespace Eigen;
 
-#include "nav_structs.h"
+#include "../util/nav_structs.h"
 
 #if defined(ARDUINO)
 #undef F

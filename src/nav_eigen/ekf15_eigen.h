@@ -28,7 +28,7 @@
 
 using namespace Eigen;
 
-#include "nav_structs.h"
+#include "../util/nav_structs.h"
 
 // define some types for notational convenience and consistency
 typedef Matrix<float,6,1> Vector6f;

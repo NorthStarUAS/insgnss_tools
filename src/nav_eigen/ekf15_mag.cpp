@@ -16,7 +16,7 @@
 
 #include "nav_constants.h"
 #include "nav_functions.h"
-#include "../nav_common/coremag.h"
+#include "../util/coremag.h"
 #include "ekf15_mag.h"
 
 const float P_P_INIT = 10.0;
