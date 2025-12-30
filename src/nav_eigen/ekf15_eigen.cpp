@@ -14,6 +14,9 @@
  *
  */
 
+#include <iostream>
+using namespace std;
+
 #include "../util/nav_constants.h"
 #include "nav_functions_eigen.h"
 #include "ekf15_eigen.h"

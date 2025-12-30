@@ -16,23 +16,14 @@
 
 #pragma once
 
-#if defined(ARDUINO)
-# include <eigen.h>
-# include <Eigen/Geometry>
-#else
-# include <math.h>
-# include <eigen3/Eigen/Core>
-# include <eigen3/Eigen/Geometry>
-# include <eigen3/Eigen/LU>
-#endif
-
-using namespace Eigen;
+#include "BasicLinearAlgebra.h"
+using namespace BLA;
 
 #include "../util/nav_structs.h"
 
 // define some types for notational convenience and consistency
-typedef Matrix<float,6,1> Vector6f;
-typedef Matrix<float,15,1> Vector15f;
+typedef Matrix<6, 1, float> Vector6f;
+typedef Matrix<15, 1, float> Vector15f;
 
 class EKF15_bla{
 
@@ -57,19 +48,21 @@ public:
 
 private:
 
-    // make our big matrices dynamic (so they get allocated on the
-    // heap) to play nice on embedded systems with small stacks.
-    MatrixXf F, PHI, P, Qw, Q, ImKH, KRKt, I15; // 15x15
-    MatrixXf G;                                 // 15x12
-    MatrixXf K;                                 // 15x6
-    MatrixXf Rw;                                // 12x12
-    MatrixXf H;                                 // 6x15
-    MatrixXf R;                                 // 6x6
-    Vector15f x;                                // 15x1
-    Vector6f y;                                 // 6x1
-    Matrix3f C_N2B, C_B2N, I3, temp33;
+    // if these matrices are allocated on the stack and this is a problem for
+    // small embedded systems, the calling layer could allocate this entire
+    // class instance on the heap at init time.
+    Matrix<15, 15, float> F, PHI, P, Qw, Q, ImKH, KRKt;
+    Matrix<15, 15, float> I15 = Eye<15, 15, float>();
+    Matrix<15, 12, float> G;
+    Matrix<15, 6, float> K;
+    Matrix<12, 12, float> Rw;
+    Matrix<6, 15, float> H = Eye<6, 15, float>();
+    Matrix<6, 6, float> R;
+    Matrix<15, 1, float> x;
+    Matrix<6, 1, float> y;
+    Matrix3f C_N2B, C_B2N, temp33;
+    Matrix3f I3 = Eye<3, 3, float>();
     Vector3f grav, f_b, om_ib, dx, mag_ned;
-
     Quaternionf quat;
 
     IMUdata imu_last;

@@ -174,10 +174,10 @@ Quaterniond lla2quat(double lon_rad, double lat_rad) {
     double Syd2 = sin(yd2);
     double Czd2 = cos(zd2);
     double Cyd2 = cos(yd2);
-    q.w() = Czd2*Cyd2;
-    q.x() = -Szd2*Syd2;
-    q.y() = Czd2*Syd2;
-    q.z() = Szd2*Cyd2;
+    q(3,0) = Czd2*Cyd2;
+    q(0,0) = -Szd2*Syd2;
+    q(1,0) = Czd2*Syd2;
+    q(2,0) = Szd2*Cyd2;
     return q;
 }
 
@@ -197,10 +197,10 @@ Vector3f quat2eul(Quaternionf q) {
     float q0, q1, q2, q3;
     float m11, m12, m13, m23, m33;
 
-    q0 = q.w();
-    q1 = q.x();
-    q2 = q.y();
-    q3 = q.z();
+    q0 = q(3,0);
+    q1 = q(0,0);
+    q2 = q(1,0);
+    q3 = q(2,0);
 
     m11 = 2*(q0*q0 + q1*q1) - 1;
     m12 = 2*(q1*q2 + q0*q3);
@@ -226,10 +226,10 @@ Quaternionf eul2quat(float phi, float the, float psi) {
     float cos_phi = cos(phi*0.5);
 
     Quaternionf q;
-    q.w() = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;
-    q.x() = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
-    q.y() = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;
-    q.z() = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
+    q(3,0) = cos_psi*cos_the*cos_phi + sin_psi*sin_the*sin_phi;
+    q(0,0) = cos_psi*cos_the*sin_phi - sin_psi*sin_the*cos_phi;
+    q(1,0) = cos_psi*sin_the*cos_phi + sin_psi*cos_the*sin_phi;
+    q(2,0) = sin_psi*cos_the*cos_phi - cos_psi*sin_the*sin_phi;
 
     return q;
 }
@@ -239,7 +239,10 @@ Matrix3f quat2dcm(Quaternionf q) {
     float q0, q1, q2, q3;
     Matrix3f C_N2B;
 
-    q0 = q.w(); q1 = q.x(); q2 = q.y(); q3 = q.z();
+    q0 = q(3,0);
+    q1 = q(0,0);
+    q2 = q(1,0);
+    q3 = q(2,0);
 
     C_N2B(0,0) = 2*(q0*q0 + q1*q1) - 1;
     C_N2B(1,1) = 2*(q0*q0 + q2*q2) - 1;
@@ -255,4 +258,14 @@ Matrix3f quat2dcm(Quaternionf q) {
     C_N2B(2,1) = 2*(q2*q3 - q0*q1);
 
     return C_N2B;
+}
+
+Quaternionf quat_multf(const Quaternionf& q1, const Quaternionf& q2){
+    Quaternionf q = {
+        q1(3)*q2(0) + q1(0)*q2(3) + q1(1)*q2(2) - q1(2)*q2(1),
+        q1(3)*q2(1) - q1(0)*q2(2) + q1(1)*q2(3) + q1(2)*q2(0),
+        q1(3)*q2(2) + q1(0)*q2(1) - q1(1)*q2(0) + q1(2)*q2(3),
+        q1(3)*q2(3) - q1(0)*q2(0) - q1(1)*q2(1) - q1(2)*q2(2)
+    };
+    return q;
 }

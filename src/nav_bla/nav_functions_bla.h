@@ -22,14 +22,14 @@
 
 #pragma once
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
 #include "BasicLinearAlgebra.h"
-#pragma GCC diagnostic pop
-
 using namespace BLA;
 
 typedef Matrix<3, 1, float> Vector3f;
+typedef Matrix<3, 1, double> Vector3d;
+typedef Matrix<4, 1, float> Quaternionf;
+typedef Matrix<4, 1, double> Quaterniond;
+typedef Matrix<3, 3, float> Matrix3f;
 
 // #if defined(ARDUINO)
 // # include <math.h>
@@ -94,3 +94,5 @@ Quaternionf eul2quat(float phi, float the, float psi);
 
 // Quaternion to C_N2B
 Matrix3f quat2dcm(Quaternionf q);
+
+Quaternionf quat_multf(const Quaternionf& q1, const Quaternionf& q2);
