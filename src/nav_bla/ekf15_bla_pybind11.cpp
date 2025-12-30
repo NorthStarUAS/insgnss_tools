@@ -51,7 +51,7 @@ private:
 };
 
 PYBIND11_MODULE(ekf15_bla, m) {
-    py::class_<APIHelper>(m, "EKF15", py::module_local())
+    py::class_<APIHelper>(m, "EKF15_bla", py::module_local())
         .def(py::init<>())
         .def("set_config", &APIHelper::set_config)
         .def("update", &APIHelper::update)

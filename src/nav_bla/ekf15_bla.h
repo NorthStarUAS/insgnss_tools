@@ -1,18 +1,15 @@
-/*! \file EKF_15state.c
- *	\brief 15 state EKF navigation filter
- *
- *	\details  15 state EKF navigation filter using loosely integrated INS/GPS architecture.
- * 	Time update is done after every IMU data acquisition and GPS measurement
- * 	update is done every time the new data flag in the GPS data packet is set. Designed by Adhika Lie.
- *	Attitude is parameterized using quaternions.
- *	Estimates IMU bias errors.
- *	\ingroup nav_fcns
- *
- * \author University of Minnesota
- * \author Aerospace Engineering and Mechanics
- * \copyright Copyright 2011 Regents of the University of Minnesota. All rights reserved.
- *
- */
+// File: EKF15_bla.h
+// Summary: 15 state EKF navigation filter (using Basic Linear Algebra library)
+//
+// Description: 15 state EKF navigation filter using loosely integrated INS/GPS
+// architecture. Time update is done after every IMU data acquisition and GPS
+// measurement update is done every time the new data flag in the GPS data
+// packet is set. Designed by Adhika Lie. Attitude is parameterized using
+// quaternions. Estimates IMU bias errors.
+//
+// Author: University of Minnesota Aerospace Engineering and Mechanics, Chris Regan, Brian Taylor, Curtis Olson
+// Copyright 2011 Regents of the University of Minnesota. All rights reserved.
+// License: MIT License (see LICENSE file for details)
 
 #pragma once
 
@@ -20,6 +17,7 @@
 using namespace BLA;
 
 #include "../util/nav_structs.h"
+#include "nav_functions_bla.h"  // BLA matrix types
 
 // define some types for notational convenience and consistency
 typedef Matrix<6, 1, float> Vector6f;

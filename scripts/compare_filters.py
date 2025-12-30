@@ -33,7 +33,7 @@ import battery
 parser = argparse.ArgumentParser(description="nav filter")
 parser.add_argument("flight", help="flight data log")
 parser.add_argument("filter", metavar="filter", nargs="+",
-                    choices=["EKF15_eigen", "EKF15_mag_eigen", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
+                    choices=["EKF15_eigen", "EKF15_mag_eigen", "EKF15_bla", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
                     help="filters")
 parser.add_argument("--gps-lag-sec", type=float, default=0.0,
                     help="gps lag (sec)")

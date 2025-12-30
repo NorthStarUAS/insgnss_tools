@@ -92,14 +92,14 @@ void EKF15_bla::init(IMUdata imu, GPSdata gps) {
     // Rw small - trust time update, Rw more - lean on measurement update
     // split between accels and gyros and / or noise and correlation
     // ... Rw
-    Rw = Zeros<12,12,float>();
+    Rw.Fill(0.0);
     Rw(0,0) = config.sig_w_ax*config.sig_w_ax;	Rw(1,1) = config.sig_w_ay*config.sig_w_ay;	      Rw(2,2) = config.sig_w_az*config.sig_w_az; //1 sigma on noise
     Rw(3,3) = config.sig_w_gx*config.sig_w_gx;	Rw(4,4) = config.sig_w_gy*config.sig_w_gy;	      Rw(5,5) = config.sig_w_gz*config.sig_w_gz;
     Rw(6,6) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;	Rw(7,7) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;    Rw(8,8) = 2*config.sig_a_d*config.sig_a_d/config.tau_a;
     Rw(9,9) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;	Rw(10,10) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;  Rw(11,11) = 2*config.sig_g_d*config.sig_g_d/config.tau_g;
 
     // ... P (initial)
-    P = Zeros<15,15,float>();
+    P.Fill(0.0);
     P(0,0) = P_P_INIT*P_P_INIT; 	P(1,1) = P_P_INIT*P_P_INIT; 	      P(2,2) = P_P_INIT*P_P_INIT;
     P(3,3) = P_V_INIT*P_V_INIT; 	P(4,4) = P_V_INIT*P_V_INIT; 	      P(5,5) = P_V_INIT*P_V_INIT;
     P(6,6) = P_A_INIT*P_A_INIT; 	P(7,7) = P_A_INIT*P_A_INIT; 	      P(8,8) = P_HDG_INIT*P_HDG_INIT;
@@ -107,7 +107,7 @@ void EKF15_bla::init(IMUdata imu, GPSdata gps) {
     P(12,12) = P_GB_INIT*P_GB_INIT; 	P(13,13) = P_GB_INIT*P_GB_INIT;       P(14,14) = P_GB_INIT*P_GB_INIT;
 
     // ... R
-    R = Zeros<6,6,float>();
+    R.Fill(0.0);
     R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
     R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
 
@@ -220,7 +220,7 @@ void EKF15_bla::time_update(IMUdata imu) {
 
     imu_last = imu;
 
-    Quaternionf dq = {0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt, 1.0};
+    Quaternionf dq(1.0, 0.5*om_ib(0)*imu_dt, 0.5*om_ib(1)*imu_dt, 0.5*om_ib(2)*imu_dt);
     quat = (quat * dq).normalized();
 
     if (quat.w() < 0) {
@@ -235,7 +235,7 @@ void EKF15_bla::time_update(IMUdata imu) {
 
     // AHRS Transformations
     C_N2B = quat2dcm(quat);
-    C_B2N = C_N2B.transpose();
+    C_B2N = ~C_N2B;
 
     // Velocity Update
     dx = C_B2N * f_b;
@@ -252,7 +252,7 @@ void EKF15_bla::time_update(IMUdata imu) {
     nav.altitude_m += imu_dt*dx(2);
 
     // JACOBIAN
-    F.setZero();
+    F.Fill(0.0);
     // ... pos2gs
     F(0,3) = 1.0; 	F(1,4) = 1.0; 	F(2,5) = 1.0;
     // ... gs2pos
@@ -289,7 +289,7 @@ void EKF15_bla::time_update(IMUdata imu) {
     PHI = I15 + F * imu_dt;
 
     // Process Noise
-    G.setZero();
+    G.Fill(0.0);
     G(3,0) = -C_B2N(0,0);   G(3,1) = -C_B2N(0,1);   G(3,2) = -C_B2N(0,2);
     G(4,0) = -C_B2N(1,0);   G(4,1) = -C_B2N(1,1);   G(4,2) = -C_B2N(1,2);
     G(5,0) = -C_B2N(2,0);   G(5,1) = -C_B2N(2,1);   G(5,2) = -C_B2N(2,2);
@@ -302,13 +302,13 @@ void EKF15_bla::time_update(IMUdata imu) {
     G(12,9) = 1.0; 	    G(13,10) = 1.0; 	    G(14,11) = 1.0;
 
     // Discrete Process Noise
-    Qw = G * Rw * G.transpose() * imu_dt;		// Qw = dt*G*Rw*G'
+    Qw = G * Rw * ~G * imu_dt;		// Qw = dt*G*Rw*G'
     Q = PHI * Qw;					// Q = (I+F*dt)*Qw
-    Q = (Q + Q.transpose()) * 0.5;			// Q = 0.5*(Q+Q')
+    Q = (Q + ~Q) * 0.5f;		    // Q = 0.5*(Q+Q')
 
     // Covariance Time Update
-    P = PHI * P * PHI.transpose() + Q;			// P = PHI*P*PHI' + Q
-    P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
+    P = PHI * P * ~PHI + Q;			// P = PHI*P*PHI' + Q
+    P = (P + ~P) * 0.5f;		    // P = 0.5*(P+P')
 
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
@@ -344,14 +344,14 @@ void EKF15_bla::measurement_update(GPSdata gps) {
 
     // Kalman Gain
     // K = P*H'*inv(H*P*H'+R)
-    K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
+    K = P * ~H * Inverse(H * P * ~H + R);
 
     // Covariance Update
     ImKH = I15 - K * H;	                // ImKH = I - K*H
 
-    KRKt = K * R * K.transpose();		// KRKt = K*R*K'
+    KRKt = K * R * ~K;		// KRKt = K*R*K'
 
-    P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
+    P = ImKH * P * ~ImKH + KRKt;	// P = ImKH*P*ImKH' + KRKt
 
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
@@ -392,7 +392,6 @@ void EKF15_bla::measurement_update(GPSdata gps) {
     nav.gby += x(13);
     nav.gbz += x(14);
 }
-
 
 NAVdata EKF15_bla::get_nav() {
     nav.qw = quat.w();

@@ -27,9 +27,45 @@ using namespace BLA;
 
 typedef Matrix<3, 1, float> Vector3f;
 typedef Matrix<3, 1, double> Vector3d;
-typedef Matrix<4, 1, float> Quaternionf;
-typedef Matrix<4, 1, double> Quaterniond;
 typedef Matrix<3, 3, float> Matrix3f;
+
+class Quaternionf {
+private:
+    Matrix<4, 1, float> q;
+public:
+    Quaternionf() {
+        q(0,0) = 0.0f;
+        q(1,0) = 0.0f;
+        q(2,0) = 0.0f;
+        q(3,0) = 1.0f;
+    }
+    Quaternionf(float w, float x, float y, float z) {
+        q(0,0) = x;
+        q(1,0) = y;
+        q(2,0) = z;
+        q(3,0) = w;
+    }
+    float w() const { return q(3,0); }
+    float x() const { return q(0,0); }
+    float y() const { return q(1,0); }
+    float z() const { return q(2,0); }
+    float& w() { return q(3,0); }
+    float& x() { return q(0,0); }
+    float& y() { return q(1,0); }
+    float& z() { return q(2,0); }
+    inline Quaternionf operator*(const Quaternionf& rhs){
+        return Quaternionf(
+            w()*rhs.w() - x()*rhs.x() - y()*rhs.y() - z()*rhs.z(),
+            w()*rhs.x() + x()*rhs.w() + y()*rhs.z() - z()*rhs.y(),
+            w()*rhs.y() - x()*rhs.z() + y()*rhs.w() + z()*rhs.x(),
+            w()*rhs.z() + x()*rhs.y() - y()*rhs.x() + z()*rhs.w()
+        );
+    }
+    Quaternionf normalized() {
+        float norm = sqrt(w()*w() + x()*x() + y()*y() + z()*z());
+        return Quaternionf(w()/norm, x()/norm, y()/norm, z()/norm);
+    }
+};
 
 // #if defined(ARDUINO)
 // # include <math.h>
@@ -81,7 +117,7 @@ Vector3f ecef2ned(Vector3d ecef, Vector3d pos_ref);
 // frame with x-axis pointing north, the y-axis pointing eastwards and
 // the z axis pointing downwards.  (Returns the ecef2ned
 // transformation as a quaternion.)
-Quaterniond lla2quat(double lon_rad, double lat_rad);
+Quaternionf lla2quat(double lon_rad, double lat_rad);
 
 // This function gives a skew symmetric matrix from a given vector w
 Matrix3f sk(Vector3f w);
@@ -94,5 +130,3 @@ Quaternionf eul2quat(float phi, float the, float psi);
 
 // Quaternion to C_N2B
 Matrix3f quat2dcm(Quaternionf q);
-
-Quaternionf quat_multf(const Quaternionf& q1, const Quaternionf& q2);
