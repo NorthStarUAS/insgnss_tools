@@ -5,6 +5,7 @@
 from .nav_structs import IMUdata, GPSdata, NAVconfig
 from .ekf15_eigen import EKF15_eigen
 from .ekf15_mag_eigen import EKF15_mag_eigen
+from .ekf15_bla import EKF15_bla
 from .uNavINS import uNavINS
 from .uNavINS_BFS import uNavINS_BFS
 from .openloop import OpenLoop
@@ -18,6 +19,8 @@ class filter():
             self.filter = EKF15_eigen()
         elif nav == 'EKF15_mag_eigen':
             self.filter = EKF15_mag_eigen()
+        elif nav == 'EKF15_bla':
+            self.filter = EKF15_bla()
         elif nav == 'uNavINS':
             self.filter = uNavINS()
         elif nav == 'uNavINS_BFS':
@@ -25,7 +28,7 @@ class filter():
         elif nav == "pyNavEKF15":
             self.filter = pyEKF()
         else:
-            print("Unknown nav filter specified aborting:", nav)
+            print("nav_wrapper: unknown nav filter specified aborting:", nav)
             quit()
 
         self.openloop = OpenLoop()
