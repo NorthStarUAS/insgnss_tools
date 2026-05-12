@@ -10,6 +10,15 @@ umn dot edu in support of the research performed by the UAS and Control Systems
 groups at the Aerospace Engineering and Mechanics Deptarment, University of
 Minnesota.
 
+## ekf15_eigen_llt is currently the most refined version
+
+I have evaluated the code with copilot and chatgpt and made several tweaks to
+improve internal consistency and mathematical correctness.  Results aren't that
+much different from EKF15_eigen (which is close to the canonical version.)
+
+Some of the 'inconsistencies' in EKF15_eigen may have been simplifications for
+performance that were 'good enough'.
+
 ## Installation
 
 * Requires the props and flightdata python modules (also available at

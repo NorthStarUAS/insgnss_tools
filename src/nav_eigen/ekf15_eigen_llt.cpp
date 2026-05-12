@@ -14,10 +14,12 @@
  *
  */
 
-#include "../util/coremag.h"
+#include <iostream>
+using namespace std;
+
 #include "../util/nav_constants.h"
 #include "nav_functions_eigen.h"
-#include "ekf15_mag_eigen.h"
+#include "ekf15_eigen_llt.h"
 
 const float P_P_INIT = 10.0;
 const float P_V_INIT = 1.0;
@@ -37,15 +39,20 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15_mag_eigen::set_config(NAVconfig _config) {
+// quick helper function
+float clamp(float val, float min, float max) {
+    return (val < min) ? min : (val > max ? max : val);
+}
+
+void EKF15_eigen_llt::set_config(NAVconfig _config) {
     config = _config;
 }
 
-NAVconfig EKF15_mag_eigen::get_config() {
+NAVconfig EKF15_eigen_llt::get_config() {
     return config;
 }
 
-void EKF15_mag_eigen::default_config()
+void EKF15_eigen_llt::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -64,7 +71,7 @@ void EKF15_mag_eigen::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
+void EKF15_eigen_llt::init(IMUdata imu, GPSdata gps) {
     F.resize(15,15);
     PHI.resize(15,15);
     P.resize(15,15);
@@ -75,11 +82,11 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
     I15.resize(15,15);
 
     G.resize(15,12);
-    K.resize(15,9);
+    K.resize(15,6);
 
     Rw.resize(12,12);
 
-    H.resize(9,15);
+    H.resize(6,15);
 
     R.resize(6,6);
 
@@ -117,8 +124,6 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
     R.setZero();
     R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
     R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
-    R(6,6) = config.sig_mag*config.sig_mag;            R(7,7) = config.sig_mag*config.sig_mag;            R(8,8) = config.sig_mag*config.sig_mag;
-    R(8,8) *= 10.0; // copilot suggestion
 
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
@@ -137,35 +142,15 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
     nav.ve_mps = gps.ve_mps;
     nav.vd_mps = gps.vd_mps;
 
-    // ideal magnetic vector
-    // printf("EKF: unix_sec = %d\n", gps.unix_sec);
-    long int jd = now_to_julian_days();
-    double field[6];
-    calc_magvar( nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m / 1000.0, jd, field );
-    mag_ned(0) = field[3];
-    mag_ned(1) = field[4];
-    mag_ned(2) = field[5];
-    mag_ned.normalize();
-    // printf("%.2f %.2f %.2f\n", field[0], field[1], field[2]);
-    // printf("Ideal mag vector (ned): %.2f %.2f %.2f\n", mag_ned(0), mag_ned(1), mag_ned(2));
-    // // initial heading
-    // double init_psi_rad = 90.0*D2R;
-    // if ( fabs(mag_ned[0][0]) > 0.0001 || fabs(mag_ned[0][1]) > 0.0001 ) {
-    // 	init_psi_rad = atan2(mag_ned[0][1], mag_ned[0][0]);
-    // }
-
-    // fixme: for now match the reference implementation so we can
-    // compare intermediate calculations.
-    // nav.the_rad = 0*D2R;
-    // nav.phi_rad = 0*D2R;
-    // nav.psi_rad = 90.0*D2R;
-
     // ... and initialize states with IMU Data, theta from Ax, aircraft
     // at rest
-    float theta_rad = asin(imu.ax_mps2/g);
+    float theta_rad = asin(clamp(imu.ax_mps2/g, -1.0, 1.0));
     nav.theta_deg = theta_rad * r2d;
     // phi from Ay, aircraft at rest
-    float phi_rad = asin(imu.ay_mps2/(g*cos(theta_rad)));
+    float phi_rad = 0.0;
+    if ( fabs(cos(theta_rad)) > 0.01 ) {
+        phi_rad = asin(clamp(imu.ay_mps2/(g*cos(theta_rad)), -1.0, 1.0));
+    }
     nav.phi_deg = phi_rad * r2d;
 
     // this is atan2(x, -y) because the aircraft body X,Y axis are
@@ -202,7 +187,7 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-void EKF15_mag_eigen::time_update(IMUdata imu) {
+void EKF15_eigen_llt::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This computes the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time_sec - imu_last.time_sec;
@@ -214,7 +199,6 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
 
     // Attitude Update
     // ... Calculate Navigation Rate
-    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
     Vector3d pos_ref(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
 
     if ( false ) {
@@ -278,6 +262,7 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
     nav.vd_mps += imu_dt*dx(2);
 
     // Position Update
+    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
     dx = llarate(vel_vec, pos_ref);
     nav.latitude_deg += imu_dt*dx(0)*r2d;
     nav.longitude_deg += imu_dt*dx(1)*r2d;
@@ -293,9 +278,9 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
     // ... gs2att
     temp33 = C_B2N * sk(f_b);
 
-    F(3,6) = -2.0*temp33(0,0);  F(3,7) = -2.0*temp33(0,1);  F(3,8) = -2.0*temp33(0,2);
-    F(4,6) = -2.0*temp33(1,0);  F(4,7) = -2.0*temp33(1,1);  F(4,8) = -2.0*temp33(1,2);
-    F(5,6) = -2.0*temp33(2,0);  F(5,7) = -2.0*temp33(2,1);  F(5,8) = -2.0*temp33(2,2);
+    F(3,6) = -temp33(0,0);  F(3,7) = -temp33(0,1);  F(3,8) = -temp33(0,2);
+    F(4,6) = -temp33(1,0);  F(4,7) = -temp33(1,1);  F(4,8) = -temp33(1,2);
+    F(5,6) = -temp33(2,0);  F(5,7) = -temp33(2,1);  F(5,8) = -temp33(2,2);
 
     // ... gs2acc
     F(3,9) = -C_B2N(0,0);  F(3,10) = -C_B2N(0,1);  F(3,11) = -C_B2N(0,2);
@@ -335,7 +320,8 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
 
     // Discrete Process Noise
     Qw = G * Rw * G.transpose() * imu_dt;		// Qw = dt*G*Rw*G'
-    Q = PHI * Qw;					// Q = (I+F*dt)*Qw
+    // Q = PHI * Qw;					// Q = (I+F*dt)*Qw              // Demoz
+    Q = PHI * Qw * PHI.transpose();	    // Q = PHI*Qw*PHI'              // Both ChatGPT and CoPilot claim this is more correct
     Q = (Q + Q.transpose()) * 0.5;			// Q = 0.5*(Q+Q')
 
     // Covariance Time Update
@@ -351,12 +337,8 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
     // ==================  DONE Time Update  ===================
 }
 
-void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
+void EKF15_eigen_llt::measurement_update(GPSdata gps) {
     // ==================  GPS Update  ===================
-
-    // copilot suggests reseting H
-    H.setZero();
-    H.topLeftCorner(6,6).setIdentity();
 
     // Position, converted to NED
     Vector3d pos_ref(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
@@ -369,37 +351,6 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
 
     Vector3f pos_error_ned = ecef2ned(pos_error_ecef, pos_ref);
 
-    // measured mag vector (body frame)
-    Vector3f mag_sense;
-    mag_sense(0) = imu.hx;
-    mag_sense(1) = imu.hy;
-    mag_sense(2) = imu.hz;
-    mag_sense.normalize();
-
-    Vector3f mag_error; // magnetometer measurement error
-    bool mag_error_in_ned = false;
-    if ( mag_error_in_ned ) {
-        // rotate measured mag vector into ned frame (then normalized)
-        Vector3f mag_sense_ned = C_B2N * mag_sense;
-        mag_sense_ned.normalize();
-        mag_error = mag_sense_ned - mag_ned;
-    } else {
-        // rotate ideal mag vector into body frame (then normalized)
-        Vector3f mag_ideal = C_N2B * mag_ned;
-        mag_ideal.normalize();
-        mag_error = mag_sense - mag_ideal;
-        // cout << "mag_error:" << mag_error << endl;
-
-        // Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
-        // Matrix3f tmp1 = sk(mag_sense) * 2.0;  // Demoz
-        Matrix3f tmp1 = sk(mag_ideal);     // copilot suggested change
-        for ( int j = 0; j < 3; j++ ) {
-            for ( int i = 0; i < 3; i++ ) {
-                H(6+i,6+j) = tmp1(i,j);
-            }
-        }
-    }
-
     // Create Measurement: y
     y(0) = pos_error_ned(0);
     y(1) = pos_error_ned(1);
@@ -409,20 +360,16 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     y(4) = gps.ve_mps - nav.ve_mps;
     y(5) = gps.vd_mps - nav.vd_mps;
 
-    y(6) = mag_error(0);
-    y(7) = mag_error(1);
-    y(8) = mag_error(2);
-
     // Kalman Gain
     // K = P*H'*inv(H*P*H'+R)
     if ( false ) {
-        // original
         K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
     } else {
-        // copilot suggestion to symmetricize covariance
-        MatrixXf S = H * P * H.transpose() + R;
-        S = (S + S.transpose()) * 0.5f;
-        K = P * H.transpose() * S.inverse();
+        MatrixXf S   = H * P * H.transpose() + R;
+        MatrixXf PHt = P * H.transpose();
+
+        Eigen::LLT<MatrixXf> llt(S);
+        K = llt.solve(PHt.transpose()).transpose();
     }
 
     // Covariance Update
@@ -431,6 +378,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     KRKt = K * R * K.transpose();		// KRKt = K*R*K'
 
     P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
+    P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
 
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
@@ -455,7 +403,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     nav.vd_mps = nav.vd_mps + x(5);
 
     // Attitude correction
-    Quaternionf dq = Quaternionf(1.0, 0.5*x(6), 0.5*x(7), 0.5*x(8)); // copilot suggests 0.5*x(n)
+    Quaternionf dq = Quaternionf(1.0, 0.5*x(6), 0.5*x(7), 0.5*x(8));
     quat = (quat * dq).normalized();
 
     Vector3f att_vec = quat2eul(quat);
@@ -473,7 +421,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
 }
 
 
-NAVdata EKF15_mag_eigen::get_nav() {
+NAVdata EKF15_eigen_llt::get_nav() {
     nav.qw = quat.w();
     nav.qx = quat.x();
     nav.qy = quat.y();

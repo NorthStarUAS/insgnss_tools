@@ -33,7 +33,7 @@ import battery
 parser = argparse.ArgumentParser(description="nav filter")
 parser.add_argument("flight", help="flight data log")
 parser.add_argument("filter", metavar="filter", nargs="+",
-                    choices=["EKF15_eigen", "EKF15_mag_eigen", "EKF15_bla", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
+                    choices=["EKF15_eigen", "EKF15_mag_eigen", "EKF15_eigen_llt", "EKF15_mag_eigen_llt", "EKF15_bla", "uNavINS", "uNavINS_BFS", "pyNavEKF15"],
                     help="filters")
 parser.add_argument("--gps-lag-sec", type=float, default=0.0,
                     help="gps lag (sec)")
@@ -640,7 +640,7 @@ if False:
     ax1.plot(xvals, yvals, label="fit", c="b", lw=2, alpha=.8)
 
 # plot alpha vs. CL (estimate)
-if len(alpha_beta.cl_array):
+if False and len(alpha_beta.cl_array):
     time_array = np.array(alpha_beta.time_array)
     cl_array = np.array(alpha_beta.cl_array)
     alpha_array = np.array(alpha_beta.alpha_array)

@@ -17,7 +17,7 @@
 #include "../util/coremag.h"
 #include "../util/nav_constants.h"
 #include "nav_functions_eigen.h"
-#include "ekf15_mag_eigen.h"
+#include "ekf15_mag_eigen_llt.h"
 
 const float P_P_INIT = 10.0;
 const float P_V_INIT = 1.0;
@@ -37,15 +37,15 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // lot of these multi line equations with temp matrices can be
 // compressed.
 
-void EKF15_mag_eigen::set_config(NAVconfig _config) {
+void EKF15_mag_eigen_llt::set_config(NAVconfig _config) {
     config = _config;
 }
 
-NAVconfig EKF15_mag_eigen::get_config() {
+NAVconfig EKF15_mag_eigen_llt::get_config() {
     return config;
 }
 
-void EKF15_mag_eigen::default_config()
+void EKF15_mag_eigen_llt::default_config()
 {
     config.sig_w_ax = 0.05;     // Std dev of Accelerometer Wide Band Noise (m/s^2)
     config.sig_w_ay = 0.05;
@@ -64,7 +64,7 @@ void EKF15_mag_eigen::default_config()
     config.sig_mag      = 0.3;  // Magnetometer measurement noise std dev (normalized -1 to 1)
 }
 
-void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
+void EKF15_mag_eigen_llt::init(IMUdata imu, GPSdata gps) {
     F.resize(15,15);
     PHI.resize(15,15);
     P.resize(15,15);
@@ -118,7 +118,6 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
     R(0,0) = config.sig_gps_p_ne*config.sig_gps_p_ne;	 R(1,1) = config.sig_gps_p_ne*config.sig_gps_p_ne;  R(2,2) = config.sig_gps_p_d*config.sig_gps_p_d;
     R(3,3) = config.sig_gps_v_ne*config.sig_gps_v_ne;	 R(4,4) = config.sig_gps_v_ne*config.sig_gps_v_ne;  R(5,5) = config.sig_gps_v_d*config.sig_gps_v_d;
     R(6,6) = config.sig_mag*config.sig_mag;            R(7,7) = config.sig_mag*config.sig_mag;            R(8,8) = config.sig_mag*config.sig_mag;
-    R(8,8) *= 10.0; // copilot suggestion
 
     // ... update P in get_nav
     nav.Pp0 = P(0,0);	  nav.Pp1 = P(1,1);	nav.Pp2 = P(2,2);
@@ -202,7 +201,7 @@ void EKF15_mag_eigen::init(IMUdata imu, GPSdata gps) {
 }
 
 // Main get_nav filter function
-void EKF15_mag_eigen::time_update(IMUdata imu) {
+void EKF15_mag_eigen_llt::time_update(IMUdata imu) {
     // compute time-elapsed 'dt'
     // This computes the navigation state at the DAQ's Time Stamp
     float imu_dt = imu.time_sec - imu_last.time_sec;
@@ -351,12 +350,8 @@ void EKF15_mag_eigen::time_update(IMUdata imu) {
     // ==================  DONE Time Update  ===================
 }
 
-void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
+void EKF15_mag_eigen_llt::measurement_update(IMUdata imu, GPSdata gps) {
     // ==================  GPS Update  ===================
-
-    // copilot suggests reseting H
-    H.setZero();
-    H.topLeftCorner(6,6).setIdentity();
 
     // Position, converted to NED
     Vector3d pos_ref(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
@@ -375,6 +370,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     mag_sense(1) = imu.hy;
     mag_sense(2) = imu.hz;
     mag_sense.normalize();
+    printf("%.2f %.2f %.2f\n", mag_sense(0), mag_sense(1), mag_sense(2));
 
     Vector3f mag_error; // magnetometer measurement error
     bool mag_error_in_ned = false;
@@ -391,8 +387,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
         // cout << "mag_error:" << mag_error << endl;
 
         // Matrix<double,3,3> tmp1 = C_N2B * sk(mag_ned);
-        // Matrix3f tmp1 = sk(mag_sense) * 2.0;  // Demoz
-        Matrix3f tmp1 = sk(mag_ideal);     // copilot suggested change
+        Matrix3f tmp1 = sk(mag_sense) * 2.0;
         for ( int j = 0; j < 3; j++ ) {
             for ( int i = 0; i < 3; i++ ) {
                 H(6+i,6+j) = tmp1(i,j);
@@ -416,13 +411,14 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     // Kalman Gain
     // K = P*H'*inv(H*P*H'+R)
     if ( false ) {
-        // original
         K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
     } else {
-        // copilot suggestion to symmetricize covariance
-        MatrixXf S = H * P * H.transpose() + R;
-        S = (S + S.transpose()) * 0.5f;
-        K = P * H.transpose() * S.inverse();
+        MatrixXf S   = H * P * H.transpose() + R;
+        S = (S + S.transpose()) * 0.5f; // copilot suggestion
+        MatrixXf PHt = P * H.transpose();
+
+        Eigen::LLT<MatrixXf> llt(S);
+        K = llt.solve(PHt.transpose()).transpose();
     }
 
     // Covariance Update
@@ -455,7 +451,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
     nav.vd_mps = nav.vd_mps + x(5);
 
     // Attitude correction
-    Quaternionf dq = Quaternionf(1.0, 0.5*x(6), 0.5*x(7), 0.5*x(8)); // copilot suggests 0.5*x(n)
+    Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8));
     quat = (quat * dq).normalized();
 
     Vector3f att_vec = quat2eul(quat);
@@ -473,7 +469,7 @@ void EKF15_mag_eigen::measurement_update(IMUdata imu, GPSdata gps) {
 }
 
 
-NAVdata EKF15_mag_eigen::get_nav() {
+NAVdata EKF15_mag_eigen_llt::get_nav() {
     nav.qw = quat.w();
     nav.qx = quat.x();
     nav.qy = quat.y();

@@ -28,8 +28,8 @@ const float P_HDG_INIT = 3.14159; // 180 deg
 const float P_AB_INIT = 0.9810;   // 0.5*g
 const float P_GB_INIT = 0.01745;  // 5 deg/s
 
-const double Rew = 6.359058719353925e+006; // earth radius
-const double Rns = 6.386034030458164e+006; // earth radius
+// const double Rew = 6.359058719353925e+006; // earth radius
+// const double Rns = 6.386034030458164e+006; // earth radius
 
 // BRT: (1) I think there are some several identity and sparse
 // matrices, so probably some optimization still left there.  (2)
@@ -191,7 +191,6 @@ void EKF15_eigen::time_update(IMUdata imu) {
 
     // Attitude Update
     // ... Calculate Navigation Rate
-    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
     Vector3d pos_ref(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
 
     if ( false ) {
@@ -253,6 +252,7 @@ void EKF15_eigen::time_update(IMUdata imu) {
     nav.vn_mps += imu_dt*dx(0);
     nav.ve_mps += imu_dt*dx(1);
     nav.vd_mps += imu_dt*dx(2);
+    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
 
     // Position Update
     dx = llarate(vel_vec, pos_ref);
@@ -385,7 +385,7 @@ void EKF15_eigen::measurement_update(GPSdata gps) {
     nav.vd_mps = nav.vd_mps + x(5);
 
     // Attitude correction
-    Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8));
+    Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8)); // copilot says 0.5* to be consistent with measurement update and be correct for EKF's but this leads to bad performance!
     quat = (quat * dq).normalized();
 
     Vector3f att_vec = quat2eul(quat);

@@ -5,6 +5,8 @@
 from .nav_structs import IMUdata, GPSdata, NAVconfig
 from .ekf15_eigen import EKF15_eigen
 from .ekf15_mag_eigen import EKF15_mag_eigen
+from .ekf15_eigen_llt import EKF15_eigen_llt
+from .ekf15_mag_eigen_llt import EKF15_mag_eigen_llt
 from .ekf15_bla import EKF15_bla
 from .uNavINS import uNavINS
 from .uNavINS_BFS import uNavINS_BFS
@@ -19,6 +21,10 @@ class filter():
             self.filter = EKF15_eigen()
         elif nav == 'EKF15_mag_eigen':
             self.filter = EKF15_mag_eigen()
+        elif nav == 'EKF15_eigen_llt':
+            self.filter = EKF15_eigen_llt()
+        elif nav == 'EKF15_mag_eigen_llt':
+            self.filter = EKF15_mag_eigen_llt()
         elif nav == 'EKF15_bla':
             self.filter = EKF15_bla()
         elif nav == 'uNavINS':
