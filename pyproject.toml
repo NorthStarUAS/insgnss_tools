@@ -1,0 +1,24 @@
+
+[build-system]
+requires = [
+    "setuptools>=77",
+    "wheel",
+    "pybind11>=2.10"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insgnss_tools"
+version = "1.4"
+description = "INS/GNSS/EKF Toolbox"
+readme = "README.md"
+authors = [
+    { name = "Curtis L. Olson", email = "curtolson@flightgear.org" }
+]
+requires-python = ">=3.8"
+
+# No dependencies currently declared in setup.py
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/NorthStarUAS"
