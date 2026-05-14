@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include "../util/nav_structs.h"

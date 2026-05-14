@@ -89,7 +89,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,7 +198,7 @@ unsigned long int yymmdd_to_julian_days( int yy, int mm, int dd )
 
     /* printf("julian date = %d\n", jd ); */
     return jd;
-} 
+}
 
 
 /* Convert unix date (seconds since the epoc) to Julian day: 1950-2049 */
@@ -376,7 +376,7 @@ double calc_magvar( double lat, double lon, double h, long dat, double* field )
     field[5]=Z;   /* output fields */
 
     printf("hx=%.2f hy=%.2f hz=%.2f\n", X, Y, Z);
-    
+
     /* find variation in radians */
     /* return zero variation at magnetic pole X=Y=0. */
     /* E is positive */

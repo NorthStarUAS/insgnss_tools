@@ -17,9 +17,9 @@
 #pragma once
 
 #include <math.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
-#include <eigen3/Eigen/LU>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <Eigen/LU>
 using namespace Eigen;
 
 #include "../util/nav_structs.h"

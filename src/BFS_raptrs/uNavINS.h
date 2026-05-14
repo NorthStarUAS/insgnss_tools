@@ -23,8 +23,9 @@ Original Author: Adhika Lie
 
 #pragma once
 
-#include <stdint.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
+#include <stdint.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 

@@ -27,8 +27,8 @@
 # include <eigen.h>
 # include <Eigen/Geometry>
 #else
-# include "eigen3/Eigen/Core"
-# include "eigen3/Eigen/Geometry"
+# include "Eigen/Core"
+# include "Eigen/Geometry"
 #endif
 using namespace Eigen;
 
