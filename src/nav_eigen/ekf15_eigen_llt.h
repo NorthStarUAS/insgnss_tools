@@ -60,6 +60,7 @@ private:
     // make our big matrices dynamic (so they get allocated on the
     // heap) to play nice on embedded systems with small stacks.
     MatrixXf F, PHI, P, Qw, Q, ImKH, KRKt, I15; // 15x15
+    MatrixXf S, PHt;                            // 15x15
     MatrixXf G;                                 // 15x12
     MatrixXf K;                                 // 15x6
     MatrixXf Rw;                                // 12x12
