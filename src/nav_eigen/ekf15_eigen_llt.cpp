@@ -80,6 +80,8 @@ void EKF15_eigen_llt::init(IMUdata imu, GPSdata gps) {
     ImKH.resize(15,15);
     KRKt.resize(15,15);
     I15.resize(15,15);
+    S.resize(15,15);
+    PHt.resize(15,15);
 
     G.resize(15,12);
     K.resize(15,6);
@@ -365,8 +367,10 @@ void EKF15_eigen_llt::measurement_update(GPSdata gps) {
     if ( false ) {
         K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
     } else {
-        MatrixXf S   = H * P * H.transpose() + R;
-        MatrixXf PHt = P * H.transpose();
+        // alternate formulation that avoids computing the inverse.  Not faster,
+        // but more numerically stable.
+        S   = H * P * H.transpose() + R;
+        PHt = P * H.transpose();
 
         Eigen::LLT<MatrixXf> llt(S);
         K = llt.solve(PHt.transpose()).transpose();
