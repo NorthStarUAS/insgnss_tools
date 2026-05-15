@@ -21,6 +21,7 @@ All units meters and radians
 
 #pragma once
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>

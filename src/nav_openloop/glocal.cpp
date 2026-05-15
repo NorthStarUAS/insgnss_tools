@@ -2,13 +2,13 @@
 // altitude (m).  Returns the local gravity vector in ned coordinates.
 // In other words, it computes the magnitude of the of local gravity
 // at the wgs84 reference elliposid using the Somigliana model and
-// makes corrections for altitude. 
+// makes corrections for altitude.
 
 #include <math.h>
 
 #include <math.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 using namespace Eigen;
 
 #include "glocal.h"

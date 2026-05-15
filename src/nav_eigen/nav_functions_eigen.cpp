@@ -23,6 +23,9 @@
  * $Id: nav_functions.c 922 2012-10-17 19:14:09Z joh07594 $
  */
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "nav_functions_eigen.h"
 
 // This function calculates the rate of change of latitude, longitude,

@@ -1,5 +1,6 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #define EARTH_RATE   0.00007292115   		/* rotation rate of earth (rad/sec) */
