@@ -370,6 +370,7 @@ void EKF15_eigen_llt::measurement_update(GPSdata gps) {
         // alternate formulation that avoids computing the inverse.  Not faster,
         // but more numerically stable.
         S   = H * P * H.transpose() + R;
+        S = (S + S.transpose()) * 0.5f; // copilot suggestion
         PHt = P * H.transpose();
 
         Eigen::LLT<MatrixXf> llt(S);

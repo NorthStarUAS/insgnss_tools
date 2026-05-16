@@ -43,7 +43,7 @@ class EKF15_mag_eigen_llt {
 public:
 
     EKF15_mag_eigen_llt() {
-	default_config();
+	    default_config();
     }
     ~EKF15_mag_eigen_llt() {}
 
