@@ -366,6 +366,7 @@ void EKF15_eigen_llt::measurement_update(GPSdata gps) {
         K = P * H.transpose() * (H * P * H.transpose() + R).inverse();
     } else {
         MatrixXf S   = H * P * H.transpose() + R;
+        S = (S + S.transpose()) * 0.5f; // copilot suggestion
         MatrixXf PHt = P * H.transpose();
 
         Eigen::LLT<MatrixXf> llt(S);

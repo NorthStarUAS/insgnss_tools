@@ -30,6 +30,10 @@ using namespace Eigen;
 
 #include "../util/nav_structs.h"
 
+#if defined(ARDUINO)
+#undef F
+#endif
+
 // define some types for notational convenience and consistency
 typedef Matrix<float,6,1> Vector6f;
 typedef Matrix<float,15,1> Vector15f;

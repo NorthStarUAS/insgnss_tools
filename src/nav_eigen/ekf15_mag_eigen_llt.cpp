@@ -14,6 +14,9 @@
  *
  */
 
+#include <iostream>
+using namespace std;
+
 #include "../util/coremag.h"
 #include "../util/nav_constants.h"
 #include "nav_functions_eigen.h"
@@ -36,6 +39,11 @@ const double Rns = 6.386034030458164e+006; // earth radius
 // of block operations with F, i.e. F.block(j,k) = C_B2N, etc.  (4) A
 // lot of these multi line equations with temp matrices can be
 // compressed.
+
+// quick helper function
+float clamp(float val, float min, float max) {
+    return (val < min) ? min : (val > max ? max : val);
+}
 
 void EKF15_mag_eigen_llt::set_config(NAVconfig _config) {
     config = _config;
@@ -161,10 +169,13 @@ void EKF15_mag_eigen_llt::init(IMUdata imu, GPSdata gps) {
 
     // ... and initialize states with IMU Data, theta from Ax, aircraft
     // at rest
-    float theta_rad = asin(imu.ax_mps2/g);
+    float theta_rad = asin(clamp(imu.ax_mps2/g, -1.0, 1.0));
     nav.theta_deg = theta_rad * r2d;
     // phi from Ay, aircraft at rest
-    float phi_rad = asin(imu.ay_mps2/(g*cos(theta_rad)));
+    float phi_rad = 0.0;
+    if ( fabs(cos(theta_rad)) > 0.01 ) {
+        phi_rad = asin(clamp(imu.ay_mps2/(g*cos(theta_rad)), -1.0, 1.0));
+    }
     nav.phi_deg = phi_rad * r2d;
 
     // this is atan2(x, -y) because the aircraft body X,Y axis are
@@ -213,7 +224,6 @@ void EKF15_mag_eigen_llt::time_update(IMUdata imu) {
 
     // Attitude Update
     // ... Calculate Navigation Rate
-    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
     Vector3d pos_ref(nav.latitude_deg*d2r, nav.longitude_deg*d2r, nav.altitude_m);
 
     if ( false ) {
@@ -277,6 +287,7 @@ void EKF15_mag_eigen_llt::time_update(IMUdata imu) {
     nav.vd_mps += imu_dt*dx(2);
 
     // Position Update
+    Vector3f vel_vec(nav.vn_mps, nav.ve_mps, nav.vd_mps);
     dx = llarate(vel_vec, pos_ref);
     nav.latitude_deg += imu_dt*dx(0)*r2d;
     nav.longitude_deg += imu_dt*dx(1)*r2d;
@@ -292,9 +303,9 @@ void EKF15_mag_eigen_llt::time_update(IMUdata imu) {
     // ... gs2att
     temp33 = C_B2N * sk(f_b);
 
-    F(3,6) = -2.0*temp33(0,0);  F(3,7) = -2.0*temp33(0,1);  F(3,8) = -2.0*temp33(0,2);
-    F(4,6) = -2.0*temp33(1,0);  F(4,7) = -2.0*temp33(1,1);  F(4,8) = -2.0*temp33(1,2);
-    F(5,6) = -2.0*temp33(2,0);  F(5,7) = -2.0*temp33(2,1);  F(5,8) = -2.0*temp33(2,2);
+    F(3,6) = -temp33(0,0);  F(3,7) = -temp33(0,1);  F(3,8) = -temp33(0,2);
+    F(4,6) = -temp33(1,0);  F(4,7) = -temp33(1,1);  F(4,8) = -temp33(1,2);
+    F(5,6) = -temp33(2,0);  F(5,7) = -temp33(2,1);  F(5,8) = -temp33(2,2);
 
     // ... gs2acc
     F(3,9) = -C_B2N(0,0);  F(3,10) = -C_B2N(0,1);  F(3,11) = -C_B2N(0,2);
@@ -334,7 +345,8 @@ void EKF15_mag_eigen_llt::time_update(IMUdata imu) {
 
     // Discrete Process Noise
     Qw = G * Rw * G.transpose() * imu_dt;		// Qw = dt*G*Rw*G'
-    Q = PHI * Qw;					// Q = (I+F*dt)*Qw
+    // Q = PHI * Qw;					// Q = (I+F*dt)*Qw              // Demoz
+    Q = PHI * Qw * PHI.transpose();	    // Q = PHI*Qw*PHI'              // Both ChatGPT and CoPilot claim this is more correct
     Q = (Q + Q.transpose()) * 0.5;			// Q = 0.5*(Q+Q')
 
     // Covariance Time Update
@@ -427,6 +439,7 @@ void EKF15_mag_eigen_llt::measurement_update(IMUdata imu, GPSdata gps) {
     KRKt = K * R * K.transpose();		// KRKt = K*R*K'
 
     P = ImKH * P * ImKH.transpose() + KRKt;	// P = ImKH*P*ImKH' + KRKt
+    P = (P + P.transpose()) * 0.5;			// P = 0.5*(P+P')
 
     nav.Pp0 = P(0,0);     nav.Pp1 = P(1,1);     nav.Pp2 = P(2,2);
     nav.Pv0 = P(3,3);     nav.Pv1 = P(4,4);     nav.Pv2 = P(5,5);
@@ -451,7 +464,7 @@ void EKF15_mag_eigen_llt::measurement_update(IMUdata imu, GPSdata gps) {
     nav.vd_mps = nav.vd_mps + x(5);
 
     // Attitude correction
-    Quaternionf dq = Quaternionf(1.0, x(6), x(7), x(8));
+    Quaternionf dq = Quaternionf(1.0, 0.5*x(6), 0.5*x(7), 0.5*x(8));
     quat = (quat * dq).normalized();
 
     Vector3f att_vec = quat2eul(quat);
