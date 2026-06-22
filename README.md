@@ -1,5 +1,7 @@
 # NorthStar UAS -- Navigation INS/GNSS EKF Toolbox
 
+NOTICE: This project has moved to Codeberg.org <https://codeberg.org/NorthStarUAS>
+
 INS/GNSS, EKF, Sensor fusion toolbox with python wrappers.  Suitable for use in
 small UAS applications.  The code is structured with dual C++ and python
 interfaces.  It includes a plotting library for comparing filters and
